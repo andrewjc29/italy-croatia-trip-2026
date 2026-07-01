@@ -70,24 +70,37 @@
   <div class="weather-grid" id="weatherGrid"></div>
   <div class="sub-h" style="margin-top:2.4rem"><h3>Budget</h3><span class="rule"></span></div>
   <div id="budgetPanel"></div>
-  <div class="sub-h" style="margin-top:2.4rem"><h3>Documents</h3><span class="rule"></span></div>
-  <div style="margin-bottom:10px"><button class="btn" id="addDocBtn">+ Add document link</button></div>
-  <div class="doc-grid" id="docGrid"></div>
-  <div class="sub-h" style="margin-top:2.4rem"><h3>Emergency info</h3><span class="rule"></span></div>
-  <div class="doc-grid" id="emergencyInfo"></div>
-  <div class="sub-h" style="margin-top:2.4rem"><h3>Notes &amp; journal</h3><span class="rule"></span></div>
-  <div style="margin-bottom:10px"><button class="btn" id="addNoteBtn">+ Add a note</button></div>
-  <div id="notesList"></div>
-  <div class="sub-h" style="margin-top:2.4rem"><h3>Next steps</h3><span class="tag">in order</span><span class="rule"></span></div>
-  <div id="nextStepsList"></div>
+
+  <details class="tk-collapse">
+    <summary><h3>Documents</h3><span class="rule"></span><span class="arw">+</span></summary>
+    <div class="tk-collapse-body">
+      <div style="margin-bottom:10px"><button class="btn" id="addDocBtn">+ Add document link</button></div>
+      <div class="doc-grid" id="docGrid"></div>
+    </div>
+  </details>
+
+  <details class="tk-collapse">
+    <summary><h3>Emergency info</h3><span class="rule"></span><span class="arw">+</span></summary>
+    <div class="tk-collapse-body">
+      <div class="doc-grid" id="emergencyInfo"></div>
+    </div>
+  </details>
+
+  <details class="tk-collapse">
+    <summary><h3>Notes &amp; journal</h3><span class="rule"></span><span class="arw">+</span></summary>
+    <div class="tk-collapse-body">
+      <div style="margin-bottom:10px"><button class="btn" id="addNoteBtn">+ Add a note</button></div>
+      <div id="notesList"></div>
+    </div>
+  </details>
 </section>
 
 <div class="divider"></div>
 
 <section class="prep" id="prep">
   <div class="prep-wrap">
-    <h2>Before you <em>book</em></h2>
-    <p class="fp">Everything left to do, in order. Check items off as you go, it is saved automatically.</p>
+    <h2>Trip <em>prep</em></h2>
+    <p class="fp">Everything left to do, before you book and after, in order. Check items off as you go, it is saved automatically.</p>
     <div id="prepList"></div>
     <p class="foot-note">Currency is the euro throughout (Croatia adopted it in 2023). Location photos are from the original trip guide.</p>
   </div>

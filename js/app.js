@@ -788,24 +788,23 @@ function attachPrepToggleHandlers(container) {
   }));
 }
 
-// The "Before you book" section: the original guide's 6 foundational steps only.
-function renderPrep(state) {
-  const beforeItems = (state.prepChecklist || []).filter((it) => it.phase === "Before you book");
-  const container = document.getElementById("prepList");
-  container.innerHTML = beforeItems.map((item) =>
-    '<label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>').join("");
-  attachPrepToggleHandlers(container);
+// One merged Prep checklist: "Before you book" first, then the full phased
+// plan (Now / 3-4mo / 2-3mo / 1-2mo / 1-2wk), all in the same dark section.
+function prepItemHtml(item) {
+  return '<label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>';
 }
 
-// The Toolkit "Next steps" block: the full phased plan (Now / 3-4mo / 2-3mo / 1-2mo / 1-2wk).
-function renderNextSteps(state) {
-  const rest = (state.prepChecklist || []).filter((it) => it.phase !== "Before you book");
-  const phases = groupByPhase(rest);
-  const container = document.getElementById("nextStepsList");
-  container.innerHTML = phases.map((g) =>
-    '<div class="nextstep-phase"><h4>' + esc(g.phase) + '</h4>' + g.items.map((item) =>
-      '<label class="nextstep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>').join("") +
-    "</div>").join("");
+function renderPrep(state) {
+  const items = state.prepChecklist || [];
+  const beforeItems = items.filter((it) => it.phase === "Before you book");
+  const restPhases = groupByPhase(items.filter((it) => it.phase !== "Before you book"));
+  const container = document.getElementById("prepList");
+  const beforeHtml = beforeItems.length
+    ? '<div class="prep-phase"><h4>Before you book</h4>' + beforeItems.map(prepItemHtml).join("") + '</div>'
+    : "";
+  const restHtml = restPhases.map((g) =>
+    '<div class="prep-phase"><h4>' + esc(g.phase) + '</h4>' + g.items.map(prepItemHtml).join("") + '</div>').join("");
+  container.innerHTML = beforeHtml + restHtml;
   attachPrepToggleHandlers(container);
 }
 
@@ -821,7 +820,6 @@ function renderAll(state, syncStatus) {
   renderEmergencyInfo(state);
   renderNotes(state);
   renderPrep(state);
-  renderNextSteps(state);
   renderWeather();
   renderBudget(state);
   renderMap();

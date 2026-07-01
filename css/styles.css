@@ -109,6 +109,17 @@ button{font-family:inherit}
 .sub-h .tag{font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent,var(--terracotta));font-weight:600;white-space:nowrap}
 .sub-h .rule{flex:1;height:1px;background:var(--line)}
 
+/* ---- collapsible toolkit sections (Documents, Emergency, Notes -- checked
+   less often than Map/Weather/Budget, so they stay tucked away by default) ---- */
+.tk-collapse{margin-top:2.4rem}
+.tk-collapse summary{display:flex;align-items:baseline;gap:1rem;cursor:pointer;list-style:none}
+.tk-collapse summary::-webkit-details-marker{display:none}
+.tk-collapse summary h3{font-size:1.6rem;color:var(--adriatic-deep);margin:0}
+.tk-collapse summary .rule{flex:1;height:1px;background:var(--line);align-self:center}
+.tk-collapse summary .arw{font-family:'Outfit';font-size:1.3rem;color:var(--terracotta);transition:transform .25s;flex-shrink:0}
+.tk-collapse[open] summary .arw{transform:rotate(45deg)}
+.tk-collapse-body{margin-top:1.3rem}
+
 /* ---- filter chips ---- */
 .filters{display:flex;gap:.5rem;flex-wrap:wrap;margin:-.3rem 0 1.2rem}
 .chip{font-family:'Outfit';font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;font-weight:500;padding:.4rem .9rem;border-radius:var(--radius-pill);border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;transition:all .2s}
@@ -213,7 +224,9 @@ button{font-family:inherit}
 .prep h2 em{font-style:italic;color:var(--seaglass-soft)}
 .prep .fp{opacity:.82;margin-bottom:2rem;max-width:560px}
 .prep-phase{margin-top:2rem}
+.prep-phase:first-child{margin-top:0}
 .prep-phase h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--seaglass-soft);font-weight:600;margin-bottom:.3rem;padding-top:1.2rem;border-top:1px solid rgba(255,255,255,.16)}
+.prep-phase:first-child h4{border-top:none;padding-top:0}
 .prep-item{display:flex;align-items:flex-start;gap:.8rem;padding:.7rem 0}
 .prep-item input[type=checkbox]{margin-top:.3rem;width:16px;height:16px;accent-color:var(--seaglass-soft);flex-shrink:0}
 .prep-item span{font-size:.95rem}
@@ -268,11 +281,3 @@ td.actions a:hover, td.actions button.site-link:hover{border-color:var(--terraco
 .add-row-btn{margin:.6rem 0 0}
 
 /* ---- next steps (light-theme checklist, in the toolkit section) ---- */
-.nextstep-phase{margin-top:1.6rem}
-.nextstep-phase:first-child{margin-top:0}
-.nextstep-phase h4{font-family:'Outfit';font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--seaglass);font-weight:600;margin-bottom:.2rem;padding-top:1rem;border-top:1px solid var(--line)}
-.nextstep-phase:first-child h4{border-top:none;padding-top:0}
-.nextstep-item{display:flex;align-items:flex-start;gap:.7rem;padding:.6rem 0}
-.nextstep-item input[type=checkbox]{margin-top:.3rem;width:16px;height:16px;accent-color:var(--adriatic);flex-shrink:0}
-.nextstep-item span{font-size:.92rem;color:var(--ink)}
-.nextstep-item.done span{opacity:.5;text-decoration:line-through}
