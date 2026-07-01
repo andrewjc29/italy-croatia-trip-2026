@@ -4,7 +4,7 @@
 // endpoint, Google Maps) is left alone and goes straight to the network --
 // this only ever caches same-origin GET requests.
 
-const CACHE_NAME = "trip-cache-v1";
+const CACHE_NAME = "trip-cache-v2";
 const CORE_ASSETS = [
   "./",
   "index.html",
@@ -44,14 +44,38 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Stale-while-revalidate: serve from cache immediately if present, and
-// refresh the cache in the background from the network for next time.
+// App shell code (html/css/js/json) is network-first: always try to fetch the
+// latest deploy, and only fall back to the cache if there's no connection.
+// This is deliberate -- this site gets redeployed constantly, and serving a
+// cached copy of the code ahead of the network (stale-while-revalidate) means
+// a fresh push can take an extra reload or two to actually show up.
+function isCodeAsset(pathname) {
+  return pathname.endsWith(".html") || pathname.endsWith(".js") || pathname.endsWith(".css") ||
+    pathname.endsWith(".json") || pathname.endsWith("/");
+}
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
 
+  if (isCodeAsset(url.pathname)) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Images and icons rarely change -- cache-first, refresh in the background.
   event.respondWith(
     caches.match(req).then((cached) => {
       const networkFetch = fetch(req)
