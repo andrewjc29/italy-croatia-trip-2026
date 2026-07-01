@@ -160,12 +160,13 @@ const Store = (() => {
   // Returns one entry per stop: { placeId, nights, place, dayStart, dayEnd, dateStart, dateEnd }.
   // dayEnd/dateEnd is the checkout/departure day (exclusive of the next night, inclusive
   // as a calendar day since travel/transition happens on it).
-  function computeStopRanges() {
-    const stops = (state.trip && state.trip.stops) || [];
-    const startDate = state.trip && state.trip.startDate;
+  // Pure version, usable for a live "what would this look like" preview before committing
+  // a change (e.g. inserting a new stop) -- takes stops/startDate explicitly instead of
+  // reading current state.
+  function computeRangesFor(stops, startDate) {
     let day = 1;
     let cursor = startDate || null;
-    return stops.map((stop) => {
+    return (stops || []).map((stop) => {
       const place = PLACES.find((p) => p.id === stop.placeId);
       const dayStart = day;
       const dayEnd = day + stop.nights;
@@ -175,6 +176,10 @@ const Store = (() => {
       cursor = dateEnd;
       return { placeId: stop.placeId, nights: stop.nights, place, dayStart, dayEnd, dateStart, dateEnd };
     });
+  }
+
+  function computeStopRanges() {
+    return computeRangesFor((state.trip && state.trip.stops) || [], state.trip && state.trip.startDate);
   }
 
   function getTotalDays() {
@@ -198,6 +203,10 @@ const Store = (() => {
   }
   function addTripStop(placeId, nights) {
     state.trip.stops.push({ placeId, nights: nights || 1 });
+    persist();
+  }
+  function insertTripStop(index, placeId, nights) {
+    state.trip.stops.splice(index, 0, { placeId, nights: nights || 1 });
     persist();
   }
   function removeTripStop(index) {
@@ -256,8 +265,8 @@ const Store = (() => {
   return {
     init, subscribe, getState, getSyncStatus, persist,
     add, update, remove, updateMeta,
-    computeStopRanges, getTotalDays, getTripDateRange, getStopRangeForPlace,
-    updateTripStops, addTripStop, removeTripStop, moveTripStop, setTripStopNights,
+    computeStopRanges, computeRangesFor, getTotalDays, getTripDateRange, getStopRangeForPlace,
+    updateTripStops, addTripStop, insertTripStop, removeTripStop, moveTripStop, setTripStopNights,
     getItineraryDays, uid
   };
 })();

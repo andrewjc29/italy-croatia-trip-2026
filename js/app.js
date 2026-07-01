@@ -131,7 +131,7 @@ function renderPlaceDays(placeId, state) {
       '<button class="link" data-edit-act="' + a.id + '">edit</button></div>').join("");
     const transportLines = d.transport.map((t) =>
       '<div class="item-line"><span>' + esc(t.title) + '</span><span class="status-pill ' + t.status + '">' + t.status + '</span></div>').join("");
-    return '<div class="day-row"><div class="day-num">' + d.day + '</div><div class="day-body">' +
+    return '<div class="day-row"><div class="day-dot">' + d.day + '</div><div class="day-body">' +
       '<div class="day-date">' + (d.date ? fmtDate(d.date) : "Day " + d.day) + '</div>' +
       transportLines + lines +
       '<button class="add-line" data-add-act="' + esc(d.date || "") + '">+ add to this day</button></div></div>';
@@ -390,29 +390,28 @@ function renderHero(state) {
   }
   document.getElementById("heroMeta").innerHTML =
     '<span>' + (state.trip ? state.trip.stops.length : PLACES.length) + " stops</span><span>" + totalDays + ' days</span><span><strong>' + countdown + '</strong></span>';
-
-  const bookingCounts = { idea: 0, booked: 0, confirmed: 0 };
-  state.bookings.forEach((b) => bookingCounts[b.status] = (bookingCounts[b.status] || 0) + 1);
-  const total = state.bookings.length || 1;
-  const pct = Math.round(((bookingCounts.booked + bookingCounts.confirmed) / total) * 100);
-  document.getElementById("bookingProgress").textContent = pct + "% booked or confirmed (" + bookingCounts.idea + " still ideas)";
 }
 
-// ---- itinerary editor: flexible, editable stop order / nights / add-remove ----
+// ---- itinerary editor: a vertical timeline of stops, reorder / resize / add-remove ----
 function renderItineraryEditor(state) {
   const container = document.getElementById("itineraryStopsList");
   if (!container) return;
   const ranges = Store.computeStopRanges();
-  container.innerHTML = state.trip.stops.map((stop, i) => {
+  container.innerHTML = '<div class="ie-timeline">' + state.trip.stops.map((stop, i) => {
     const place = PLACES.find((p) => p.id === stop.placeId);
     const range = ranges[i];
     const dateLabel = range && range.dateStart ? fmtDate(range.dateStart) + " – " + fmtDate(range.dateEnd) : "";
+    const dotColor = PLACE_ACCENT[stop.placeId] || "var(--seaglass)";
     return '<div class="ie-stop">' +
+      '<div class="ie-dot" style="background:' + dotColor + '"></div>' +
+      '<div class="ie-stop-card">' +
+      '<div class="ie-stop-top">' +
+      '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
       '<div class="ie-stop-order">' +
       '<button class="ie-arrow" data-move-up="' + i + '"' + (i === 0 ? " disabled" : "") + '>&uarr;</button>' +
       '<button class="ie-arrow" data-move-down="' + i + '"' + (i === state.trip.stops.length - 1 ? " disabled" : "") + '>&darr;</button>' +
-      '</div>' +
-      '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
+      '</div></div>' +
+      '<div class="ie-stop-bottom">' +
       '<div class="ie-stop-nights">' +
       '<button class="ie-step" data-nights-dec="' + i + '">-</button>' +
       '<span>' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</span>' +
@@ -420,8 +419,8 @@ function renderItineraryEditor(state) {
       '</div>' +
       '<div class="ie-stop-dates muted">' + esc(dateLabel) + '</div>' +
       '<button class="link" data-remove-stop="' + i + '">remove</button>' +
-      '</div>';
-  }).join("") || '<div class="muted">No stops yet -- add one below.</div>';
+      '</div></div></div>';
+  }).join("") + '</div>' || '<div class="muted">No stops yet -- add one below.</div>';
 
   container.querySelectorAll("[data-move-up]").forEach((btn) => btn.addEventListener("click", () => Store.moveTripStop(parseInt(btn.dataset.moveUp, 10), -1)));
   container.querySelectorAll("[data-move-down]").forEach((btn) => btn.addEventListener("click", () => Store.moveTripStop(parseInt(btn.dataset.moveDown, 10), 1)));
@@ -435,18 +434,59 @@ function renderItineraryEditor(state) {
   }));
   container.querySelectorAll("[data-remove-stop]").forEach((btn) => btn.addEventListener("click", () => Store.removeTripStop(parseInt(btn.dataset.removeStop, 10))));
 
-  const addSelect = document.getElementById("addStopSelect");
   const addBtn = document.getElementById("addStopBtn");
-  if (addSelect) {
-    const usedIds = state.trip.stops.map((s) => s.placeId);
-    const available = PLACES.filter((p) => usedIds.indexOf(p.id) === -1);
-    addSelect.innerHTML = available.map((p) => '<option value="' + p.id + '">' + esc(p.label) + '</option>').join("");
-    const wrap = addSelect.closest(".ie-add");
-    if (wrap) wrap.style.display = available.length ? "" : "none";
+  if (addBtn) addBtn.onclick = () => openAddStopModal(state);
+}
+
+// Adding a stop opens a modal so you can see (and choose) exactly which dates it
+// lands on before committing -- pick the place, where in the sequence it goes,
+// and how many nights, with a live preview of the resulting date range.
+function openAddStopModal(state) {
+  const usedIds = state.trip.stops.map((s) => s.placeId);
+  const available = PLACES.filter((p) => usedIds.indexOf(p.id) === -1);
+  if (!available.length) {
+    openModal("Add a stop", '<p class="muted">All five places are already in your itinerary. Remove one first if you want to swap it out.</p>', () => {}, "OK");
+    return;
   }
-  if (addBtn) addBtn.onclick = () => {
-    if (addSelect && addSelect.value) Store.addTripStop(addSelect.value, 1);
-  };
+  const placeOpts = available.map((p) => '<option value="' + p.id + '">' + esc(p.label) + '</option>').join("");
+  const positionOpts = state.trip.stops.map((s, i) => {
+    const p = PLACES.find((x) => x.id === s.placeId);
+    return '<option value="' + i + '">Before ' + esc(p ? p.label : s.placeId) + '</option>';
+  }).join("") + '<option value="' + state.trip.stops.length + '" selected>At the end</option>';
+  const body =
+    '<label class="field">Place</label><select data-field="placeId">' + placeOpts + '</select>' +
+    '<label class="field">Insert</label><select data-field="position">' + positionOpts + '</select>' +
+    '<label class="field">Nights</label><input data-field="nights" type="number" min="1" value="1">' +
+    '<div class="ie-preview muted" id="addStopPreview" style="margin-top:.6rem"></div>';
+  openModal("Add a stop", body, (data) => {
+    Store.insertTripStop(parseInt(data.position, 10), data.placeId, parseInt(data.nights, 10) || 1);
+  }, "Add stop");
+
+  // Live preview: simulate the insertion against a copy of the current stops
+  // and show the computed date range, without touching real state yet.
+  function updatePreview() {
+    const placeSelect = document.querySelector('[data-field="placeId"]');
+    const positionSelect = document.querySelector('[data-field="position"]');
+    const nightsInput = document.querySelector('[data-field="nights"]');
+    const preview = document.getElementById("addStopPreview");
+    if (!placeSelect || !positionSelect || !nightsInput || !preview) return;
+    const position = parseInt(positionSelect.value, 10);
+    const nights = parseInt(nightsInput.value, 10) || 1;
+    const candidate = state.trip.stops.slice();
+    candidate.splice(position, 0, { placeId: placeSelect.value, nights: nights });
+    const ranges = Store.computeRangesFor(candidate, state.trip.startDate);
+    const r = ranges[position];
+    const shifted = position < state.trip.stops.length;
+    preview.textContent = (r && r.dateStart ? fmtDate(r.dateStart) + " – " + fmtDate(r.dateEnd) : "") +
+      (shifted ? " (every stop after this shifts later by " + nights + (nights === 1 ? " night)" : " nights)") : "");
+  }
+  setTimeout(() => {
+    ["placeId", "position", "nights"].forEach((f) => {
+      const elx = document.querySelector('[data-field="' + f + '"]');
+      if (elx) elx.addEventListener("input", updatePreview);
+    });
+    updatePreview();
+  }, 0);
 }
 
 // ---- toolkit: map ----

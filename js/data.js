@@ -37,6 +37,17 @@ function mapsUrlForPlace(name, extra, placeId) {
   return mapsUrl([name, extra, PLACE_LABEL_MAP[placeId] || ""].filter(Boolean).join(", "));
 }
 
+// Mirrors the per-city accent colors in css/styles.css (#rome, #puglia, ...).
+// Used for the timeline dot colors in the itinerary editor, which lives outside
+// any single place's scoped CSS variables.
+const PLACE_ACCENT = {
+  rome: "#c0623a",
+  puglia: "#0f8a86",
+  dubrovnik: "#1f6f99",
+  hvar: "#6f8f5a",
+  split: "#106b86"
+};
+
 const SEED_DATA = {
   meta: {
     tripName: "Italy + Croatia 2026",
