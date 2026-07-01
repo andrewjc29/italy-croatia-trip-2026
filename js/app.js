@@ -13,6 +13,30 @@ function fmtDate(iso) {
 function esc(s) { return (s === undefined || s === null) ? "" : String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
 
+// Shared line renderers -- used by both each place's day-by-day timeline and
+// the "Today" view, so confirmation numbers and provider links are visible
+// right on the itinerary instead of only inside the edit modal.
+function renderLodgingLine(b) {
+  if (!b) return "";
+  const bits = [];
+  if (b.provider) bits.push(esc(b.provider));
+  if (b.confirmation) bits.push("Conf# " + esc(b.confirmation));
+  const linkHtml = b.link ? ' <a class="link" href="' + esc(b.link) + '" target="_blank" rel="noopener">map/site</a>' : "";
+  return '<div class="item-line lodging-line"><span><strong>Staying:</strong> ' + esc(b.title) +
+    (bits.length ? ' <span class="muted">(' + bits.join(" · ") + ')</span>' : "") + linkHtml + '</span>' +
+    '<span class="status-pill ' + b.status + '">' + b.status + '</span></div>';
+}
+function renderTransportLine(t) {
+  const bits = [];
+  if (t.provider) bits.push(esc(t.provider));
+  if (t.confirmation) bits.push("Conf# " + esc(t.confirmation));
+  if (t.time) bits.push(esc(t.time));
+  const linkHtml = t.link ? ' <a class="link" href="' + esc(t.link) + '" target="_blank" rel="noopener">book/track</a>' : "";
+  return '<div class="item-line"><span>' + esc(t.title) +
+    (bits.length ? ' <span class="muted">(' + bits.join(" · ") + ')</span>' : "") + linkHtml + '</span>' +
+    '<span class="status-pill ' + t.status + '">' + t.status + '</span></div>';
+}
+
 let mapInstance = null;
 let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
 let hotelFilter = {}; // placeId -> "all" | "budget" | "splurge"
@@ -129,11 +153,11 @@ function renderPlaceDays(placeId, state) {
     const lines = d.activities.map((a) =>
       '<div class="item-line"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span>' +
       '<button class="link" data-edit-act="' + a.id + '">edit</button></div>').join("");
-    const transportLines = d.transport.map((t) =>
-      '<div class="item-line"><span>' + esc(t.title) + '</span><span class="status-pill ' + t.status + '">' + t.status + '</span></div>').join("");
+    const lodgingLine = renderLodgingLine(d.lodging);
+    const transportLines = d.transport.map(renderTransportLine).join("");
     return '<div class="day-row"><div class="day-dot">' + d.day + '</div><div class="day-body">' +
       '<div class="day-date">' + (d.date ? fmtDate(d.date) : "Day " + d.day) + '</div>' +
-      transportLines + lines +
+      lodgingLine + transportLines + lines +
       '<button class="add-line" data-add-act="' + esc(d.date || "") + '">+ add to this day</button></div></div>';
   }).join("") + "</div>";
   el2.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, btn.dataset.addAct, null, place)));
@@ -378,6 +402,25 @@ function openRestForm(state, existing, place) {
   }, 0);
 }
 
+// ---- today view: collapses straight to the current day while traveling ----
+function renderTodayView(state) {
+  const section = document.getElementById("todayView");
+  if (!section) return;
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const today = Store.getItineraryDays().find((d) => d.date === todayISO);
+  if (!today) { section.style.display = "none"; return; }
+  section.style.display = "";
+  document.getElementById("todayDate").textContent = fmtDate(today.date);
+  const place = PLACES.find((p) => p.id === today.placeId);
+  const lodgingHtml = renderLodgingLine(today.lodging);
+  const transportHtml = today.transport.map(renderTransportLine).join("");
+  const actsHtml = today.activities.map((a) =>
+    '<div class="item-line"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span></div>').join("");
+  document.getElementById("todayContent").innerHTML =
+    (place ? '<div class="tv-place">' + esc(place.label) + '</div>' : "") +
+    lodgingHtml + transportHtml + (actsHtml || '<div class="muted">Nothing scheduled yet for today.</div>');
+}
+
 // ---- hero + intro ----
 function renderHero(state) {
   const totalDays = Store.getTotalDays();
@@ -510,23 +553,128 @@ function renderMap() {
 }
 
 // ---- toolkit: weather ----
+// A 7-10 day forecast is meaningless two months out, so this shows typical
+// September climate normals until the trip is close enough for a real
+// forecast to mean anything, then switches over automatically.
+function renderHistoricalWeather(visited, daysUntilTrip) {
+  const container = document.getElementById("weatherGrid");
+  const cards = visited.map((id) => {
+    const c = CITIES.find((x) => x.id === id);
+    const norm = SEPT_CLIMATE_NORMALS[id];
+    if (!c || !norm) return "";
+    return '<div class="util-card"><h4>' + esc(c.name) + '</h4>' +
+      '<div class="muted">Typical high ' + norm.high + 'F / low ' + norm.low + 'F</div>' +
+      (norm.sea ? '<div class="muted">Sea ~' + norm.sea + 'F</div>' : "") +
+      '<div class="muted">' + esc(norm.note) + '</div></div>';
+  }).join("");
+  const caption = '<div class="muted" style="margin-bottom:.8rem;grid-column:1/-1">' +
+    (daysUntilTrip !== null && daysUntilTrip > 0
+      ? daysUntilTrip + " days to go -- showing typical September averages. A live forecast appears within 10 days of departure."
+      : "Typical September averages.") +
+    "</div>";
+  container.innerHTML = caption + (cards || '<div class="muted">Add a stay to see typical weather for that city.</div>');
+}
+
 async function renderWeather() {
   const visited = [];
   Store.getItineraryDays().forEach((d) => { if (d.cityId && visited.indexOf(d.cityId) === -1) visited.push(d.cityId); });
   const container = document.getElementById("weatherGrid");
+  const tripRange = Store.getTripDateRange();
+  const daysUntilTrip = tripRange.start ? Math.ceil((new Date(tripRange.start) - new Date()) / 86400000) : null;
+  const tripUnderway = tripRange.start && tripRange.end && new Date() >= new Date(tripRange.start) && new Date() <= new Date(tripRange.end);
+  const useLiveForecast = tripUnderway || (daysUntilTrip !== null && daysUntilTrip <= 10);
+
+  if (!useLiveForecast) { renderHistoricalWeather(visited, daysUntilTrip); return; }
+
   container.innerHTML = '<div class="muted">Loading forecast...</div>';
   const cards = await Promise.all(visited.map(async (id) => {
     const c = CITIES.find((x) => x.id === id);
     if (!c) return "";
     try {
-      const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + c.lat + "&longitude=" + c.lng + "&current=temperature_2m&daily=temperature_2m_max,temperature_2m_min&forecast_days=7&temperature_unit=fahrenheit&timezone=auto");
+      const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + c.lat + "&longitude=" + c.lng + "&current=temperature_2m&daily=temperature_2m_max,temperature_2m_min&forecast_days=10&temperature_unit=fahrenheit&timezone=auto");
       const j = await res.json();
       const cur = j.current ? Math.round(j.current.temperature_2m) + "F now" : "";
       return '<div class="util-card"><h4>' + esc(c.name) + '</h4><div class="muted">' + cur + '</div>' +
-        '<div class="muted">7-day highs: ' + (j.daily ? j.daily.temperature_2m_max.map((t) => Math.round(t)).join(", ") : "n/a") + 'F</div></div>';
-    } catch (e) { return '<div class="util-card"><h4>' + esc(c.name) + '</h4><div class="muted">Forecast unavailable right now.</div></div>'; }
+        '<div class="muted">Forecast highs: ' + (j.daily ? j.daily.temperature_2m_max.map((t) => Math.round(t)).join(", ") : "n/a") + 'F</div></div>';
+    } catch (e) {
+      const norm = SEPT_CLIMATE_NORMALS[id];
+      return '<div class="util-card"><h4>' + esc(c.name) + '</h4><div class="muted">Forecast unavailable right now' + (norm ? " -- typical high " + norm.high + "F / low " + norm.low + "F" : "") + '.</div></div>';
+    }
   }));
   container.innerHTML = cards.join("") || '<div class="muted">Add a stay to see weather for that city.</div>';
+}
+
+// ---- toolkit: budget rollup ----
+// Every booking's cost, converted to one currency, rolled up against the
+// per-person budget target from meta. Lodging bookings store a nightly rate,
+// so their total is cost x nights; everything else is already a total for
+// that leg. The EUR->USD rate is cached in localStorage for a day and falls
+// back gracefully when offline.
+const FX_CACHE_KEY = "itcroatia2026_fx_eur_usd_v1";
+const FX_FALLBACK_RATE = 1.14; // approx EUR->USD, used only if fetch + cache both fail
+
+async function getUsdPerEur() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
+    if (cached && Date.now() - cached.ts < 24 * 60 * 60 * 1000) return cached.rate;
+  } catch (e) { /* ignore */ }
+  try {
+    const res = await fetch("https://api.frankfurter.app/latest?from=EUR&to=USD");
+    const j = await res.json();
+    const rate = j && j.rates && j.rates.USD;
+    if (rate) {
+      try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify({ rate, ts: Date.now() })); } catch (e) { /* ignore */ }
+      return rate;
+    }
+  } catch (e) { /* offline or blocked */ }
+  try {
+    const cached = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
+    if (cached) return cached.rate;
+  } catch (e) { /* ignore */ }
+  return FX_FALLBACK_RATE;
+}
+
+function nightsBetween(dateStart, dateEnd) {
+  if (!dateStart || !dateEnd) return 1;
+  const n = Math.round((new Date(dateEnd + "T00:00:00") - new Date(dateStart + "T00:00:00")) / 86400000);
+  return n > 0 ? n : 1;
+}
+
+async function renderBudget(state) {
+  const container = document.getElementById("budgetPanel");
+  if (!container) return;
+  const rate = await getUsdPerEur();
+  const cats = { flight: 0, lodging: 0, transport: 0, other: 0 };
+  state.bookings.forEach((b) => {
+    let amt = b.cost || 0;
+    if (b.category === "lodging") amt = amt * nightsBetween(b.date, b.endDate);
+    if (b.currency === "EUR") amt = amt * rate;
+    if (b.category === "flight") cats.flight += amt;
+    else if (b.category === "lodging") cats.lodging += amt;
+    else if (["train", "ferry", "catamaran", "bus"].indexOf(b.category) !== -1) cats.transport += amt;
+    else cats.other += amt;
+  });
+  const total = cats.flight + cats.lodging + cats.transport + cats.other;
+  const travelers = (state.meta.travelers && state.meta.travelers.length) || 2;
+  const perPerson = total / travelers;
+  const low = state.meta.budgetPerPersonLow || 0;
+  const high = state.meta.budgetPerPersonHigh || 0;
+  const pctOfHigh = high ? Math.min(100, Math.round((perPerson / high) * 100)) : 0;
+  const over = high && perPerson > high;
+
+  container.innerHTML =
+    '<div class="budget-total">' +
+    '<div class="bt-amount">$' + Math.round(perPerson).toLocaleString() + ' <span style="font-size:1rem;color:var(--muted);font-family:\'Outfit\'">per person, booked so far</span></div>' +
+    '<div class="bt-sub">Target: $' + low.toLocaleString() + '–$' + high.toLocaleString() + ' per person &middot; total for both of you: $' + Math.round(total).toLocaleString() + '</div>' +
+    '<div class="budget-bar"><div class="budget-bar-fill' + (over ? " over" : "") + '" style="width:' + pctOfHigh + '%"></div></div>' +
+    '</div>' +
+    '<div class="budget-cats">' +
+    '<div class="budget-cat"><h4>Flights</h4><div class="amt">$' + Math.round(cats.flight / travelers).toLocaleString() + '</div></div>' +
+    '<div class="budget-cat"><h4>Lodging</h4><div class="amt">$' + Math.round(cats.lodging / travelers).toLocaleString() + '</div></div>' +
+    '<div class="budget-cat"><h4>Transport</h4><div class="amt">$' + Math.round(cats.transport / travelers).toLocaleString() + '</div></div>' +
+    '<div class="budget-cat"><h4>Other</h4><div class="amt">$' + Math.round(cats.other / travelers).toLocaleString() + '</div></div>' +
+    '</div>' +
+    '<div class="muted" style="margin-top:.7rem;font-size:.78rem">EUR converted at ~' + rate.toFixed(3) + ' USD. Figures use each booking\'s current cost/status, whether idea, booked, or confirmed.</div>';
 }
 
 // ---- toolkit: documents ----
@@ -538,6 +686,28 @@ function renderDocuments(state) {
     '<div style="margin-top:6px"><button class="link" data-del-doc="' + d.id + '">remove</button></div></div>').join("") ||
     '<div class="muted">No documents yet.</div>';
   document.querySelectorAll("[data-del-doc]").forEach((btn) => btn.addEventListener("click", () => Store.remove("documents", btn.dataset.delDoc)));
+}
+
+// ---- toolkit: emergency info ----
+function renderEmergencyInfo(state) {
+  const container = document.getElementById("emergencyInfo");
+  if (!container) return;
+  const placeCards = (state.trip ? state.trip.stops : []).map((s) => {
+    const place = PLACES.find((p) => p.id === s.placeId);
+    if (!place) return "";
+    const cityId = place.cityIds[0];
+    const label = (typeof CITY_LABEL_MAP !== "undefined" && CITY_LABEL_MAP[cityId]) || place.label;
+    return '<div class="util-card"><h4>' + esc(place.label) + '</h4>' +
+      '<div><a class="link" href="' + mapsUrl("Hospital near " + label) + '" target="_blank" rel="noopener">Nearest hospital</a> &middot; ' +
+      '<a class="link" href="' + mapsUrl("Pharmacy near " + label) + '" target="_blank" rel="noopener">Pharmacy</a></div></div>';
+  }).join("");
+  container.innerHTML =
+    '<div class="util-card"><h4>Emergency number</h4><div class="muted">' + esc(EMERGENCY_INFO.euNumber) + '</div></div>' +
+    EMERGENCY_INFO.embassies.map((e) => '<div class="util-card"><h4>' + esc(e.name) + '</h4>' +
+      '<div class="muted">' + esc(e.address) + '</div><div class="muted">' + esc(e.phone) + '</div>' +
+      '<div><a class="link" href="' + esc(e.url) + '" target="_blank" rel="noopener">Emergency contact page</a></div></div>').join("") +
+    '<div class="util-card"><h4>24/7 citizen services (from abroad)</h4><div class="muted">' + esc(EMERGENCY_INFO.globalLine) + '</div></div>' +
+    placeCards;
 }
 
 // ---- toolkit: notes ----
@@ -592,13 +762,16 @@ function renderAll(state, syncStatus) {
   const labels = { "local-only": "saved on this device", connecting: "connecting...", synced: "synced across devices", offline: "offline, saved locally" };
   document.getElementById("syncStatus").textContent = labels[syncStatus] || syncStatus;
   renderHero(state);
+  renderTodayView(state);
   renderItineraryEditor(state);
   renderPlaces(state);
   renderDocuments(state);
+  renderEmergencyInfo(state);
   renderNotes(state);
   renderPrep(state);
   renderNextSteps(state);
   renderWeather();
+  renderBudget(state);
   renderMap();
 }
 
@@ -652,3 +825,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   Store.subscribe(renderAll);
   await Store.init();
 });
+
+// ---- offline support: cache the app shell so it still works with patchy data ----
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => { /* offline support is best-effort */ });
+  });
+}

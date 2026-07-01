@@ -7,6 +7,8 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#123c52">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -41,6 +43,11 @@
   </div>
 </header>
 
+<section class="today-view" id="todayView" style="display:none">
+  <div class="tv-head"><span class="tv-badge">Today</span><span class="tv-date" id="todayDate"></span></div>
+  <div id="todayContent"></div>
+</section>
+
 <section class="intro">
   <span class="mk">~</span>
   <p>The working guide for the trip: where to stay, what to see, and where to eat well. Add a hotel stay or a dinner spot anywhere below and it folds straight into the itinerary, no rebuilding required. Departing <strong>September 3, 2026</strong>.</p>
@@ -59,13 +66,17 @@
 <main id="places"></main>
 
 <section class="wrap toolkit-block" id="toolkit">
-  <div class="sub-h"><h3>Toolkit</h3><span class="tag">Map · Weather · Documents · Notes</span><span class="rule"></span></div>
+  <div class="sub-h"><h3>Toolkit</h3><span class="tag">Map · Weather · Budget · Documents · Emergency · Notes</span><span class="rule"></span></div>
   <div id="map-canvas"></div>
   <div class="sub-h" style="margin-top:2.4rem"><h3>Weather</h3><span class="rule"></span></div>
   <div class="weather-grid" id="weatherGrid"></div>
+  <div class="sub-h" style="margin-top:2.4rem"><h3>Budget</h3><span class="rule"></span></div>
+  <div id="budgetPanel"></div>
   <div class="sub-h" style="margin-top:2.4rem"><h3>Documents</h3><span class="rule"></span></div>
   <div style="margin-bottom:10px"><button class="btn" id="addDocBtn">+ Add document link</button></div>
   <div class="doc-grid" id="docGrid"></div>
+  <div class="sub-h" style="margin-top:2.4rem"><h3>Emergency info</h3><span class="rule"></span></div>
+  <div class="doc-grid" id="emergencyInfo"></div>
   <div class="sub-h" style="margin-top:2.4rem"><h3>Notes &amp; journal</h3><span class="rule"></span></div>
   <div style="margin-bottom:10px"><button class="btn" id="addNoteBtn">+ Add a note</button></div>
   <div id="notesList"></div>

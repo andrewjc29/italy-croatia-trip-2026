@@ -48,6 +48,26 @@ const PLACE_ACCENT = {
   split: "#106b86"
 };
 
+// Typical September climate (F), used until a live forecast is close enough to
+// be meaningful. Rough averages from climate-normal sources, not a specific year.
+const SEPT_CLIMATE_NORMALS = {
+  rome: { high: 78, low: 60, sea: null, note: "Mild and mostly dry, occasional showers late month." },
+  bari: { high: 82, low: 66, sea: 74, note: "Warm and mostly dry, the easiest weather of the trip." },
+  dubrovnik: { high: 74, low: 63, sea: 76, note: "Warm days, comfortable nights, cooling toward month's end." },
+  hvar: { high: 79, low: 64, sea: 73, note: "Similar to Split with an island breeze." },
+  split: { high: 79, low: 64, sea: 73, note: "Warm days, comfortable nights." }
+};
+
+// Verified via US State Dept / embassy sites, July 2026.
+const EMERGENCY_INFO = {
+  euNumber: "112 -- EU-wide emergency number (police, fire, ambulance), works in both Italy and Croatia.",
+  embassies: [
+    { country: "Italy", name: "U.S. Embassy Rome", address: "Via Vittorio Veneto 121, 00187 Rome", phone: "+39 06-4674-1", url: "https://it.usembassy.gov/u-s-citizen-services/emergency-contact/" },
+    { country: "Croatia", name: "U.S. Embassy Zagreb", address: "Ulica Thomasa Jeffersona 2, 10010 Zagreb", phone: "+385 1 661-2200", url: "https://hr.usembassy.gov/contact/" }
+  ],
+  globalLine: "24/7 U.S. citizen emergency line (from abroad): +1-202-501-4444"
+};
+
 const SEED_DATA = {
   meta: {
     tripName: "Italy + Croatia 2026",
