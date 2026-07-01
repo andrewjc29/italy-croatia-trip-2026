@@ -131,7 +131,7 @@ SEED_DATA.hotels = [
     "cost": 220,
     "pros": "Heart of Rome's trendiest local quarter; wine bars and trattorias at the door; Cavour metro and Termini walkable.",
     "cons": "Some nightlife noise; rooms compact.",
-    "url": "https://www.leonardo-hotels.com/rome/leonardo-boutique-hotel-rome-monti",
+    "url": "https://www.google.com/maps/search/?api=1&query=Leonardo%20Boutique%20Hotel%20Rome%20Monti%2C%20Monti%2C%20Rome%2C%20Italy",
     "splurge": false
   },
   {
@@ -143,7 +143,7 @@ SEED_DATA.hotels = [
     "cost": 330,
     "pros": "12th-century convent with a quiet courtyard of olive and orange trees; two blocks from the Tiber; deeply romantic.",
     "cons": "No metro nearby; upper end of range.",
-    "url": "https://www.hoteldonnacamillasavelli.it/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Donna%20Camilla%20Savelli%2C%20Trastevere%2C%20Rome%2C%20Italy",
     "splurge": true
   },
   {
@@ -155,7 +155,7 @@ SEED_DATA.hotels = [
     "cost": 250,
     "pros": "4-star with its own restaurant, bar and terrace; walkable to Campo de' Fiori; Piramide metro ~10 min.",
     "cons": "Busier edge of the district; breakfast varies.",
-    "url": "https://www.lolyboutiquehotelroma.it/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Loly%20Boutique%20Hotel%20Roma%2C%20Trastevere%20edge%2C%20Rome%2C%20Italy",
     "splurge": false
   },
   {
@@ -167,7 +167,7 @@ SEED_DATA.hotels = [
     "cost": 200,
     "pros": "Bright modern rooms opposite Santa Maria Maggiore; Colosseum 10 min; close to Termini for the Bari train. Best value.",
     "cons": "3-star, limited amenities; daytime tour traffic.",
-    "url": "https://www.princepshotel.it/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Princeps%20Boutique%20Hotel%2C%20Monti%2C%20Rome%2C%20Italy",
     "splurge": false
   },
   {
@@ -179,7 +179,7 @@ SEED_DATA.hotels = [
     "cost": 300,
     "pros": "Design-forward, ~500m from the Pantheon; max sightseeing density on a short stay; near Giolitti gelato.",
     "cons": "Most touristed zone; no metro; upper range.",
-    "url": "https://www.treecharmeparliament.it/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Tree%20Charme%20Parliament%2C%20Centro%20Storico%2C%20Rome%2C%20Italy",
     "splurge": false
   },
   {
@@ -191,7 +191,7 @@ SEED_DATA.hotels = [
     "cost": 180,
     "pros": "Boutique stay in the buzzing center; walkable to Via Sparano shopping, Teatro Petruzzelli and the station.",
     "cons": "City-center street noise; few on-site services.",
-    "url": "https://www.booking.com/hotel/it/dilman-luxury-stay.html",
+    "url": "https://www.google.com/maps/search/?api=1&query=Dilman%20Luxury%20Stay%2C%20Central%20Bari%2C%20Bari%2C%20Italy",
     "splurge": false
   },
   {
@@ -203,7 +203,7 @@ SEED_DATA.hotels = [
     "cost": 150,
     "pros": "Bright 4-room B&B with rooftop skyline terrace; elegant rooms, friendly hosts; best neighborhood.",
     "cons": "Tiny, books fast; B&B-level services.",
-    "url": "https://www.booking.com/hotel/it/200-rooms-and-terrace.html",
+    "url": "https://www.google.com/maps/search/?api=1&query=200%20Rooms%20and%20Terrace%2C%20Murat%2C%20Bari%2C%20Italy",
     "splurge": false
   },
   {
@@ -215,7 +215,7 @@ SEED_DATA.hotels = [
     "cost": 140,
     "pros": "Six modern rooms, rooftop with port and castle views; laid-back, near Castello Normanno-Svevo.",
     "cons": "Communal breakfast; old-town-edge night noise.",
-    "url": "https://www.booking.com/hotel/it/al-pescatore-bari.html",
+    "url": "https://www.google.com/maps/search/?api=1&query=Al%20Pescatore%20B%26B%2C%20Old-town%20edge%2C%20Bari%2C%20Italy",
     "splurge": false
   },
   {
@@ -227,7 +227,7 @@ SEED_DATA.hotels = [
     "cost": 210,
     "pros": "Hotel-style comfort in the modern center; prime spot near sea, old town and station; good breakfast.",
     "cons": "Pricier; classic rather than boutique style.",
-    "url": "https://www.grandhoteloriente.it/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Grand%20Hotel%20Oriente%2C%20Murat%20%C2%B7%20Corso%20Cavour%2C%20Bari%2C%20Italy",
     "splurge": false
   },
   {
@@ -239,7 +239,7 @@ SEED_DATA.hotels = [
     "cost": 125,
     "pros": "Authentic old-town charm steps from Basilica di San Nicola and the street-food alleys; most atmospheric, cheapest.",
     "cons": "Noisy lanes, possible stairs, fewer amenities.",
-    "url": "https://www.booking.com/hotel/it/residenze-al-castello.html",
+    "url": "https://www.google.com/maps/search/?api=1&query=Residenze%20Al%20Castello%2C%20Bari%20Vecchia%2C%20Bari%2C%20Italy",
     "splurge": false
   },
   {
@@ -251,7 +251,7 @@ SEED_DATA.hotels = [
     "cost": 375,
     "pros": "Top couples boutique in the city; rooftop terrace with stunning wall-and-sea views; steps from everything.",
     "cons": "Tiny, books far ahead; Old Town stairs and luggage hauling.",
-    "url": "https://www.hotelstarigrad.com/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Boutique%20Hotel%20Stari%20Grad%2C%20Old%20Town%2C%20Dubrovnik%2C%20Croatia",
     "splurge": true
   },
   {
@@ -263,7 +263,7 @@ SEED_DATA.hotels = [
     "cost": 340,
     "pros": "Restored 16th-century villa with pool and waterfront; near your ferry arrival point; local vibe, good transport.",
     "cons": "15–20 min from Old Town; Gruž is more workaday.",
-    "url": "https://www.kazbekdubrovnik.com/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Boutique%20Hotel%20Kazbek%2C%20Gru%C5%BE%20(harbor)%2C%20Dubrovnik%2C%20Croatia",
     "splurge": false
   },
   {
@@ -275,7 +275,7 @@ SEED_DATA.hotels = [
     "cost": 500,
     "pros": "Iconic seafront landmark; 5 min to the walls; stunning pool, over-water terrace, spa, best Old Town views.",
     "cons": "Well above budget; five-star formality.",
-    "url": "https://www.adriaticluxuryhotels.com/hotel-excelsior-dubrovnik/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Hotel%20Excelsior%20Dubrovnik%2C%20Plo%C4%8De%2C%20Dubrovnik%2C%20Croatia",
     "splurge": true
   },
   {
@@ -287,7 +287,7 @@ SEED_DATA.hotels = [
     "cost": 230,
     "pros": "Clean, well-rated guesthouse with lovely decor near Pile Gate; walk into Old Town in minutes; near the bus hub. Best value-to-location.",
     "cons": "Guesthouse service level; daytime gate foot traffic.",
-    "url": "https://www.booking.com/hotel/hr/dominus-rooms-dubrovnik.html",
+    "url": "https://www.google.com/maps/search/?api=1&query=Dominus%20Rooms%2C%20Pile%2C%20Dubrovnik%2C%20Croatia",
     "splurge": false
   },
   {
@@ -299,7 +299,7 @@ SEED_DATA.hotels = [
     "cost": 260,
     "pros": "Renovated large apartment with incredible sea views, ~8 min from Ploče Gate; space and a kitchen for slow mornings.",
     "cons": "No housekeeping or breakfast; some steps to the water.",
-    "url": "https://www.booking.com/hotel/hr/pearl-of-adriatic.html",
+    "url": "https://www.google.com/maps/search/?api=1&query=Pearl%20of%20Adriatic%20(apt)%2C%20Plo%C4%8De%2C%20Dubrovnik%2C%20Croatia",
     "splurge": false
   },
   {
@@ -311,7 +311,7 @@ SEED_DATA.hotels = [
     "cost": 315,
     "pros": "Top boutique-luxury pick for couples; beautiful pool and terrace, elegant interiors, adults-oriented calm.",
     "cons": "Pricey for one night; short walk above the center.",
-    "url": "https://www.moeesy.com/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Hotel%20Moeesy%20Blue%20%26%20Green%20Oasis%2C%20Hvar%20Town%2C%20Hvar%2C%20Croatia",
     "splurge": false
   },
   {
@@ -323,7 +323,7 @@ SEED_DATA.hotels = [
     "cost": 425,
     "pros": "The grande dame, first 5-star on Hvar, right on St Stephen's Square below the fortress walk. Step into the prettiest streets.",
     "cons": "Well above budget; formal five-star feel.",
-    "url": "https://www.suncanihvar.com/palace-elisabeth-hvar-heritage-hotel.html",
+    "url": "https://www.google.com/maps/search/?api=1&query=Palace%20Elisabeth%2C%20Hvar%2C%20Main%20square%2C%20Hvar%2C%20Croatia",
     "splurge": true
   },
   {
@@ -335,7 +335,7 @@ SEED_DATA.hotels = [
     "cost": 250,
     "pros": "Highly rated by couples; central, reliable comfort and breakfast; easy walk to harbor and square.",
     "cons": "Less design flair; books out in season.",
-    "url": "https://www.hotelparkhvar.com/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Heritage%20Hotel%20Park%20Hvar%2C%20Hvar%20Town%2C%20Hvar%2C%20Croatia",
     "splurge": false
   },
   {
@@ -347,7 +347,7 @@ SEED_DATA.hotels = [
     "cost": 230,
     "pros": "Mid-range boutique in town, named a couples favorite; walkable to everything. Good value.",
     "cons": "Smaller property; some compact rooms.",
-    "url": "https://www.suncanihvar.com/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Heritage%20Hotel%20Dea%20Hvar%2C%20Hvar%20Town%2C%20Hvar%2C%20Croatia",
     "splurge": false
   },
   {
@@ -359,7 +359,7 @@ SEED_DATA.hotels = [
     "cost": 340,
     "pros": "Waterfront spa hotel with a rooftop pool facing the harbor; relaxing decompress after island-hopping.",
     "cons": "Larger resort feel; upper price end.",
-    "url": "https://www.suncanihvar.com/adriana-hvar-spa-hotel.html",
+    "url": "https://www.google.com/maps/search/?api=1&query=Adriana%20Hvar%20Spa%20Hotel%2C%20Waterfront%2C%20Hvar%2C%20Croatia",
     "splurge": false
   },
   {
@@ -371,7 +371,7 @@ SEED_DATA.hotels = [
     "cost": 280,
     "pros": "Stylishly renovated stone houses with a spa; easy walk to the Palace; surrounded by konobas (Fife, Cicibela) and wine bars.",
     "cons": "Steep stepped streets, often no elevator; hard with heavy bags.",
-    "url": "https://www.divota.hr/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Divota%20Apartment%20Hotel%2C%20Veli%20Varo%C5%A1%2C%20Split%2C%20Croatia",
     "splurge": false
   },
   {
@@ -383,7 +383,7 @@ SEED_DATA.hotels = [
     "cost": 250,
     "pros": "Stylish 4-star in a converted factory; bold design, wellness facilities, exceptional breakfast; easy reach of Old Town and beach.",
     "cons": "Slightly outside the core; industrial-chic not for everyone.",
-    "url": "https://www.briig.com/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Briig%20Boutique%20Hotel%2C%20Near%20Old%20Town%2C%20Split%2C%20Croatia",
     "splurge": false
   },
   {
@@ -395,7 +395,7 @@ SEED_DATA.hotels = [
     "cost": 350,
     "pros": "Romantic 16th-century palace with antique interiors; right in the heart of the Old Town. Upgrade for a balcony room.",
     "cons": "Noisiest area at night; higher price.",
-    "url": "https://www.juditapalace.com/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Judita%20Palace%2C%20Inside%20the%20Palace%2C%20Split%2C%20Croatia",
     "splurge": true
   },
   {
@@ -407,7 +407,7 @@ SEED_DATA.hotels = [
     "cost": 250,
     "pros": "Stylish 4-star ~0.2 mi from the Palace with spa, hot tub and sauna; high guest rating; near Bačvice Beach.",
     "cons": "On a busier road vs quiet Veli Varoš; spa-hotel feel.",
-    "url": "https://www.hotelluxesplit.com/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Boutique%20Hotel%20Luxe%2C%20Near%20the%20Palace%2C%20Split%2C%20Croatia",
     "splurge": false
   },
   {
@@ -419,7 +419,7 @@ SEED_DATA.hotels = [
     "cost": 245,
     "pros": "Central heritage-style stay close to the Palace and Riva; reliable comfort without going full luxury.",
     "cons": "Old Town evening crowd noise; confirm the exact stepped street.",
-    "url": "https://www.cornarohotel.com/",
+    "url": "https://www.google.com/maps/search/?api=1&query=Cornaro%20Hotel%2C%20Old%20Town%2C%20Split%2C%20Croatia",
     "splurge": false
   }
 ];
@@ -433,7 +433,7 @@ SEED_DATA.thingsToDo = [
     "name": "Colosseum, Forum & Palatine",
     "kind": "Ancient Rome",
     "description": "Book the combined timed ticket online and go early. The Forum and Palatine Hill are included and far quieter than the arena.",
-    "url": "https://parcocolosseo.it/en/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Colosseum%2C%20Forum%20%26%20Palatine%2C%20Rome%2C%20Italy"
   },
   {
     "id": "td2",
@@ -442,7 +442,7 @@ SEED_DATA.thingsToDo = [
     "name": "Roman Forum at golden hour",
     "kind": "Walk among ruins",
     "description": "The political heart of the ancient city. Enter from the Palatine side late afternoon when the stone turns amber and crowds thin.",
-    "url": "https://parcocolosseo.it/en/area/the-roman-forum/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Roman%20Forum%20at%20golden%20hour%2C%20Rome%2C%20Italy"
   },
   {
     "id": "td3",
@@ -451,7 +451,7 @@ SEED_DATA.thingsToDo = [
     "name": "Pantheon",
     "kind": "Free to enter",
     "description": "The best-preserved Roman building still standing, its dome open to the sky. Pair with espresso at nearby Sant'Eustachio.",
-    "url": "https://www.pantheonroma.com/en/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Pantheon%2C%20Rome%2C%20Italy"
   },
   {
     "id": "td4",
@@ -460,7 +460,7 @@ SEED_DATA.thingsToDo = [
     "name": "Piazza Navona",
     "kind": "Baroque heart",
     "description": "Bernini's fountains and a film-set square of cafes and street artists. A short walk from the Pantheon through the centro.",
-    "url": "https://www.turismoroma.it/en/places/piazza-navona"
+    "url": "https://www.google.com/maps/search/?api=1&query=Piazza%20Navona%2C%20Rome%2C%20Italy"
   },
   {
     "id": "td5",
@@ -469,7 +469,7 @@ SEED_DATA.thingsToDo = [
     "name": "Vatican Museums & St Peter's",
     "kind": "Optional morning",
     "description": "If you want it, book the earliest slot or a skip-the-line tour. Otherwise trade it for a slower Trastevere morning.",
-    "url": "https://www.museivaticani.va/content/museivaticani/en.html"
+    "url": "https://www.google.com/maps/search/?api=1&query=Vatican%20Museums%20%26%20St%20Peter's%2C%20Rome%2C%20Italy"
   },
   {
     "id": "td6",
@@ -478,7 +478,7 @@ SEED_DATA.thingsToDo = [
     "name": "Testaccio market & quarter",
     "kind": "Local life",
     "description": "Rome's real food neighborhood, a working market by day and the home of the city's most honest trattorias by night.",
-    "url": "https://www.mercatoditestaccio.it/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Testaccio%20market%20%26%20quarter%2C%20Rome%2C%20Italy"
   },
   {
     "id": "td7",
@@ -487,7 +487,7 @@ SEED_DATA.thingsToDo = [
     "name": "Polignano a Mare",
     "kind": "30 min by train",
     "description": "Whitewashed town on limestone cliffs over a turquoise cove. Swim at Lama Monachile, then sit with a coffee on the terraces above.",
-    "url": "https://maps.google.com/?q=Polignano+a+Mare"
+    "url": "https://www.google.com/maps/search/?api=1&query=Polignano%20a%20Mare%2C%20Polignano%20a%20Mare%2C%20Italy"
   },
   {
     "id": "td8",
@@ -496,7 +496,7 @@ SEED_DATA.thingsToDo = [
     "name": "Alberobello trulli",
     "kind": "~1 hr · FSE line",
     "description": "UNESCO village of conical stone houses. Wander the Rione Monti and Aia Piccola districts early, before the tour buses.",
-    "url": "https://whc.unesco.org/en/list/787/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Alberobello%20trulli%2C%20Alberobello%2C%20Italy"
   },
   {
     "id": "td9",
@@ -505,7 +505,7 @@ SEED_DATA.thingsToDo = [
     "name": "Matera's Sassi",
     "kind": "~1 hr · FAL line",
     "description": "Ancient cave dwellings carved into a ravine, glowing at dusk. One of the oldest continuously inhabited places on earth.",
-    "url": "https://whc.unesco.org/en/list/670/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Matera's%20Sassi%2C%20Matera%2C%20Italy"
   },
   {
     "id": "td10",
@@ -514,7 +514,7 @@ SEED_DATA.thingsToDo = [
     "name": "Lecce, the Baroque south",
     "kind": "~1.5 hr by train",
     "description": "Honey-colored Baroque facades and the famous pasticciotto custard pastry. The 'Florence of the south.'",
-    "url": "https://maps.google.com/?q=Lecce+Basilica+di+Santa+Croce"
+    "url": "https://www.google.com/maps/search/?api=1&query=Lecce%2C%20the%20Baroque%20south%2C%20Lecce%2C%20Italy"
   },
   {
     "id": "td11",
@@ -523,7 +523,7 @@ SEED_DATA.thingsToDo = [
     "name": "Bari Vecchia & Arco Basso",
     "kind": "In Bari",
     "description": "Walk the 'Strada delle Orecchiette' where nonnas shape pasta in the doorways, past the Basilica di San Nicola.",
-    "url": "https://maps.google.com/?q=Strada+Arco+Basso+Bari"
+    "url": "https://www.google.com/maps/search/?api=1&query=Bari%20Vecchia%20%26%20Arco%20Basso%2C%20Bari%2C%20Italy"
   },
   {
     "id": "td12",
@@ -532,7 +532,7 @@ SEED_DATA.thingsToDo = [
     "name": "Orecchiette cooking class",
     "kind": "Hands-on",
     "description": "Learn to hand-roll orecchiette with a local before feasting on the result. The most memorable Bari afternoon.",
-    "url": "https://www.getyourguide.com/bari-l1066/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Orecchiette%20cooking%20class%2C%20Bari%2C%20Italy"
   },
   {
     "id": "td13",
@@ -541,7 +541,7 @@ SEED_DATA.thingsToDo = [
     "name": "Walk the City Walls",
     "kind": "The icon",
     "description": "A circuit of the medieval ramparts above terracotta roofs and the Adriatic. Go at opening or late afternoon to dodge heat and cruise crowds.",
-    "url": "https://www.wallsofdubrovnik.com/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Walk%20the%20City%20Walls%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "td14",
@@ -550,7 +550,7 @@ SEED_DATA.thingsToDo = [
     "name": "Stradun & the old quarter",
     "kind": "Wander",
     "description": "The polished limestone main street, plus the Rector's Palace, the Franciscan monastery pharmacy and hidden stair-streets.",
-    "url": "https://maps.google.com/?q=Stradun+Dubrovnik"
+    "url": "https://www.google.com/maps/search/?api=1&query=Stradun%20%26%20the%20old%20quarter%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "td15",
@@ -559,7 +559,7 @@ SEED_DATA.thingsToDo = [
     "name": "Lokrum Island",
     "kind": "Short boat hop",
     "description": "A ten-minute ferry to a forested islet with peacocks, a botanical garden and quiet swimming coves. An easy half-day escape.",
-    "url": "https://www.lokrum.hr/en/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Lokrum%20Island%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "td16",
@@ -568,7 +568,7 @@ SEED_DATA.thingsToDo = [
     "name": "Mount Srđ cable car",
     "kind": "Sunset",
     "description": "Ride up for the panoramic view over the walled city and islands. Best timed for golden hour, with a drink at the top.",
-    "url": "https://www.dubrovnikcablecar.com/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Mount%20Sr%C4%91%20cable%20car%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "td17",
@@ -577,7 +577,7 @@ SEED_DATA.thingsToDo = [
     "name": "Sea kayak under the walls",
     "kind": "On the water",
     "description": "Paddle out from Pile beneath the ramparts to a sea cave and Lokrum. The classic active afternoon; sunset trips available.",
-    "url": "https://www.getyourguide.com/dubrovnik-l385/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Sea%20kayak%20under%20the%20walls%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "td18",
@@ -586,7 +586,7 @@ SEED_DATA.thingsToDo = [
     "name": "Game of Thrones film spots",
     "kind": "Pop culture",
     "description": "The Old Town doubled as King's Landing. Self-guide the steps and squares, or take a themed walking tour.",
-    "url": "https://maps.google.com/?q=Dubrovnik+Game+of+Thrones+steps"
+    "url": "https://www.google.com/maps/search/?api=1&query=Game%20of%20Thrones%20film%20spots%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "td19",
@@ -595,7 +595,7 @@ SEED_DATA.thingsToDo = [
     "name": "Španjola (Spanish) Fortress",
     "kind": "The must-do",
     "description": "A short uphill walk to the island's signature view: orange rooftops, the harbor and the Pakleni Islands beyond. Best at sunset.",
-    "url": "https://maps.google.com/?q=Fortica+Hvar"
+    "url": "https://www.google.com/maps/search/?api=1&query=%C5%A0panjola%20(Spanish)%20Fortress%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "td20",
@@ -604,7 +604,7 @@ SEED_DATA.thingsToDo = [
     "name": "Pakleni Islands",
     "kind": "On the water",
     "description": "A string of islets minutes offshore with clear lagoons and hidden coves. Hop a taxi-boat from the harbor for a swim.",
-    "url": "https://maps.google.com/?q=Pakleni+Islands"
+    "url": "https://www.google.com/maps/search/?api=1&query=Pakleni%20Islands%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "td21",
@@ -613,7 +613,7 @@ SEED_DATA.thingsToDo = [
     "name": "St Stephen's Square",
     "kind": "The center",
     "description": "Croatia's largest old square, anchored by the cathedral, at its best at golden hour when the marble glows.",
-    "url": "https://maps.google.com/?q=St+Stephen's+Square+Hvar"
+    "url": "https://www.google.com/maps/search/?api=1&query=St%20Stephen's%20Square%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "td22",
@@ -622,7 +622,7 @@ SEED_DATA.thingsToDo = [
     "name": "Hvar wine tasting",
     "kind": "Taste",
     "description": "The island is known for its vineyards. Do a tasting in town or a short tour into the hills for local Plavac and Bogdanuša.",
-    "url": "https://www.getyourguide.com/hvar-l1707/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Hvar%20wine%20tasting%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "td23",
@@ -631,7 +631,7 @@ SEED_DATA.thingsToDo = [
     "name": "Stari Grad",
     "kind": "If you have time",
     "description": "The island's quiet original capital, 30 min away, with a flat old town, harbor and a UNESCO-listed plain of vines and olives.",
-    "url": "https://whc.unesco.org/en/list/1240/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Stari%20Grad%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "td24",
@@ -640,7 +640,7 @@ SEED_DATA.thingsToDo = [
     "name": "Swim at Pokonji Dol",
     "kind": "Beach time",
     "description": "An easy pebble cove a short walk from town for a morning dip before your onward catamaran.",
-    "url": "https://maps.google.com/?q=Pokonji+Dol+beach+Hvar"
+    "url": "https://www.google.com/maps/search/?api=1&query=Swim%20at%20Pokonji%20Dol%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "td25",
@@ -649,7 +649,7 @@ SEED_DATA.thingsToDo = [
     "name": "Diocletian's Palace",
     "kind": "UNESCO · the heart",
     "description": "A 1,700-year-old Roman palace still lived in today. Walk the Peristyle, descend into the cellars, and get lost in the marble lanes.",
-    "url": "https://whc.unesco.org/en/list/97/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Diocletian's%20Palace%2C%20Split%2C%20Croatia"
   },
   {
     "id": "td26",
@@ -658,7 +658,7 @@ SEED_DATA.thingsToDo = [
     "name": "Cathedral of St Domnius",
     "kind": "Climb",
     "description": "Climb the bell tower for a tight, rewarding view straight down over the palace rooftops and out to the harbor.",
-    "url": "https://maps.google.com/?q=Cathedral+of+Saint+Domnius+Split"
+    "url": "https://www.google.com/maps/search/?api=1&query=Cathedral%20of%20St%20Domnius%2C%20Split%2C%20Croatia"
   },
   {
     "id": "td27",
@@ -667,7 +667,7 @@ SEED_DATA.thingsToDo = [
     "name": "Marjan Hill",
     "kind": "Nature",
     "description": "The forested peninsula above town. A morning walk to the viewpoints over Split and the islands, with quiet chapels along the way.",
-    "url": "https://maps.google.com/?q=Marjan+Hill+Split"
+    "url": "https://www.google.com/maps/search/?api=1&query=Marjan%20Hill%2C%20Split%2C%20Croatia"
   },
   {
     "id": "td28",
@@ -676,7 +676,7 @@ SEED_DATA.thingsToDo = [
     "name": "The Riva & Bačvice",
     "kind": "Aperitivo hour",
     "description": "Palm-lined waterfront for coffee and people-watching, then Bačvice beach for a swim or a game of picigin with locals.",
-    "url": "https://maps.google.com/?q=Riva+Split"
+    "url": "https://www.google.com/maps/search/?api=1&query=The%20Riva%20%26%20Ba%C4%8Dvice%2C%20Split%2C%20Croatia"
   },
   {
     "id": "td29",
@@ -685,7 +685,7 @@ SEED_DATA.thingsToDo = [
     "name": "Trogir & the Blue Lagoon",
     "kind": "Half-day trip",
     "description": "A tiny UNESCO island-town 30 min away, often paired with a swim stop at the turquoise Blue Lagoon off Šolta.",
-    "url": "https://whc.unesco.org/en/list/810/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Trogir%20%26%20the%20Blue%20Lagoon%2C%20Split%2C%20Croatia"
   },
   {
     "id": "td30",
@@ -694,7 +694,7 @@ SEED_DATA.thingsToDo = [
     "name": "Klis Fortress",
     "kind": "View & history",
     "description": "A clifftop fortress just outside town with sweeping coastal views (and more Game of Thrones scenery). Quick bus from the center.",
-    "url": "https://maps.google.com/?q=Klis+Fortress"
+    "url": "https://www.google.com/maps/search/?api=1&query=Klis%20Fortress%2C%20Split%2C%20Croatia"
   }
 ];
 
@@ -709,7 +709,7 @@ SEED_DATA.restaurants = [
     "description": "Unassuming front, excellent homemade pasta. Fried artichokes, cacio e pepe and a standout truffle ravioli.",
     "vegetarian": true,
     "vegLabel": "Very veg-friendly",
-    "url": "https://maps.google.com/?q=Il+Duca+Trastevere+Rome"
+    "url": "https://www.google.com/maps/search/?api=1&query=Il%20Duca%2C%20Rome%2C%20Italy"
   },
   {
     "id": "r2",
@@ -720,7 +720,7 @@ SEED_DATA.restaurants = [
     "description": "Loud, homely, famous for pizza. Feels like a huge Italian family dinner; loved by locals and visitors.",
     "vegetarian": true,
     "vegLabel": "Easy veg options",
-    "url": "https://maps.google.com/?q=Ivo+a+Trastevere+Rome"
+    "url": "https://www.google.com/maps/search/?api=1&query=Ivo%20a%20Trastevere%2C%20Rome%2C%20Italy"
   },
   {
     "id": "r3",
@@ -731,7 +731,7 @@ SEED_DATA.restaurants = [
     "description": "Herb-forward, fresh and modern. Light lunches, brunch and aperitivo built around aromatic plants. A vegetarian home base.",
     "vegetarian": true,
     "vegLabel": "Vegetarian / vegan",
-    "url": "https://www.aromaticus.it/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Aromaticus%2C%20Rome%2C%20Italy"
   },
   {
     "id": "r4",
@@ -742,7 +742,7 @@ SEED_DATA.restaurants = [
     "description": "Warm Roman trattoria where the owner greets guests himself. Mushroom-and-truffle pasta and a praised cacio e pepe.",
     "vegetarian": true,
     "vegLabel": "Veg mains available",
-    "url": "https://maps.google.com/?q=Da+Fabrizio+al+56+Trastevere"
+    "url": "https://www.google.com/maps/search/?api=1&query=Da%20Fabrizio%20al%2056%2C%20Rome%2C%20Italy"
   },
   {
     "id": "r5",
@@ -753,7 +753,7 @@ SEED_DATA.restaurants = [
     "description": "For omnivore and veg alike: carciofi alla giudia, whole artichokes fried until the leaves open like a flower.",
     "vegetarian": true,
     "vegLabel": "Veg classic",
-    "url": "https://maps.google.com/?q=Jewish+Ghetto+Rome+carciofi"
+    "url": "https://www.google.com/maps/search/?api=1&query=Carciofi%20in%20the%20Ghetto%2C%20Rome%2C%20Italy"
   },
   {
     "id": "r6",
@@ -764,7 +764,7 @@ SEED_DATA.restaurants = [
     "description": "Giolitti near the Pantheon for classic gelato; Grezzo in Monti for raw-chocolate and vegan scoops.",
     "vegetarian": true,
     "vegLabel": "Vegan options at Grezzo",
-    "url": "https://www.giolitti.it/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Giolitti%20%26%20Grezzo%2C%20Rome%2C%20Italy"
   },
   {
     "id": "r7",
@@ -775,7 +775,7 @@ SEED_DATA.restaurants = [
     "description": "Creamy burrata, marinated antipasti and a standout orecchiette con cime di rapa with a peppery bite. Book ahead.",
     "vegetarian": true,
     "vegLabel": "Strong veg antipasti & pasta",
-    "url": "https://maps.google.com/?q=La+Uascezze+Bari"
+    "url": "https://www.google.com/maps/search/?api=1&query=La%20Uascezze%2C%20Bari%2C%20Italy"
   },
   {
     "id": "r8",
@@ -786,7 +786,7 @@ SEED_DATA.restaurants = [
     "description": "Laid-back local favorite in the old town. Burrata, orecchiette in rich tomato sauce, seasonal contorni. Stone walls, buzzy vibe.",
     "vegetarian": true,
     "vegLabel": "Many veg classics",
-    "url": "https://maps.google.com/?q=Anto+Bari+Vecchia"
+    "url": "https://www.google.com/maps/search/?api=1&query=Ant%C3%B2%2C%20Bari%2C%20Italy"
   },
   {
     "id": "r9",
@@ -797,7 +797,7 @@ SEED_DATA.restaurants = [
     "description": "Puglian dishes with a twist and reliable vegan/veg choices, grilled eggplant, marinated peppers, fave e cicoria.",
     "vegetarian": true,
     "vegLabel": "Dedicated veg / vegan menu",
-    "url": "https://maps.google.com/?q=Mamapulia+Bari"
+    "url": "https://www.google.com/maps/search/?api=1&query=Mamapulia%2C%20Bari%2C%20Italy"
   },
   {
     "id": "r10",
@@ -808,7 +808,7 @@ SEED_DATA.restaurants = [
     "description": "Fried dough oozing tomato and mozzarella, plus cherry-tomato focaccia. Grab from old-town bakeries and eat on the move.",
     "vegetarian": true,
     "vegLabel": "Naturally vegetarian",
-    "url": "https://maps.google.com/?q=panzerotti+Bari+Vecchia"
+    "url": "https://www.google.com/maps/search/?api=1&query=Panzerotti%20%26%20focaccia%20barese%2C%20Bari%2C%20Italy"
   },
   {
     "id": "r11",
@@ -819,7 +819,7 @@ SEED_DATA.restaurants = [
     "description": "Octopus-focused trattoria in the old-town lanes. Seafood done with heart for the one of you who eats everything.",
     "vegetarian": false,
     "vegLabel": "Seafood-led",
-    "url": "https://maps.google.com/?q=La+Tana+del+Polpo+Bari"
+    "url": "https://www.google.com/maps/search/?api=1&query=La%20Tana%20del%20Polpo%2C%20Bari%2C%20Italy"
   },
   {
     "id": "r12",
@@ -830,7 +830,7 @@ SEED_DATA.restaurants = [
     "description": "A creamery near Bari making burrata, mozzarella and pecorino in the classic Pugliese tradition. Build your own cheese-and-wine board.",
     "vegetarian": true,
     "vegLabel": "Cheese tasting",
-    "url": "https://maps.google.com/?q=Caseificio+Dicecca+Puglia"
+    "url": "https://www.google.com/maps/search/?api=1&query=Caseificio%20cheese%20tasting%2C%20Bari%2C%20Italy"
   },
   {
     "id": "r13",
@@ -841,7 +841,7 @@ SEED_DATA.restaurants = [
     "description": "Dubrovnik's most celebrated restaurant, on terraces above the sea with fortress views. Fine vegetarian dishes alongside the seafood. The special-occasion splurge.",
     "vegetarian": true,
     "vegLabel": "Veg menu on request",
-    "url": "https://www.nautikarestaurants.com/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Nautika%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "r14",
@@ -852,7 +852,7 @@ SEED_DATA.restaurants = [
     "description": "The city's beloved all-vegetarian/vegan spot. Inventive, globally-inspired plates and a daily-changing menu. Reserve, it's small.",
     "vegetarian": true,
     "vegLabel": "Fully vegetarian / vegan",
-    "url": "https://www.nishtarestaurant.com/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Nishta%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "r15",
@@ -863,7 +863,7 @@ SEED_DATA.restaurants = [
     "description": "Twenty years in the center, light pastas, homemade gnocchi and a real selection of vegetarian dishes. Local olive oil on every table.",
     "vegetarian": true,
     "vegLabel": "Veg dishes throughout",
-    "url": "https://www.spaghetteria-toni.com/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Spaghetteria%20Toni%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "r16",
@@ -874,7 +874,7 @@ SEED_DATA.restaurants = [
     "description": "The town's Neapolitan-style pizza, light dough, leopard-spotted crust. The pumpkin-cream pizza is a vegetarian standout.",
     "vegetarian": true,
     "vegLabel": "Easy veg",
-    "url": "https://maps.google.com/?q=Pizzeria+Papillon+Dubrovnik"
+    "url": "https://www.google.com/maps/search/?api=1&query=Pizzeria%20Papillon%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "r17",
@@ -885,7 +885,7 @@ SEED_DATA.restaurants = [
     "description": "Mediterranean meets Asian down a quiet alley, plus the local must-tries: black cuttlefish risotto and buzara shellfish.",
     "vegetarian": false,
     "vegLabel": "Seafood & fusion",
-    "url": "https://www.azurvision.com/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Azur%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "r18",
@@ -896,7 +896,7 @@ SEED_DATA.restaurants = [
     "description": "Snug bar for Croatian wine flights with simple cheese and charcuterie plates. The relaxed end to a wall-walking day.",
     "vegetarian": true,
     "vegLabel": "Cheese & small plates",
-    "url": "https://dvino.net/"
+    "url": "https://www.google.com/maps/search/?api=1&query=D'Vino%20Wine%20Bar%2C%20Dubrovnik%2C%20Croatia"
   },
   {
     "id": "r19",
@@ -907,7 +907,7 @@ SEED_DATA.restaurants = [
     "description": "Candlelit stone tavern between the square and the fortress. Dalmatian classics including a praised vegetarian stuffed-pepper dish. So traditional they don't sell Coca-Cola.",
     "vegetarian": true,
     "vegLabel": "Veg dishes available",
-    "url": "https://www.menego.hr/"
+    "url": "https://www.google.com/maps/search/?api=1&query=Konoba%20Menego%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "r20",
@@ -918,7 +918,7 @@ SEED_DATA.restaurants = [
     "description": "Family-run in a renovated wine cellar with a rooftop terrace facing the cathedral and fortress. Ingredients from the owner's farm.",
     "vegetarian": true,
     "vegLabel": "Farm produce, veg sides",
-    "url": "https://maps.google.com/?q=Konoba+Luviji+Hvar"
+    "url": "https://www.google.com/maps/search/?api=1&query=Konoba%20Luviji%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "r21",
@@ -929,7 +929,7 @@ SEED_DATA.restaurants = [
     "description": "Reliable wood-fired pizza right on the square, with a calm sea view and the bell tower marking the hour. An easy veg lunch.",
     "vegetarian": true,
     "vegLabel": "Veg pizzas",
-    "url": "https://maps.google.com/?q=pizza+St+Stephen+Square+Hvar"
+    "url": "https://www.google.com/maps/search/?api=1&query=Pizza%20on%20St%20Stephen's%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "r22",
@@ -940,7 +940,7 @@ SEED_DATA.restaurants = [
     "description": "Hvar's seafood is the draw: grilled whole fish, black risotto and octopus. Ask which fish came in that morning.",
     "vegetarian": false,
     "vegLabel": "Seafood-led",
-    "url": "https://maps.google.com/?q=konoba+Hvar+fresh+fish"
+    "url": "https://www.google.com/maps/search/?api=1&query=Fish%20of%20the%20day%20konoba%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "r23",
@@ -951,7 +951,7 @@ SEED_DATA.restaurants = [
     "description": "Meat or vegetables slow-roasted under a bell lid. Must be ordered 2–3 hours ahead; ask your hotel to call a konoba.",
     "vegetarian": true,
     "vegLabel": "Vegetable peka possible",
-    "url": "https://maps.google.com/?q=peka+Hvar"
+    "url": "https://www.google.com/maps/search/?api=1&query=Peka%20(order%20ahead)%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "r24",
@@ -962,7 +962,7 @@ SEED_DATA.restaurants = [
     "description": "Relaxed harborside craft brewery for a casual aperitivo with light plates after the fortress climb.",
     "vegetarian": true,
     "vegLabel": "Snacks & veg bites",
-    "url": "https://maps.google.com/?q=Hvar+Brewing+Co"
+    "url": "https://www.google.com/maps/search/?api=1&query=Hvar%20Brewing%20Co.%2C%20Hvar%2C%20Croatia"
   },
   {
     "id": "r25",
@@ -973,7 +973,7 @@ SEED_DATA.restaurants = [
     "description": "Tiny counter-service spot where the chalkboard changes daily, usually one fish, one meat, one vegetarian. Everything fresh. Arrive at noon.",
     "vegetarian": true,
     "vegLabel": "Daily veg option",
-    "url": "https://maps.google.com/?q=Villa+Spiza+Split"
+    "url": "https://www.google.com/maps/search/?api=1&query=Villa%20Spiza%2C%20Split%2C%20Croatia"
   },
   {
     "id": "r26",
@@ -984,7 +984,7 @@ SEED_DATA.restaurants = [
     "description": "Genuine Dalmatian cooking in the back streets, pašticada with gnocchi, peka, grilled fish. Popular with locals; book for dinner.",
     "vegetarian": false,
     "vegLabel": "Some veg; pasta & sides",
-    "url": "https://maps.google.com/?q=Konoba+Fetivi+Split"
+    "url": "https://www.google.com/maps/search/?api=1&query=Konoba%20Fetivi%2C%20Split%2C%20Croatia"
   },
   {
     "id": "r27",
@@ -995,7 +995,7 @@ SEED_DATA.restaurants = [
     "description": "Varoš has a wave of modern kitchens doing creative, vegetable-forward Dalmatian plates. Good for the veg half of the table.",
     "vegetarian": true,
     "vegLabel": "Veg-forward modern",
-    "url": "https://maps.google.com/?q=Articok+Split"
+    "url": "https://www.google.com/maps/search/?api=1&query=Articok%2C%20Split%2C%20Croatia"
   },
   {
     "id": "r28",
@@ -1006,7 +1006,7 @@ SEED_DATA.restaurants = [
     "description": "Just outside the tourist zone, so better prices. Food from Hvar island, seafood, grilled meats, and an excellent octopus peka.",
     "vegetarian": false,
     "vegLabel": "Seafood & meat",
-    "url": "https://maps.google.com/?q=Konoba+Hvaranin+Split"
+    "url": "https://www.google.com/maps/search/?api=1&query=Konoba%20Hvaranin%2C%20Split%2C%20Croatia"
   },
   {
     "id": "r29",
@@ -1017,7 +1017,7 @@ SEED_DATA.restaurants = [
     "description": "A Split institution by the fishermen's harbor, huge portions of homestyle Dalmatian cooking at honest prices.",
     "vegetarian": true,
     "vegLabel": "Veg sides & pastas",
-    "url": "https://maps.google.com/?q=Fife+Split"
+    "url": "https://www.google.com/maps/search/?api=1&query=Fife%20(Mateju%C5%A1ka)%2C%20Split%2C%20Croatia"
   },
   {
     "id": "r30",
@@ -1028,7 +1028,7 @@ SEED_DATA.restaurants = [
     "description": "Varoš does specialty coffee by day and intimate Croatian wine by night. The perfect bookends to a relaxed final stop.",
     "vegetarian": true,
     "vegLabel": "Snacks & small plates",
-    "url": "https://maps.google.com/?q=Stow+Coffee+Roasters+Split"
+    "url": "https://www.google.com/maps/search/?api=1&query=Stow%20Coffee%20%26%20Monika's%20Wine%20Bar%2C%20Split%2C%20Croatia"
   }
 ];
 

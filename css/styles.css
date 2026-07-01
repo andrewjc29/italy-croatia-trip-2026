@@ -112,7 +112,7 @@ button{font-family:inherit}
 /* ---- restaurant / food cards ---- */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.4rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden;box-shadow:0 8px 24px var(--shadow);display:flex;flex-direction:column}
-.card .pic{height:150px;overflow:hidden;position:relative;background:linear-gradient(135deg,var(--sand),var(--seaglass-soft))}
+.card .pic{height:150px;overflow:hidden;position:relative;background:var(--accent,var(--seaglass-soft))}
 .card .body{padding:1.1rem 1.2rem 1.3rem;flex:1;display:flex;flex-direction:column}
 .card h4{font-size:1.1rem;color:var(--accent-deep,var(--adriatic-deep));margin-bottom:.15rem}
 .card .kind{font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent,var(--seaglass));font-weight:600;margin-bottom:.5rem}
