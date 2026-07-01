@@ -191,3 +191,20 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .brand{display:none}
   .stay-card{flex-direction:column;align-items:flex-start}
 }
+
+/* ---- where to stay: hotel shortlist table ---- */
+.table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--card);box-shadow:0 8px 24px var(--shadow);margin-bottom:.6rem}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{text-align:left;padding:.85rem .9rem;vertical-align:top;font-size:.86rem}
+thead th{background:var(--accent-deep,var(--adriatic-deep));color:#fff;font-family:'Outfit';font-weight:500;letter-spacing:.05em;font-size:.66rem;text-transform:uppercase}
+tbody tr{border-top:1px solid var(--line);transition:background .2s}
+tbody tr:hover{background:#f5f8f7}
+tbody tr.hidden{display:none}
+td.hotel{font-family:'Fraunces';font-size:1rem;color:var(--accent-deep,var(--adriatic-deep));min-width:150px}
+td.hotel .area{display:block;font-family:'Outfit';font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent,var(--seaglass));margin-top:.15rem;font-weight:500}
+td.cost{font-weight:500;white-space:nowrap;color:var(--accent,var(--terracotta))}
+.pill{display:inline-block;margin-top:.3rem;font-size:.54rem;letter-spacing:.08em;text-transform:uppercase;background:var(--accent,var(--terracotta));color:#fff;padding:.1rem .4rem;border-radius:var(--radius-pill)}
+td.actions{white-space:nowrap}
+td.actions a, td.actions button.site-link{font-family:'Outfit';font-size:.76rem;font-weight:500;border:1px solid var(--line);padding:.28rem .6rem;border-radius:var(--radius-input);display:inline-block;background:none;cursor:pointer;color:var(--ink);margin-bottom:.3rem}
+td.actions a:hover, td.actions button.site-link:hover{border-color:var(--terracotta);background:#fbf1ea;color:var(--terracotta)}
+.add-row-btn{margin:.6rem 0 0}

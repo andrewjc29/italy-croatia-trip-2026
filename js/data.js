@@ -65,17 +65,6 @@ SEED_DATA.activities.push(
   { id: "a11", day: 11, city: "split", time: "", title: "Diocletian's Palace old town", type: "sight", cost: 0, status: "idea", notes: "" }
 );
 
-// -- Restaurant / food reference guide (not day-scheduled -- use "add to day" in the UI) --
-SEED_DATA.restaurants.push(
-  { id: "r1", city: "rome", name: "Sant'Eustachio", dish: "Espresso", vegetarian: true, notes: "Famous, near the Pantheon." },
-  { id: "r2", city: "rome", name: "(shortlist TBD)", dish: "Carbonara / Cacio e pepe / Supplì", vegetarian: false, notes: "Trastevere and Testaccio neighborhoods for authentic food." },
-  { id: "r3", city: "bari", name: "(shortlist TBD)", dish: "Raw seafood crudo, bombette, sea urchin", vegetarian: false, notes: "Bari Vecchia street food scene, omnivore highlights." },
-  { id: "r4", city: "bari", name: "(shortlist TBD)", dish: "Fave e cicoria, burrata, orecchiette cime di rapa, panzerotti, focaccia Barese, sgagliozze", vegetarian: true, notes: "Puglia is a vegetarian paradise -- well served everywhere in this region." },
-  { id: "r5", city: "lecce", name: "(shortlist TBD)", dish: "Pasticciotto", vegetarian: true, notes: "Lecce specialty custard pastry." },
-  { id: "r6", city: "dubrovnik", name: "(shortlist TBD)", dish: "Peka (slow-roasted, order 2-3h ahead)", vegetarian: false, notes: "Ask your accommodation host to recommend a place and call ahead." },
-  { id: "r7", city: "split", name: "(shortlist TBD)", dish: "Soparnik, black risotto, grilled fish", vegetarian: false, notes: "For vegetarian: grilled vegetables, salads, cheese plates, truffle dishes if visiting Istria." }
-);
-
 SEED_DATA.notesLog.push(
   { id: "n1", text: "Trip plan imported from research doc (2026-06-24). Route B confirmed: Italy first, Croatia second. Open decisions: exact September dates, points/miles check, final Croatia direction (Dubrovnik-first vs Split-first, depends on ferry schedule).", ts: new Date().toISOString() }
 );
@@ -84,16 +73,16 @@ SEED_DATA.notesLog.push(
 // restaurants by matching city id. Accent colors carried over from the
 // original travel guide's per-city theming. --
 const PLACES = [
-  { id: "rome", label: "Rome", nights: "2 nt", cityIds: ["rome"], image: "assets/images/rome.jpg",
-    title: "Rome", titleEm: "the Eternal City", blurb: "Two nights to shake off jet lag: ancient ruins in the morning, long lunches, a slow walk through Trastevere at golden hour." },
-  { id: "puglia", label: "Puglia", nights: "4 nt", cityIds: ["bari", "polignano", "alberobello", "matera", "lecce"], image: "assets/images/bari.jpg",
-    title: "Puglia", titleEm: "the heel of Italy", blurb: "Four nights based in Bari, with day trips to whitewashed towns, cave dwellings, and cliffside swimming. Naturally vegetarian-friendly, course after course." },
-  { id: "dubrovnik", label: "Dubrovnik", nights: "2 nt", cityIds: ["dubrovnik"], image: "assets/images/dubrovnik.jpg",
-    title: "Dubrovnik", titleEm: "the Pearl of the Adriatic", blurb: "Old town walls, kayaking the coastline, and a first taste of Croatia after the ferry crossing from Bari." },
-  { id: "hvar", label: "Hvar", nights: "1 nt", cityIds: ["hvar"], image: "assets/images/hvar.jpg",
-    title: "Hvar", titleEm: "island time", blurb: "One overnight on the island, reached by catamaran, with lavender hills and a slower pace than the mainland cities." },
-  { id: "split", label: "Split", nights: "2 nt", cityIds: ["split"], image: "assets/images/split.jpg",
-    title: "Split", titleEm: "Diocletian's city", blurb: "Two nights in a Roman palace turned living city, before the flight home." }
+  { id: "rome", label: "Rome", nights: "2 nt", cityIds: ["rome"], image: "assets/images/rome.jpg", dayStart: 1, dayEnd: 3,
+    title: "Rome", titleEm: "the Eternal City", blurb: "Base in <strong>Monti</strong> (local, trendy, metro-connected, ten minutes from the Colosseum) or <strong>Trastevere</strong> (cobblestoned, best food density, no metro but very walkable). Both beat the tourist zones around Trevi and the Spanish Steps for value and atmosphere." },
+  { id: "puglia", label: "Puglia", nights: "4 nt", cityIds: ["bari", "polignano", "alberobello", "matera", "lecce"], image: "assets/images/bari.jpg", dayStart: 3, dayEnd: 7,
+    title: "Puglia", titleEm: "the heel of Italy", blurb: "Base in the <strong>Murat Quarter</strong>, Bari's modern heart of wide boulevards, the best dining and the main shopping street, beside Bari Centrale where every day trip departs. Puglia's cucina povera is largely vegetarian by default, the easiest eating of the whole trip." },
+  { id: "dubrovnik", label: "Dubrovnik", nights: "2 nt", cityIds: ["dubrovnik"], image: "assets/images/dubrovnik.jpg", dayStart: 7, dayEnd: 9,
+    title: "Dubrovnik", titleEm: "the Pearl of the Adriatic", blurb: "You arrive by Jadrolinija ferry into Gru\u017e, so a Gru\u017e or <strong>Plo\u010de</strong> base makes sense. Plo\u010de is the upscale 'Riviera' just east of the walls, sea-facing, ten minutes from the Old Town harbor, the local pick for couples. <strong>Pile</strong>, just west of the walls, is quieter and flatter with quick Old Town access." },
+  { id: "hvar", label: "Hvar", nights: "1 nt", cityIds: ["hvar"], image: "assets/images/hvar.jpg", dayStart: 9, dayEnd: 10,
+    title: "Hvar", titleEm: "island time", blurb: "One night between catamarans, so stay central in <strong>Hvar Town</strong>: it's walkable end to end in twenty minutes and puts the square, the harbor, the restaurants and the fortress walk at your door. Make this night count." },
+  { id: "split", label: "Split", nights: "2 nt", cityIds: ["split"], image: "assets/images/split.jpg", dayStart: 10, dayEnd: 12,
+    title: "Split", titleEm: "Diocletian's city", blurb: "Stay in <strong>Veli Varo\u0161</strong>, the stone neighborhood on Marjan Hill's slope, five to ten minutes from Diocletian's Palace and the Riva but quieter and better value, with the best local konobas and wine bars. The palace interior is atmospheric but the noisiest at night." }
 ];
 
 const PLACE_TIPS = {
@@ -107,6 +96,12 @@ const PLACE_TIPS = {
 // -- Prep checklist: merges the trip-plan's phased next-steps with the
 // original guide's before-you-book steps. Interactive, checkable, persisted. --
 SEED_DATA.prepChecklist = [
+  { id: "pc0a", phase: "Before you book", text: "Lock the per-stop night splits inside your September window using the planner. This sets your exact booking nights.", done: false },
+  { id: "pc0b", phase: "Before you book", text: "Confirm the Croatia direction against the Jadrolinija ferry schedule. Entering at Dubrovnik vs Split decides which city you book first and which is your departure airport.", done: false },
+  { id: "pc0c", phase: "Before you book", text: "Shortlist 1-2 hotels per stop from the Where to Stay tables. Mark your splurge night, Stari Grad (Dubrovnik) and Palace Elisabeth (Hvar) are the strongest candidates.", done: false },
+  { id: "pc0d", phase: "Before you book", text: "Price the shortlist live for your exact nights on each hotel's own site and Booking.com. Direct booking sometimes beats the OTA rate and adds perks.", done: false },
+  { id: "pc0e", phase: "Before you book", text: "Carry your passport for the ferry. Border posts at Italy-Croatia sea crossings are lifted, but ID is checked at check-in, and the EU Entry/Exit System (photo + fingerprints) is rolling out at Croatian ports.", done: false },
+  { id: "pc0f", phase: "Before you book", text: "Check ETIAS status before you go. Visa-exempt travelers, including US citizens, will need ETIAS authorization for the Schengen area once it launches.", done: false },
   { id: "pc1", phase: "Now (6 months out)", text: "Check credit cards and airline accounts for points, miles, travel credits, and foreign transaction fee status.", done: false },
   { id: "pc2", phase: "Now (6 months out)", text: "Pick exact September dates (early vs mid vs late). Late September has slightly lower prices and thinner crowds.", done: false },
   { id: "pc3", phase: "Now (6 months out)", text: "Set up price alerts on Google Flights for the open-jaw: SFO to Rome + Dubrovnik or Split to SFO.", done: false },
@@ -125,3 +120,955 @@ SEED_DATA.prepChecklist = [
   { id: "pc16", phase: "1-2 weeks before", text: "Check ETIAS status for your September 2026 dates, visa-exempt US travelers will need it once it launches.", done: false },
   { id: "pc17", phase: "1-2 weeks before", text: "Final packing: layers for evenings, swimwear, comfortable walking shoes.", done: false }
 ];
+
+// -- Hotels: real shortlist per place, extracted from the original travel guide. --
+SEED_DATA.hotels = [
+  {
+    "id": "ht1",
+    "placeId": "rome",
+    "name": "Leonardo Boutique Hotel Rome Monti",
+    "area": "Monti",
+    "costLabel": "~$180–260",
+    "cost": 220,
+    "pros": "Heart of Rome's trendiest local quarter; wine bars and trattorias at the door; Cavour metro and Termini walkable.",
+    "cons": "Some nightlife noise; rooms compact.",
+    "url": "https://www.leonardo-hotels.com/rome/leonardo-boutique-hotel-rome-monti",
+    "splurge": false
+  },
+  {
+    "id": "ht2",
+    "placeId": "rome",
+    "name": "Donna Camilla Savelli",
+    "area": "Trastevere",
+    "costLabel": "~$280–380",
+    "cost": 330,
+    "pros": "12th-century convent with a quiet courtyard of olive and orange trees; two blocks from the Tiber; deeply romantic.",
+    "cons": "No metro nearby; upper end of range.",
+    "url": "https://www.hoteldonnacamillasavelli.it/",
+    "splurge": true
+  },
+  {
+    "id": "ht3",
+    "placeId": "rome",
+    "name": "Loly Boutique Hotel Roma",
+    "area": "Trastevere edge",
+    "costLabel": "~$200–300",
+    "cost": 250,
+    "pros": "4-star with its own restaurant, bar and terrace; walkable to Campo de' Fiori; Piramide metro ~10 min.",
+    "cons": "Busier edge of the district; breakfast varies.",
+    "url": "https://www.lolyboutiquehotelroma.it/",
+    "splurge": false
+  },
+  {
+    "id": "ht4",
+    "placeId": "rome",
+    "name": "Princeps Boutique Hotel",
+    "area": "Monti",
+    "costLabel": "~$160–240",
+    "cost": 200,
+    "pros": "Bright modern rooms opposite Santa Maria Maggiore; Colosseum 10 min; close to Termini for the Bari train. Best value.",
+    "cons": "3-star, limited amenities; daytime tour traffic.",
+    "url": "https://www.princepshotel.it/",
+    "splurge": false
+  },
+  {
+    "id": "ht5",
+    "placeId": "rome",
+    "name": "Tree Charme Parliament",
+    "area": "Centro Storico",
+    "costLabel": "~$250–350",
+    "cost": 300,
+    "pros": "Design-forward, ~500m from the Pantheon; max sightseeing density on a short stay; near Giolitti gelato.",
+    "cons": "Most touristed zone; no metro; upper range.",
+    "url": "https://www.treecharmeparliament.it/",
+    "splurge": false
+  },
+  {
+    "id": "ht6",
+    "placeId": "puglia",
+    "name": "Dilman Luxury Stay",
+    "area": "Central Bari",
+    "costLabel": "~$140–220",
+    "cost": 180,
+    "pros": "Boutique stay in the buzzing center; walkable to Via Sparano shopping, Teatro Petruzzelli and the station.",
+    "cons": "City-center street noise; few on-site services.",
+    "url": "https://www.booking.com/hotel/it/dilman-luxury-stay.html",
+    "splurge": false
+  },
+  {
+    "id": "ht7",
+    "placeId": "puglia",
+    "name": "200 Rooms and Terrace",
+    "area": "Murat",
+    "costLabel": "~$120–180",
+    "cost": 150,
+    "pros": "Bright 4-room B&B with rooftop skyline terrace; elegant rooms, friendly hosts; best neighborhood.",
+    "cons": "Tiny, books fast; B&B-level services.",
+    "url": "https://www.booking.com/hotel/it/200-rooms-and-terrace.html",
+    "splurge": false
+  },
+  {
+    "id": "ht8",
+    "placeId": "puglia",
+    "name": "Al Pescatore B&B",
+    "area": "Old-town edge",
+    "costLabel": "~$110–170",
+    "cost": 140,
+    "pros": "Six modern rooms, rooftop with port and castle views; laid-back, near Castello Normanno-Svevo.",
+    "cons": "Communal breakfast; old-town-edge night noise.",
+    "url": "https://www.booking.com/hotel/it/al-pescatore-bari.html",
+    "splurge": false
+  },
+  {
+    "id": "ht9",
+    "placeId": "puglia",
+    "name": "Grand Hotel Oriente",
+    "area": "Murat · Corso Cavour",
+    "costLabel": "~$160–260",
+    "cost": 210,
+    "pros": "Hotel-style comfort in the modern center; prime spot near sea, old town and station; good breakfast.",
+    "cons": "Pricier; classic rather than boutique style.",
+    "url": "https://www.grandhoteloriente.it/",
+    "splurge": false
+  },
+  {
+    "id": "ht10",
+    "placeId": "puglia",
+    "name": "Residenze Al Castello",
+    "area": "Bari Vecchia",
+    "costLabel": "~$90–160",
+    "cost": 125,
+    "pros": "Authentic old-town charm steps from Basilica di San Nicola and the street-food alleys; most atmospheric, cheapest.",
+    "cons": "Noisy lanes, possible stairs, fewer amenities.",
+    "url": "https://www.booking.com/hotel/it/residenze-al-castello.html",
+    "splurge": false
+  },
+  {
+    "id": "ht11",
+    "placeId": "dubrovnik",
+    "name": "Boutique Hotel Stari Grad",
+    "area": "Old Town",
+    "costLabel": "~$300–450",
+    "cost": 375,
+    "pros": "Top couples boutique in the city; rooftop terrace with stunning wall-and-sea views; steps from everything.",
+    "cons": "Tiny, books far ahead; Old Town stairs and luggage hauling.",
+    "url": "https://www.hotelstarigrad.com/",
+    "splurge": true
+  },
+  {
+    "id": "ht12",
+    "placeId": "dubrovnik",
+    "name": "Boutique Hotel Kazbek",
+    "area": "Gruž (harbor)",
+    "costLabel": "~$280–400",
+    "cost": 340,
+    "pros": "Restored 16th-century villa with pool and waterfront; near your ferry arrival point; local vibe, good transport.",
+    "cons": "15–20 min from Old Town; Gruž is more workaday.",
+    "url": "https://www.kazbekdubrovnik.com/",
+    "splurge": false
+  },
+  {
+    "id": "ht13",
+    "placeId": "dubrovnik",
+    "name": "Hotel Excelsior Dubrovnik",
+    "area": "Ploče",
+    "costLabel": "~$400–600+",
+    "cost": 500,
+    "pros": "Iconic seafront landmark; 5 min to the walls; stunning pool, over-water terrace, spa, best Old Town views.",
+    "cons": "Well above budget; five-star formality.",
+    "url": "https://www.adriaticluxuryhotels.com/hotel-excelsior-dubrovnik/",
+    "splurge": true
+  },
+  {
+    "id": "ht14",
+    "placeId": "dubrovnik",
+    "name": "Dominus Rooms",
+    "area": "Pile",
+    "costLabel": "~$180–280",
+    "cost": 230,
+    "pros": "Clean, well-rated guesthouse with lovely decor near Pile Gate; walk into Old Town in minutes; near the bus hub. Best value-to-location.",
+    "cons": "Guesthouse service level; daytime gate foot traffic.",
+    "url": "https://www.booking.com/hotel/hr/dominus-rooms-dubrovnik.html",
+    "splurge": false
+  },
+  {
+    "id": "ht15",
+    "placeId": "dubrovnik",
+    "name": "Pearl of Adriatic (apt)",
+    "area": "Ploče",
+    "costLabel": "~$200–320",
+    "cost": 260,
+    "pros": "Renovated large apartment with incredible sea views, ~8 min from Ploče Gate; space and a kitchen for slow mornings.",
+    "cons": "No housekeeping or breakfast; some steps to the water.",
+    "url": "https://www.booking.com/hotel/hr/pearl-of-adriatic.html",
+    "splurge": false
+  },
+  {
+    "id": "ht16",
+    "placeId": "hvar",
+    "name": "Hotel Moeesy Blue & Green Oasis",
+    "area": "Hvar Town",
+    "costLabel": "~$250–380",
+    "cost": 315,
+    "pros": "Top boutique-luxury pick for couples; beautiful pool and terrace, elegant interiors, adults-oriented calm.",
+    "cons": "Pricey for one night; short walk above the center.",
+    "url": "https://www.moeesy.com/",
+    "splurge": false
+  },
+  {
+    "id": "ht17",
+    "placeId": "hvar",
+    "name": "Palace Elisabeth, Hvar",
+    "area": "Main square",
+    "costLabel": "~$350–500+",
+    "cost": 425,
+    "pros": "The grande dame, first 5-star on Hvar, right on St Stephen's Square below the fortress walk. Step into the prettiest streets.",
+    "cons": "Well above budget; formal five-star feel.",
+    "url": "https://www.suncanihvar.com/palace-elisabeth-hvar-heritage-hotel.html",
+    "splurge": true
+  },
+  {
+    "id": "ht18",
+    "placeId": "hvar",
+    "name": "Heritage Hotel Park Hvar",
+    "area": "Hvar Town",
+    "costLabel": "~$200–300",
+    "cost": 250,
+    "pros": "Highly rated by couples; central, reliable comfort and breakfast; easy walk to harbor and square.",
+    "cons": "Less design flair; books out in season.",
+    "url": "https://www.hotelparkhvar.com/",
+    "splurge": false
+  },
+  {
+    "id": "ht19",
+    "placeId": "hvar",
+    "name": "Heritage Hotel Dea Hvar",
+    "area": "Hvar Town",
+    "costLabel": "~$180–280",
+    "cost": 230,
+    "pros": "Mid-range boutique in town, named a couples favorite; walkable to everything. Good value.",
+    "cons": "Smaller property; some compact rooms.",
+    "url": "https://www.suncanihvar.com/",
+    "splurge": false
+  },
+  {
+    "id": "ht20",
+    "placeId": "hvar",
+    "name": "Adriana Hvar Spa Hotel",
+    "area": "Waterfront",
+    "costLabel": "~$280–400",
+    "cost": 340,
+    "pros": "Waterfront spa hotel with a rooftop pool facing the harbor; relaxing decompress after island-hopping.",
+    "cons": "Larger resort feel; upper price end.",
+    "url": "https://www.suncanihvar.com/adriana-hvar-spa-hotel.html",
+    "splurge": false
+  },
+  {
+    "id": "ht21",
+    "placeId": "split",
+    "name": "Divota Apartment Hotel",
+    "area": "Veli Varoš",
+    "costLabel": "~$220–340",
+    "cost": 280,
+    "pros": "Stylishly renovated stone houses with a spa; easy walk to the Palace; surrounded by konobas (Fife, Cicibela) and wine bars.",
+    "cons": "Steep stepped streets, often no elevator; hard with heavy bags.",
+    "url": "https://www.divota.hr/",
+    "splurge": false
+  },
+  {
+    "id": "ht22",
+    "placeId": "split",
+    "name": "Briig Boutique Hotel",
+    "area": "Near Old Town",
+    "costLabel": "~$200–300",
+    "cost": 250,
+    "pros": "Stylish 4-star in a converted factory; bold design, wellness facilities, exceptional breakfast; easy reach of Old Town and beach.",
+    "cons": "Slightly outside the core; industrial-chic not for everyone.",
+    "url": "https://www.briig.com/",
+    "splurge": false
+  },
+  {
+    "id": "ht23",
+    "placeId": "split",
+    "name": "Judita Palace",
+    "area": "Inside the Palace",
+    "costLabel": "~$280–420",
+    "cost": 350,
+    "pros": "Romantic 16th-century palace with antique interiors; right in the heart of the Old Town. Upgrade for a balcony room.",
+    "cons": "Noisiest area at night; higher price.",
+    "url": "https://www.juditapalace.com/",
+    "splurge": true
+  },
+  {
+    "id": "ht24",
+    "placeId": "split",
+    "name": "Boutique Hotel Luxe",
+    "area": "Near the Palace",
+    "costLabel": "~$200–300",
+    "cost": 250,
+    "pros": "Stylish 4-star ~0.2 mi from the Palace with spa, hot tub and sauna; high guest rating; near Bačvice Beach.",
+    "cons": "On a busier road vs quiet Veli Varoš; spa-hotel feel.",
+    "url": "https://www.hotelluxesplit.com/",
+    "splurge": false
+  },
+  {
+    "id": "ht25",
+    "placeId": "split",
+    "name": "Cornaro Hotel",
+    "area": "Old Town",
+    "costLabel": "~$190–300",
+    "cost": 245,
+    "pros": "Central heritage-style stay close to the Palace and Riva; reliable comfort without going full luxury.",
+    "cons": "Old Town evening crowd noise; confirm the exact stepped street.",
+    "url": "https://www.cornarohotel.com/",
+    "splurge": false
+  }
+];
+
+// -- Things to do: real "see & do" cards per place, extracted from the original guide. --
+SEED_DATA.thingsToDo = [
+  {
+    "id": "td1",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Colosseum, Forum & Palatine",
+    "kind": "Ancient Rome",
+    "description": "Book the combined timed ticket online and go early. The Forum and Palatine Hill are included and far quieter than the arena.",
+    "url": "https://parcocolosseo.it/en/"
+  },
+  {
+    "id": "td2",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Roman Forum at golden hour",
+    "kind": "Walk among ruins",
+    "description": "The political heart of the ancient city. Enter from the Palatine side late afternoon when the stone turns amber and crowds thin.",
+    "url": "https://parcocolosseo.it/en/area/the-roman-forum/"
+  },
+  {
+    "id": "td3",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Pantheon",
+    "kind": "Free to enter",
+    "description": "The best-preserved Roman building still standing, its dome open to the sky. Pair with espresso at nearby Sant'Eustachio.",
+    "url": "https://www.pantheonroma.com/en/"
+  },
+  {
+    "id": "td4",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Piazza Navona",
+    "kind": "Baroque heart",
+    "description": "Bernini's fountains and a film-set square of cafes and street artists. A short walk from the Pantheon through the centro.",
+    "url": "https://www.turismoroma.it/en/places/piazza-navona"
+  },
+  {
+    "id": "td5",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Vatican Museums & St Peter's",
+    "kind": "Optional morning",
+    "description": "If you want it, book the earliest slot or a skip-the-line tour. Otherwise trade it for a slower Trastevere morning.",
+    "url": "https://www.museivaticani.va/content/museivaticani/en.html"
+  },
+  {
+    "id": "td6",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Testaccio market & quarter",
+    "kind": "Local life",
+    "description": "Rome's real food neighborhood, a working market by day and the home of the city's most honest trattorias by night.",
+    "url": "https://www.mercatoditestaccio.it/"
+  },
+  {
+    "id": "td7",
+    "placeId": "puglia",
+    "city": "polignano",
+    "name": "Polignano a Mare",
+    "kind": "30 min by train",
+    "description": "Whitewashed town on limestone cliffs over a turquoise cove. Swim at Lama Monachile, then sit with a coffee on the terraces above.",
+    "url": "https://maps.google.com/?q=Polignano+a+Mare"
+  },
+  {
+    "id": "td8",
+    "placeId": "puglia",
+    "city": "alberobello",
+    "name": "Alberobello trulli",
+    "kind": "~1 hr · FSE line",
+    "description": "UNESCO village of conical stone houses. Wander the Rione Monti and Aia Piccola districts early, before the tour buses.",
+    "url": "https://whc.unesco.org/en/list/787/"
+  },
+  {
+    "id": "td9",
+    "placeId": "puglia",
+    "city": "matera",
+    "name": "Matera's Sassi",
+    "kind": "~1 hr · FAL line",
+    "description": "Ancient cave dwellings carved into a ravine, glowing at dusk. One of the oldest continuously inhabited places on earth.",
+    "url": "https://whc.unesco.org/en/list/670/"
+  },
+  {
+    "id": "td10",
+    "placeId": "puglia",
+    "city": "lecce",
+    "name": "Lecce, the Baroque south",
+    "kind": "~1.5 hr by train",
+    "description": "Honey-colored Baroque facades and the famous pasticciotto custard pastry. The 'Florence of the south.'",
+    "url": "https://maps.google.com/?q=Lecce+Basilica+di+Santa+Croce"
+  },
+  {
+    "id": "td11",
+    "placeId": "puglia",
+    "city": "bari",
+    "name": "Bari Vecchia & Arco Basso",
+    "kind": "In Bari",
+    "description": "Walk the 'Strada delle Orecchiette' where nonnas shape pasta in the doorways, past the Basilica di San Nicola.",
+    "url": "https://maps.google.com/?q=Strada+Arco+Basso+Bari"
+  },
+  {
+    "id": "td12",
+    "placeId": "puglia",
+    "city": "bari",
+    "name": "Orecchiette cooking class",
+    "kind": "Hands-on",
+    "description": "Learn to hand-roll orecchiette with a local before feasting on the result. The most memorable Bari afternoon.",
+    "url": "https://www.getyourguide.com/bari-l1066/"
+  },
+  {
+    "id": "td13",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Walk the City Walls",
+    "kind": "The icon",
+    "description": "A circuit of the medieval ramparts above terracotta roofs and the Adriatic. Go at opening or late afternoon to dodge heat and cruise crowds.",
+    "url": "https://www.wallsofdubrovnik.com/"
+  },
+  {
+    "id": "td14",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Stradun & the old quarter",
+    "kind": "Wander",
+    "description": "The polished limestone main street, plus the Rector's Palace, the Franciscan monastery pharmacy and hidden stair-streets.",
+    "url": "https://maps.google.com/?q=Stradun+Dubrovnik"
+  },
+  {
+    "id": "td15",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Lokrum Island",
+    "kind": "Short boat hop",
+    "description": "A ten-minute ferry to a forested islet with peacocks, a botanical garden and quiet swimming coves. An easy half-day escape.",
+    "url": "https://www.lokrum.hr/en/"
+  },
+  {
+    "id": "td16",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Mount Srđ cable car",
+    "kind": "Sunset",
+    "description": "Ride up for the panoramic view over the walled city and islands. Best timed for golden hour, with a drink at the top.",
+    "url": "https://www.dubrovnikcablecar.com/"
+  },
+  {
+    "id": "td17",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Sea kayak under the walls",
+    "kind": "On the water",
+    "description": "Paddle out from Pile beneath the ramparts to a sea cave and Lokrum. The classic active afternoon; sunset trips available.",
+    "url": "https://www.getyourguide.com/dubrovnik-l385/"
+  },
+  {
+    "id": "td18",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Game of Thrones film spots",
+    "kind": "Pop culture",
+    "description": "The Old Town doubled as King's Landing. Self-guide the steps and squares, or take a themed walking tour.",
+    "url": "https://maps.google.com/?q=Dubrovnik+Game+of+Thrones+steps"
+  },
+  {
+    "id": "td19",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Španjola (Spanish) Fortress",
+    "kind": "The must-do",
+    "description": "A short uphill walk to the island's signature view: orange rooftops, the harbor and the Pakleni Islands beyond. Best at sunset.",
+    "url": "https://maps.google.com/?q=Fortica+Hvar"
+  },
+  {
+    "id": "td20",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Pakleni Islands",
+    "kind": "On the water",
+    "description": "A string of islets minutes offshore with clear lagoons and hidden coves. Hop a taxi-boat from the harbor for a swim.",
+    "url": "https://maps.google.com/?q=Pakleni+Islands"
+  },
+  {
+    "id": "td21",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "St Stephen's Square",
+    "kind": "The center",
+    "description": "Croatia's largest old square, anchored by the cathedral, at its best at golden hour when the marble glows.",
+    "url": "https://maps.google.com/?q=St+Stephen's+Square+Hvar"
+  },
+  {
+    "id": "td22",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Hvar wine tasting",
+    "kind": "Taste",
+    "description": "The island is known for its vineyards. Do a tasting in town or a short tour into the hills for local Plavac and Bogdanuša.",
+    "url": "https://www.getyourguide.com/hvar-l1707/"
+  },
+  {
+    "id": "td23",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Stari Grad",
+    "kind": "If you have time",
+    "description": "The island's quiet original capital, 30 min away, with a flat old town, harbor and a UNESCO-listed plain of vines and olives.",
+    "url": "https://whc.unesco.org/en/list/1240/"
+  },
+  {
+    "id": "td24",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Swim at Pokonji Dol",
+    "kind": "Beach time",
+    "description": "An easy pebble cove a short walk from town for a morning dip before your onward catamaran.",
+    "url": "https://maps.google.com/?q=Pokonji+Dol+beach+Hvar"
+  },
+  {
+    "id": "td25",
+    "placeId": "split",
+    "city": "split",
+    "name": "Diocletian's Palace",
+    "kind": "UNESCO · the heart",
+    "description": "A 1,700-year-old Roman palace still lived in today. Walk the Peristyle, descend into the cellars, and get lost in the marble lanes.",
+    "url": "https://whc.unesco.org/en/list/97/"
+  },
+  {
+    "id": "td26",
+    "placeId": "split",
+    "city": "split",
+    "name": "Cathedral of St Domnius",
+    "kind": "Climb",
+    "description": "Climb the bell tower for a tight, rewarding view straight down over the palace rooftops and out to the harbor.",
+    "url": "https://maps.google.com/?q=Cathedral+of+Saint+Domnius+Split"
+  },
+  {
+    "id": "td27",
+    "placeId": "split",
+    "city": "split",
+    "name": "Marjan Hill",
+    "kind": "Nature",
+    "description": "The forested peninsula above town. A morning walk to the viewpoints over Split and the islands, with quiet chapels along the way.",
+    "url": "https://maps.google.com/?q=Marjan+Hill+Split"
+  },
+  {
+    "id": "td28",
+    "placeId": "split",
+    "city": "split",
+    "name": "The Riva & Bačvice",
+    "kind": "Aperitivo hour",
+    "description": "Palm-lined waterfront for coffee and people-watching, then Bačvice beach for a swim or a game of picigin with locals.",
+    "url": "https://maps.google.com/?q=Riva+Split"
+  },
+  {
+    "id": "td29",
+    "placeId": "split",
+    "city": "split",
+    "name": "Trogir & the Blue Lagoon",
+    "kind": "Half-day trip",
+    "description": "A tiny UNESCO island-town 30 min away, often paired with a swim stop at the turquoise Blue Lagoon off Šolta.",
+    "url": "https://whc.unesco.org/en/list/810/"
+  },
+  {
+    "id": "td30",
+    "placeId": "split",
+    "city": "split",
+    "name": "Klis Fortress",
+    "kind": "View & history",
+    "description": "A clifftop fortress just outside town with sweeping coastal views (and more Game of Thrones scenery). Quick bus from the center.",
+    "url": "https://maps.google.com/?q=Klis+Fortress"
+  }
+];
+
+// -- Restaurants: replaces the earlier placeholder list with the real 30-spot guide. --
+SEED_DATA.restaurants = [
+  {
+    "id": "r1",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Il Duca",
+    "kind": "Trastevere · trattoria",
+    "description": "Unassuming front, excellent homemade pasta. Fried artichokes, cacio e pepe and a standout truffle ravioli.",
+    "vegetarian": true,
+    "vegLabel": "Very veg-friendly",
+    "url": "https://maps.google.com/?q=Il+Duca+Trastevere+Rome"
+  },
+  {
+    "id": "r2",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Ivo a Trastevere",
+    "kind": "Trastevere · classic",
+    "description": "Loud, homely, famous for pizza. Feels like a huge Italian family dinner; loved by locals and visitors.",
+    "vegetarian": true,
+    "vegLabel": "Easy veg options",
+    "url": "https://maps.google.com/?q=Ivo+a+Trastevere+Rome"
+  },
+  {
+    "id": "r3",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Aromaticus",
+    "kind": "Monti · vegetarian",
+    "description": "Herb-forward, fresh and modern. Light lunches, brunch and aperitivo built around aromatic plants. A vegetarian home base.",
+    "vegetarian": true,
+    "vegLabel": "Vegetarian / vegan",
+    "url": "https://www.aromaticus.it/"
+  },
+  {
+    "id": "r4",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Da Fabrizio al 56",
+    "kind": "Trastevere · trattoria",
+    "description": "Warm Roman trattoria where the owner greets guests himself. Mushroom-and-truffle pasta and a praised cacio e pepe.",
+    "vegetarian": true,
+    "vegLabel": "Veg mains available",
+    "url": "https://maps.google.com/?q=Da+Fabrizio+al+56+Trastevere"
+  },
+  {
+    "id": "r5",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Carciofi in the Ghetto",
+    "kind": "Roman-Jewish · seasonal",
+    "description": "For omnivore and veg alike: carciofi alla giudia, whole artichokes fried until the leaves open like a flower.",
+    "vegetarian": true,
+    "vegLabel": "Veg classic",
+    "url": "https://maps.google.com/?q=Jewish+Ghetto+Rome+carciofi"
+  },
+  {
+    "id": "r6",
+    "placeId": "rome",
+    "city": "rome",
+    "name": "Giolitti & Grezzo",
+    "kind": "Treat",
+    "description": "Giolitti near the Pantheon for classic gelato; Grezzo in Monti for raw-chocolate and vegan scoops.",
+    "vegetarian": true,
+    "vegLabel": "Vegan options at Grezzo",
+    "url": "https://www.giolitti.it/"
+  },
+  {
+    "id": "r7",
+    "placeId": "puglia",
+    "city": "bari",
+    "name": "La Uascezze",
+    "kind": "Bari Vecchia · traditional",
+    "description": "Creamy burrata, marinated antipasti and a standout orecchiette con cime di rapa with a peppery bite. Book ahead.",
+    "vegetarian": true,
+    "vegLabel": "Strong veg antipasti & pasta",
+    "url": "https://maps.google.com/?q=La+Uascezze+Bari"
+  },
+  {
+    "id": "r8",
+    "placeId": "puglia",
+    "city": "bari",
+    "name": "Antò",
+    "kind": "Bari Vecchia · traditional",
+    "description": "Laid-back local favorite in the old town. Burrata, orecchiette in rich tomato sauce, seasonal contorni. Stone walls, buzzy vibe.",
+    "vegetarian": true,
+    "vegLabel": "Many veg classics",
+    "url": "https://maps.google.com/?q=Anto+Bari+Vecchia"
+  },
+  {
+    "id": "r9",
+    "placeId": "puglia",
+    "city": "bari",
+    "name": "Mamapulia",
+    "kind": "Modern trattoria",
+    "description": "Puglian dishes with a twist and reliable vegan/veg choices, grilled eggplant, marinated peppers, fave e cicoria.",
+    "vegetarian": true,
+    "vegLabel": "Dedicated veg / vegan menu",
+    "url": "https://maps.google.com/?q=Mamapulia+Bari"
+  },
+  {
+    "id": "r10",
+    "placeId": "puglia",
+    "city": "bari",
+    "name": "Panzerotti & focaccia barese",
+    "kind": "Street food",
+    "description": "Fried dough oozing tomato and mozzarella, plus cherry-tomato focaccia. Grab from old-town bakeries and eat on the move.",
+    "vegetarian": true,
+    "vegLabel": "Naturally vegetarian",
+    "url": "https://maps.google.com/?q=panzerotti+Bari+Vecchia"
+  },
+  {
+    "id": "r11",
+    "placeId": "puglia",
+    "city": "bari",
+    "name": "La Tana del Polpo",
+    "kind": "For the omnivore",
+    "description": "Octopus-focused trattoria in the old-town lanes. Seafood done with heart for the one of you who eats everything.",
+    "vegetarian": false,
+    "vegLabel": "Seafood-led",
+    "url": "https://maps.google.com/?q=La+Tana+del+Polpo+Bari"
+  },
+  {
+    "id": "r12",
+    "placeId": "puglia",
+    "city": "bari",
+    "name": "Caseificio cheese tasting",
+    "kind": "Cheese pilgrimage",
+    "description": "A creamery near Bari making burrata, mozzarella and pecorino in the classic Pugliese tradition. Build your own cheese-and-wine board.",
+    "vegetarian": true,
+    "vegLabel": "Cheese tasting",
+    "url": "https://maps.google.com/?q=Caseificio+Dicecca+Puglia"
+  },
+  {
+    "id": "r13",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Nautika",
+    "kind": "Pile · fine dining",
+    "description": "Dubrovnik's most celebrated restaurant, on terraces above the sea with fortress views. Fine vegetarian dishes alongside the seafood. The special-occasion splurge.",
+    "vegetarian": true,
+    "vegLabel": "Veg menu on request",
+    "url": "https://www.nautikarestaurants.com/"
+  },
+  {
+    "id": "r14",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Nishta",
+    "kind": "Old Town · vegetarian",
+    "description": "The city's beloved all-vegetarian/vegan spot. Inventive, globally-inspired plates and a daily-changing menu. Reserve, it's small.",
+    "vegetarian": true,
+    "vegLabel": "Fully vegetarian / vegan",
+    "url": "https://www.nishtarestaurant.com/"
+  },
+  {
+    "id": "r15",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Spaghetteria Toni",
+    "kind": "Old Town · casual",
+    "description": "Twenty years in the center, light pastas, homemade gnocchi and a real selection of vegetarian dishes. Local olive oil on every table.",
+    "vegetarian": true,
+    "vegLabel": "Veg dishes throughout",
+    "url": "https://www.spaghetteria-toni.com/"
+  },
+  {
+    "id": "r16",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Pizzeria Papillon",
+    "kind": "Old Town · pizza",
+    "description": "The town's Neapolitan-style pizza, light dough, leopard-spotted crust. The pumpkin-cream pizza is a vegetarian standout.",
+    "vegetarian": true,
+    "vegLabel": "Easy veg",
+    "url": "https://maps.google.com/?q=Pizzeria+Papillon+Dubrovnik"
+  },
+  {
+    "id": "r17",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "Azur",
+    "kind": "Old Town · fusion",
+    "description": "Mediterranean meets Asian down a quiet alley, plus the local must-tries: black cuttlefish risotto and buzara shellfish.",
+    "vegetarian": false,
+    "vegLabel": "Seafood & fusion",
+    "url": "https://www.azurvision.com/"
+  },
+  {
+    "id": "r18",
+    "placeId": "dubrovnik",
+    "city": "dubrovnik",
+    "name": "D'Vino Wine Bar",
+    "kind": "Old Town · wine",
+    "description": "Snug bar for Croatian wine flights with simple cheese and charcuterie plates. The relaxed end to a wall-walking day.",
+    "vegetarian": true,
+    "vegLabel": "Cheese & small plates",
+    "url": "https://dvino.net/"
+  },
+  {
+    "id": "r19",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Konoba Menego",
+    "kind": "Old Town · konoba",
+    "description": "Candlelit stone tavern between the square and the fortress. Dalmatian classics including a praised vegetarian stuffed-pepper dish. So traditional they don't sell Coca-Cola.",
+    "vegetarian": true,
+    "vegLabel": "Veg dishes available",
+    "url": "https://www.menego.hr/"
+  },
+  {
+    "id": "r20",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Konoba Luviji",
+    "kind": "Old Town · wine cellar",
+    "description": "Family-run in a renovated wine cellar with a rooftop terrace facing the cathedral and fortress. Ingredients from the owner's farm.",
+    "vegetarian": true,
+    "vegLabel": "Farm produce, veg sides",
+    "url": "https://maps.google.com/?q=Konoba+Luviji+Hvar"
+  },
+  {
+    "id": "r21",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Pizza on St Stephen's",
+    "kind": "Main square · casual",
+    "description": "Reliable wood-fired pizza right on the square, with a calm sea view and the bell tower marking the hour. An easy veg lunch.",
+    "vegetarian": true,
+    "vegLabel": "Veg pizzas",
+    "url": "https://maps.google.com/?q=pizza+St+Stephen+Square+Hvar"
+  },
+  {
+    "id": "r22",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Fish of the day konoba",
+    "kind": "For the omnivore",
+    "description": "Hvar's seafood is the draw: grilled whole fish, black risotto and octopus. Ask which fish came in that morning.",
+    "vegetarian": false,
+    "vegLabel": "Seafood-led",
+    "url": "https://maps.google.com/?q=konoba+Hvar+fresh+fish"
+  },
+  {
+    "id": "r23",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Peka (order ahead)",
+    "kind": "Dalmatian showpiece",
+    "description": "Meat or vegetables slow-roasted under a bell lid. Must be ordered 2–3 hours ahead; ask your hotel to call a konoba.",
+    "vegetarian": true,
+    "vegLabel": "Vegetable peka possible",
+    "url": "https://maps.google.com/?q=peka+Hvar"
+  },
+  {
+    "id": "r24",
+    "placeId": "hvar",
+    "city": "hvar",
+    "name": "Hvar Brewing Co.",
+    "kind": "Craft beer & bites",
+    "description": "Relaxed harborside craft brewery for a casual aperitivo with light plates after the fortress climb.",
+    "vegetarian": true,
+    "vegLabel": "Snacks & veg bites",
+    "url": "https://maps.google.com/?q=Hvar+Brewing+Co"
+  },
+  {
+    "id": "r25",
+    "placeId": "split",
+    "city": "split",
+    "name": "Villa Spiza",
+    "kind": "Old Town · daily menu",
+    "description": "Tiny counter-service spot where the chalkboard changes daily, usually one fish, one meat, one vegetarian. Everything fresh. Arrive at noon.",
+    "vegetarian": true,
+    "vegLabel": "Daily veg option",
+    "url": "https://maps.google.com/?q=Villa+Spiza+Split"
+  },
+  {
+    "id": "r26",
+    "placeId": "split",
+    "city": "split",
+    "name": "Konoba Fetivi",
+    "kind": "Near the Palace · konoba",
+    "description": "Genuine Dalmatian cooking in the back streets, pašticada with gnocchi, peka, grilled fish. Popular with locals; book for dinner.",
+    "vegetarian": false,
+    "vegLabel": "Some veg; pasta & sides",
+    "url": "https://maps.google.com/?q=Konoba+Fetivi+Split"
+  },
+  {
+    "id": "r27",
+    "placeId": "split",
+    "city": "split",
+    "name": "Articok",
+    "kind": "Veli Varoš · modern",
+    "description": "Varoš has a wave of modern kitchens doing creative, vegetable-forward Dalmatian plates. Good for the veg half of the table.",
+    "vegetarian": true,
+    "vegLabel": "Veg-forward modern",
+    "url": "https://maps.google.com/?q=Articok+Split"
+  },
+  {
+    "id": "r28",
+    "placeId": "split",
+    "city": "split",
+    "name": "Konoba Hvaranin",
+    "kind": "For the omnivore",
+    "description": "Just outside the tourist zone, so better prices. Food from Hvar island, seafood, grilled meats, and an excellent octopus peka.",
+    "vegetarian": false,
+    "vegLabel": "Seafood & meat",
+    "url": "https://maps.google.com/?q=Konoba+Hvaranin+Split"
+  },
+  {
+    "id": "r29",
+    "placeId": "split",
+    "city": "split",
+    "name": "Fife (Matejuška)",
+    "kind": "Old-school · waterfront",
+    "description": "A Split institution by the fishermen's harbor, huge portions of homestyle Dalmatian cooking at honest prices.",
+    "vegetarian": true,
+    "vegLabel": "Veg sides & pastas",
+    "url": "https://maps.google.com/?q=Fife+Split"
+  },
+  {
+    "id": "r30",
+    "placeId": "split",
+    "city": "split",
+    "name": "Stow Coffee & Monika's Wine Bar",
+    "kind": "Coffee & wine",
+    "description": "Varoš does specialty coffee by day and intimate Croatian wine by night. The perfect bookends to a relaxed final stop.",
+    "vegetarian": true,
+    "vegLabel": "Snacks & small plates",
+    "url": "https://maps.google.com/?q=Stow+Coffee+Roasters+Split"
+  }
+];
+
+// -- Real per-place tips, extracted from the original guide (replaces PLACE_TIPS placeholder). --
+const PLACE_TIPS_REAL = {
+  "rome": [
+    "Trastevere and Centro Storico have no metro. Plan on walking, trams (Line 8) and buses.",
+    "Book the Rome–Bari high-speed train early on trenitalia.com or italotreno.com. Advance fares start around €13–20.",
+    "Lunch is the big meal; many kitchens close 3–5pm and dinner gets going after 8pm.",
+    "Skip picture-menu places near the big sights. Head into Testaccio or deeper Trastevere instead.",
+    "Vegetarian heads-up: anchovies sneak into pizzas and pastas, and risotto is often made with meat stock. Ask, or look for the veg symbol."
+  ],
+  "puglia": [
+    "Stay near Bari Centrale. Polignano (Trenitalia), Alberobello (FSE) and Matera (FAL) all use different operators, so check each line.",
+    "WhatsApp reservation culture is common at Puglia restaurants. Ask your host to message ahead for you.",
+    "Puglian cooking is built on vegetables, olive oil and durum wheat, the most vegetarian-friendly region on the route.",
+    "A coperto (cover charge, €1–3 for bread and cutlery) often appears on the bill. That's normal, not a scam.",
+    "Useful phrase: 'Sono vegetariano/a' (I'm vegetarian)."
+  ],
+  "dubrovnik": [
+    "Check menu prices in the Old Town before you order; the touristed core has some inflated bills.",
+    "The Old Town is fully pedestrian with stairs and slopes. Pack light or pick a property with easy access.",
+    "Buses connect Gruž (ferry/bus port), Pile, Ploče and Lapad frequently and cheaply.",
+    "Time the walls and Old Town for early morning or evening; midday is hottest and most crowded when cruise ships dock.",
+    "Carry your passport on the Bari ferry; ID is checked at check-in and Croatia's EU Entry/Exit System scan applies at the port."
+  ],
+  "hvar": [
+    "Catamarans (Krilo, TP Line, Jadrolinija) dock in Hvar Town. Stay central so your one night isn't eaten by transfers.",
+    "Book catamaran legs 1–2 weeks ahead in September; they sell out.",
+    "Hvar Town is hilly. The fortress is a short uphill walk with the best sunset on the island.",
+    "Order peka 2–3 hours in advance; your hotel can call a konoba for you.",
+    "Smaller family konobas sometimes prefer cash; carry some euros."
+  ],
+  "split": [
+    "Veli Varoš and the palace interior both have stairs and narrow lanes. Confirm the exact address and access before booking, especially with luggage.",
+    "The ferry/catamaran terminal, bus and train stations cluster just southeast of the Old Town, convenient for arrival and your flight home.",
+    "Skip the restaurants right on the Peristyle; they charge for the setting. Eat in Varoš or the back streets instead.",
+    "September runs noticeably cheaper than peak summer with excellent weather and a swimmable sea.",
+    "Tourist tax is about €1.86–2.50 per person per night, paid locally."
+  ]
+};
+Object.assign(PLACE_TIPS, PLACE_TIPS_REAL);

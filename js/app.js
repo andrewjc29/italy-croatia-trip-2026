@@ -15,6 +15,7 @@ function el(html) { const t = document.createElement("template"); t.innerHTML = 
 
 let mapInstance = null;
 let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
+let hotelFilter = {}; // placeId -> "all" | "budget" | "splurge"
 
 // ---- modal helper ----
 function openModal(title, bodyHtml, onSubmit, submitLabel) {
@@ -48,23 +49,36 @@ function buildPlacesSkeleton() {
       "<h2>" + esc(p.title) + " <em>" + esc(p.titleEm) + "</em></h2>" +
       '<div class="nights">' + esc(p.nights) + " in " + esc(p.label) + "</div></div></div>" +
       '<div class="wrap">' +
-      '<p class="blurb">' + esc(p.blurb) + "</p>" +
-      '<div class="sub-h"><h3>Where you\'re staying</h3><span class="rule"></span></div>' +
-      '<div id="stay-' + p.id + '"></div>' +
+      '<p class="blurb">' + p.blurb + "</p>" +
+
       '<div class="sub-h"><h3>Day by day</h3><span class="rule"></span></div>' +
       '<div id="days-' + p.id + '"></div>' +
-      '<div class="sub-h"><h3>Food &amp; drink</h3><span class="tag">vegetarian friendly noted</span><span class="rule"></span></div>' +
+
+      '<div class="sub-h"><h3>Where to stay</h3><span class="tag">shortlist &middot; choose one to book</span><span class="rule"></span></div>' +
+      '<div class="filters" id="hotelfilters-' + p.id + '">' +
+      '<button class="chip on" data-filter="all">All</button>' +
+      '<button class="chip" data-filter="budget">Within budget</button>' +
+      '<button class="chip" data-filter="splurge">Splurge picks</button>' +
+      '</div>' +
+      '<div id="hotels-' + p.id + '"></div>' +
+      '<button class="link add-row-btn" data-add-hotel="' + p.id + '">+ add a hotel option</button>' +
+
+      '<div class="sub-h"><h3>See &amp; do</h3><span class="rule"></span></div>' +
+      '<div id="seedo-' + p.id + '" class="cards"></div>' +
+
+      '<div class="sub-h"><h3>Where to eat</h3><span class="tag">vegetarian friendly noted</span><span class="rule"></span></div>' +
       '<div class="filters" id="filters-' + p.id + '">' +
       '<button class="chip on" data-filter="all">All</button>' +
       '<button class="chip" data-filter="veg">Vegetarian</button>' +
       '<button class="chip" data-filter="nonveg">Omnivore</button>' +
       '</div>' +
       '<div id="foodcards-' + p.id + '" class="cards"></div>' +
+
       (tips ? '<details class="tips"><summary>Good to know<span class="arw">+</span></summary><ul>' + tips + "</ul></details>" : "") +
       "</div></section>" + (i < PLACES.length - 1 ? '<div class="divider"></div>' : "");
   }).join("");
 
-  document.querySelectorAll(".filters").forEach((box) => {
+  document.getElementById("places").querySelectorAll('.filters[id^="filters-"]').forEach((box) => {
     box.addEventListener("click", (e) => {
       const btn = e.target.closest(".chip");
       if (!btn) return;
@@ -74,34 +88,31 @@ function buildPlacesSkeleton() {
       renderPlaceFood(placeId, Store.getState());
     });
   });
+  document.getElementById("places").querySelectorAll('.filters[id^="hotelfilters-"]').forEach((box) => {
+    box.addEventListener("click", (e) => {
+      const btn = e.target.closest(".chip");
+      if (!btn) return;
+      const placeId = box.id.replace("hotelfilters-", "");
+      hotelFilter[placeId] = btn.dataset.filter;
+      box.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c === btn));
+      renderPlaceHotels(placeId, Store.getState());
+    });
+  });
+  document.getElementById("places").querySelectorAll("[data-add-hotel]").forEach((btn) =>
+    btn.addEventListener("click", () => openHotelForm(Store.getState(), null, PLACES.find((p) => p.id === btn.dataset.addHotel))));
 }
 
 function placeForCity(cityId) { return PLACES.find((p) => p.cityIds.indexOf(cityId) !== -1); }
 
-function renderPlaceStay(placeId, state) {
-  const place = PLACES.find((p) => p.id === placeId);
-  const stays = state.bookings.filter((b) => place.cityIds.indexOf(b.city) !== -1 || place.cityIds.indexOf(b.fromCity) !== -1 || place.cityIds.indexOf(b.toCity) !== -1);
-  const el2 = document.getElementById("stay-" + placeId);
-  if (!stays.length) {
-    el2.innerHTML = '<div class="stay-card"><div><div class="stay-name">Nothing booked yet</div><div class="stay-meta">Add a hotel stay, flight, train, or ferry for ' + esc(place.label) + '</div></div>' +
-      '<button class="btn secondary" data-add-booking="' + placeId + '">+ Add</button></div>';
-  } else {
-    el2.innerHTML = stays.map((b) =>
-      '<div class="stay-card"><div><div class="stay-name">' + esc(b.title) + '</div><div class="stay-meta">' + esc(b.category) +
-      (b.provider ? " · " + esc(b.provider) : "") + (b.cost ? " · " + fmtMoney(b.cost, b.currency) : "") + '</div></div>' +
-      '<div style="display:flex;align-items:center;gap:.6rem"><span class="status-pill ' + b.status + '">' + b.status + '</span>' +
-      '<button class="link" data-edit-booking="' + b.id + '">edit</button></div></div>').join("") +
-      '<div style="margin-top:.6rem"><button class="link" data-add-booking="' + placeId + '">+ add another</button></div>';
-  }
-  el2.querySelectorAll("[data-add-booking]").forEach((b) => b.addEventListener("click", () => openBookingForm(state, null, place)));
-  el2.querySelectorAll("[data-edit-booking]").forEach((b) => b.addEventListener("click", () => openBookingForm(state, state.bookings.find((x) => x.id === b.dataset.editBooking))));
+function currentLodgingBooking(state, place) {
+  return state.bookings.find((b) => b.category === "lodging" && place.cityIds.indexOf(b.city) !== -1);
 }
 
 function renderPlaceDays(placeId, state) {
   const place = PLACES.find((p) => p.id === placeId);
   const days = Store.getItineraryDays().filter((d) => d.cityId && place.cityIds.indexOf(d.cityId) !== -1);
   const el2 = document.getElementById("days-" + placeId);
-  if (!days.length) { el2.innerHTML = '<div class="day-rows"><div class="day-row"><div class="day-body muted">No days assigned to ' + esc(place.label) + ' yet, add a stay above.</div></div></div>'; return; }
+  if (!days.length) { el2.innerHTML = '<div class="day-rows"><div class="day-row"><div class="day-body muted">No days assigned to ' + esc(place.label) + ' yet, choose a hotel below.</div></div></div>'; return; }
   el2.innerHTML = '<div class="day-rows">' + days.map((d) => {
     const lines = d.activities.map((a) =>
       '<div class="item-line"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span>' +
@@ -120,33 +131,126 @@ function renderPlaceDays(placeId, state) {
   }));
 }
 
+// ---- Where to stay (hotels shortlist -> "Choose this" writes/updates the lodging booking) ----
+function renderPlaceHotels(placeId, state) {
+  const place = PLACES.find((p) => p.id === placeId);
+  const current = currentLodgingBooking(state, place);
+  let list = (state.hotels || []).filter((h) => h.placeId === placeId);
+  const filter = hotelFilter[placeId] || "all";
+  if (filter === "budget") list = list.filter((h) => !h.splurge);
+  if (filter === "splurge") list = list.filter((h) => h.splurge);
+  const el2 = document.getElementById("hotels-" + placeId);
+  el2.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Hotel</th><th>Nightly</th><th>Pros</th><th>Cons</th><th></th></tr></thead><tbody>' +
+    list.map((h) => {
+      const chosen = current && current.title === h.name;
+      return '<tr><td class="hotel">' + esc(h.name) + '<span class="area">' + esc(h.area) + '</span>' +
+        (h.splurge ? '<span class="pill">splurge</span>' : "") + '</td>' +
+        '<td class="cost">' + esc(h.costLabel || fmtMoney(h.cost, "USD")) + '</td>' +
+        '<td>' + esc(h.pros || "") + '</td><td>' + esc(h.cons || "") + '</td>' +
+        '<td class="actions">' +
+        (h.url ? '<a href="' + esc(h.url) + '" target="_blank" rel="noopener">Visit site</a><br>' : "") +
+        '<button class="site-link" data-choose-hotel="' + h.id + '">' + (chosen ? "Chosen" : "Choose this") + '</button><br>' +
+        '<button class="link" data-edit-hotel="' + h.id + '">edit</button></td></tr>';
+    }).join("") + "</tbody></table></div>";
+  el2.querySelectorAll("[data-choose-hotel]").forEach((btn) => btn.addEventListener("click", () => {
+    const h = state.hotels.find((x) => x.id === btn.dataset.chooseHotel);
+    const payload = { category: "lodging", title: h.name, city: h.placeId === "puglia" ? "bari" : place.cityIds[0], provider: h.area, cost: h.cost, currency: "USD", link: h.url, notes: h.pros };
+    if (current) Store.update("bookings", current.id, payload);
+    else Store.add("bookings", Object.assign({ day: place.dayStart, endDay: place.dayEnd, status: "idea", confirmation: "" }, payload), "bk");
+  }));
+  el2.querySelectorAll("[data-edit-hotel]").forEach((btn) => btn.addEventListener("click", () => openHotelForm(state, state.hotels.find((x) => x.id === btn.dataset.editHotel), place)));
+}
+
+function openHotelForm(state, existing, place) {
+  const body =
+    '<label class="field">Hotel name</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
+    '<label class="field">Area / neighborhood</label><input data-field="area" value="' + esc(existing ? existing.area : "") + '">' +
+    '<label class="field">Nightly cost (label, e.g. "~$180-260")</label><input data-field="costLabel" value="' + esc(existing ? existing.costLabel : "") + '">' +
+    '<label class="field">Why it works</label><textarea data-field="pros">' + esc(existing ? existing.pros : "") + '</textarea>' +
+    '<label class="field">Trade-offs</label><textarea data-field="cons">' + esc(existing ? existing.cons : "") + '</textarea>' +
+    '<label class="field">Link</label><input data-field="url" value="' + esc(existing ? existing.url : "") + '">' +
+    (existing ? '<div style="margin-top:8px"><button class="link" id="deleteHotelBtn">Remove</button></div>' : "");
+  openModal(existing ? "Edit hotel option" : "Add a hotel option", body, (data) => {
+    const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: data.url, placeId: existing ? existing.placeId : place.id, splurge: existing ? existing.splurge : false };
+    if (existing) Store.update("hotels", existing.id, payload);
+    else Store.add("hotels", payload, "ht");
+  });
+  if (existing) setTimeout(() => {
+    const d = document.getElementById("deleteHotelBtn");
+    if (d) d.addEventListener("click", () => { Store.remove("hotels", existing.id); closeModal(); });
+  }, 0);
+}
+
+// ---- See & do ----
+function renderPlaceSee(placeId, state) {
+  const place = PLACES.find((p) => p.id === placeId);
+  const list = (state.thingsToDo || []).filter((s) => s.placeId === placeId);
+  const el2 = document.getElementById("seedo-" + placeId);
+  el2.innerHTML = list.map((s) =>
+    '<div class="card"><div class="pic"></div><div class="body"><div class="kind">' + esc(s.kind) + '</div><h4>' + esc(s.name) + '</h4>' +
+    '<p>' + esc(s.description) + '</p>' +
+    '<div class="foot">' + (s.url ? '<a class="site" href="' + esc(s.url) + '" target="_blank" rel="noopener">More</a>' : "<span></span>") +
+    '<button class="site" data-add-day-see="' + s.id + '">add to a day</button></div>' +
+    '<div style="margin-top:.4rem"><button class="link" data-edit-see="' + s.id + '">edit</button></div></div></div>').join("") +
+    '<div class="card" style="align-items:center;justify-content:center;min-height:150px"><button class="link" data-add-see="' + placeId + '">+ add a thing to do</button></div>';
+  el2.querySelectorAll("[data-edit-see]").forEach((btn) => btn.addEventListener("click", () => openSeeForm(state, state.thingsToDo.find((x) => x.id === btn.dataset.editSee), place)));
+  el2.querySelectorAll("[data-add-see]").forEach((btn) => btn.addEventListener("click", () => openSeeForm(state, null, place)));
+  el2.querySelectorAll("[data-add-day-see]").forEach((btn) => btn.addEventListener("click", () => {
+    const s = state.thingsToDo.find((x) => x.id === btn.dataset.addDaySee);
+    openModal('Add "' + s.name + '" to which day?', '<label class="field">Day number</label><input data-field="day" type="number" value="' + place.dayStart + '">',
+      (data) => Store.add("activities", { day: parseInt(data.day, 10) || place.dayStart, city: s.city, time: "", title: s.name, type: "sight", notes: s.description, status: "idea" }, "a"));
+  }));
+}
+
+function openSeeForm(state, existing, place) {
+  const cityOpts = place.cityIds.map((id) => '<option value="' + id + '"' + ((existing ? existing.city : place.cityIds[0]) === id ? " selected" : "") + ">" + cityName(id) + "</option>").join("");
+  const body =
+    '<label class="field">Name</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
+    '<label class="field">Kind / category</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
+    '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
+    '<label class="field">Description</label><textarea data-field="description">' + esc(existing ? existing.description : "") + '</textarea>' +
+    '<label class="field">Link</label><input data-field="url" value="' + esc(existing ? existing.url : "") + '">' +
+    (existing ? '<div style="margin-top:8px"><button class="link" id="deleteSeeBtn">Remove</button></div>' : "");
+  openModal(existing ? "Edit" : "Add a thing to do", body, (data) => {
+    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.url, placeId: place.id };
+    if (existing) Store.update("thingsToDo", existing.id, payload);
+    else Store.add("thingsToDo", payload, "td");
+  });
+  if (existing) setTimeout(() => {
+    const d = document.getElementById("deleteSeeBtn");
+    if (d) d.addEventListener("click", () => { Store.remove("thingsToDo", existing.id); closeModal(); });
+  }, 0);
+}
+
+// ---- Where to eat ----
 function renderPlaceFood(placeId, state) {
   const place = PLACES.find((p) => p.id === placeId);
-  let list = state.restaurants.filter((r) => place.cityIds.indexOf(r.city) !== -1);
+  let list = state.restaurants.filter((r) => r.placeId === placeId);
   const filter = foodFilter[placeId] || "all";
   if (filter === "veg") list = list.filter((r) => r.vegetarian);
   if (filter === "nonveg") list = list.filter((r) => !r.vegetarian);
   const el2 = document.getElementById("foodcards-" + placeId);
   el2.innerHTML = list.map((r) =>
     '<div class="card"><div class="pic"></div><div class="body"><h4>' + esc(r.name) + '</h4>' +
-    '<div class="kind">' + esc(r.dish) + '</div><p>' + esc(r.notes || "") + '</p>' +
+    '<div class="kind">' + esc(r.kind) + '</div><p>' + esc(r.description || "") + '</p>' +
     '<div class="foot"><span class="veg ' + (r.vegetarian ? "yes" : "no") + '">' + (r.vegetarian ? "vegetarian" : "omnivore") + '</span>' +
     '<button class="site" data-add-day="' + r.id + '">add to a day</button></div>' +
-    '<div style="margin-top:.4rem"><button class="link" data-edit-rest="' + r.id + '">edit</button></div></div></div>').join("") +
+    '<div style="margin-top:.4rem">' + (r.url ? '<a class="link" href="' + esc(r.url) + '" target="_blank" rel="noopener">map</a> &middot; ' : "") + '<button class="link" data-edit-rest="' + r.id + '">edit</button></div></div></div>').join("") +
     '<div class="card" style="align-items:center;justify-content:center;min-height:150px"><button class="link" data-add-rest="' + placeId + '">+ add restaurant</button></div>';
-  el2.querySelectorAll("[data-edit-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, state.restaurants.find((x) => x.id === btn.dataset.editRest))));
-  el2.querySelectorAll("[data-add-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, null, place.cityIds[0])));
+  el2.querySelectorAll("[data-edit-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, state.restaurants.find((x) => x.id === btn.dataset.editRest), place)));
+  el2.querySelectorAll("[data-add-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, null, place)));
   el2.querySelectorAll("[data-add-day]").forEach((btn) => btn.addEventListener("click", () => {
     const r = state.restaurants.find((x) => x.id === btn.dataset.addDay);
-    openModal('Add "' + r.name + '" to which day?', '<label class="field">Day number</label><input data-field="day" type="number" value="1">',
-      (data) => Store.add("activities", { day: parseInt(data.day, 10) || 1, city: r.city, time: "", title: r.name + " (" + r.dish + ")", type: "meal", notes: r.notes, status: "idea" }, "a"));
+    openModal('Add "' + r.name + '" to which day?', '<label class="field">Day number</label><input data-field="day" type="number" value="' + place.dayStart + '">',
+      (data) => Store.add("activities", { day: parseInt(data.day, 10) || place.dayStart, city: r.city, time: "", title: r.name + " (" + r.kind + ")", type: "meal", notes: r.description, status: "idea" }, "a"));
   }));
 }
 
 function renderPlaces(state) {
-  PLACES.forEach((p) => { renderPlaceStay(p.id, state); renderPlaceDays(p.id, state); renderPlaceFood(p.id, state); });
+  PLACES.forEach((p) => { renderPlaceDays(p.id, state); renderPlaceHotels(p.id, state); renderPlaceSee(p.id, state); renderPlaceFood(p.id, state); });
 }
 
+// ---- forms ----
 // ---- forms ----
 function openActivityForm(state, day, existing) {
   const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (existing && existing.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
@@ -204,15 +308,17 @@ function openBookingForm(state, existing, place) {
   }, 0);
 }
 
-function openRestForm(state, existing, defaultCity) {
-  const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + ((existing ? existing.city : defaultCity) === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
+function openRestForm(state, existing, place) {
+  const cityOpts = place.cityIds.map((id) => '<option value="' + id + '"' + ((existing ? existing.city : place.cityIds[0]) === id ? " selected" : "") + ">" + cityName(id) + "</option>").join("");
   const body = '<label class="field">Name</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
-    '<label class="field">Dish / specialty</label><input data-field="dish" value="' + esc(existing ? existing.dish : "") + '">' +
+    '<label class="field">Kind / specialty</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
-    '<label class="field">Notes / reservation info</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
+    '<label class="field">Description / reservation info</label><textarea data-field="description">' + esc(existing ? existing.description : "") + '</textarea>' +
+    '<label class="field">Link</label><input data-field="url" value="' + esc(existing ? existing.url : "") + '">' +
+    '<label class="field">Vegetarian friendly?</label><select data-field="vegetarian"><option value="true"' + (existing && existing.vegetarian ? " selected" : "") + '>Yes</option><option value="false"' + (existing && !existing.vegetarian ? " selected" : "") + '>No</option></select>' +
     (existing ? '<div style="margin-top:8px"><button class="link" id="deleteRestBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add restaurant", body, (data) => {
-    const payload = { name: data.name, dish: data.dish, city: data.city, notes: data.notes, vegetarian: existing ? existing.vegetarian : true };
+    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.url, vegetarian: data.vegetarian === "true", placeId: place.id };
     if (existing) Store.update("restaurants", existing.id, payload);
     else Store.add("restaurants", payload, "r");
   });
