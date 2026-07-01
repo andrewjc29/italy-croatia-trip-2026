@@ -73,8 +73,6 @@ function buildPlacesSkeleton() {
       "<h2>" + esc(p.title) + " <em>" + esc(p.titleEm) + "</em></h2>" +
       '<div class="nights" id="nights-' + p.id + '"></div></div></div>' +
       '<div class="wrap">' +
-      '<p class="blurb">' + p.blurb + "</p>" +
-
       '<div class="sub-h"><h3>Day by day</h3><span class="rule"></span></div>' +
       '<div id="days-' + p.id + '"></div>' +
 
@@ -640,19 +638,43 @@ function nightsBetween(dateStart, dateEnd) {
   return n > 0 ? n : 1;
 }
 
+const BUDGET_CAT_LABELS = { flight: "Flights", lodging: "Lodging", transport: "Transport", other: "Other" };
+function budgetCategoryFor(b) {
+  if (b.category === "flight") return "flight";
+  if (b.category === "lodging") return "lodging";
+  if (["train", "ferry", "catamaran", "bus"].indexOf(b.category) !== -1) return "transport";
+  return "other";
+}
+function budgetItemMeta(b, entry) {
+  const curSym = b.currency === "EUR" ? "€" : "$";
+  let base = curSym + Math.round(b.cost || 0).toLocaleString();
+  if (entry.nights) base += "/night × " + entry.nights + (entry.nights === 1 ? " night" : " nights");
+  const parts = [base];
+  if (b.currency === "EUR") parts.push("≈ $" + Math.round(entry.amtUSD).toLocaleString());
+  parts.push(b.status);
+  return parts.join(" · ");
+}
+function budgetItemLine(entry) {
+  const b = entry.booking;
+  return '<li><span class="bi-title">' + esc(b.title) + '</span>' +
+    '<span class="bi-amt">$' + Math.round(entry.amtUSD).toLocaleString() + '</span>' +
+    '<span class="bi-meta muted">' + budgetItemMeta(b, entry) + '</span></li>';
+}
+
 async function renderBudget(state) {
   const container = document.getElementById("budgetPanel");
   if (!container) return;
   const rate = await getUsdPerEur();
   const cats = { flight: 0, lodging: 0, transport: 0, other: 0 };
+  const grouped = { flight: [], lodging: [], transport: [], other: [] };
   state.bookings.forEach((b) => {
     let amt = b.cost || 0;
-    if (b.category === "lodging") amt = amt * nightsBetween(b.date, b.endDate);
+    const nights = b.category === "lodging" ? nightsBetween(b.date, b.endDate) : null;
+    if (nights) amt = amt * nights;
     if (b.currency === "EUR") amt = amt * rate;
-    if (b.category === "flight") cats.flight += amt;
-    else if (b.category === "lodging") cats.lodging += amt;
-    else if (["train", "ferry", "catamaran", "bus"].indexOf(b.category) !== -1) cats.transport += amt;
-    else cats.other += amt;
+    const catKey = budgetCategoryFor(b);
+    cats[catKey] += amt;
+    grouped[catKey].push({ booking: b, amtUSD: amt, nights });
   });
   const total = cats.flight + cats.lodging + cats.transport + cats.other;
   const travelers = (state.meta.travelers && state.meta.travelers.length) || 2;
@@ -674,7 +696,16 @@ async function renderBudget(state) {
     '<div class="budget-cat"><h4>Transport</h4><div class="amt">$' + Math.round(cats.transport / travelers).toLocaleString() + '</div></div>' +
     '<div class="budget-cat"><h4>Other</h4><div class="amt">$' + Math.round(cats.other / travelers).toLocaleString() + '</div></div>' +
     '</div>' +
-    '<div class="muted" style="margin-top:.7rem;font-size:.78rem">EUR converted at ~' + rate.toFixed(3) + ' USD. Figures use each booking\'s current cost/status, whether idea, booked, or confirmed.</div>';
+    '<div class="muted" style="margin-top:.7rem;font-size:.78rem">EUR converted at ~' + rate.toFixed(3) + ' USD. Figures use each booking\'s current cost/status, whether idea, booked, or confirmed.</div>' +
+    '<details class="budget-detail"><summary>Show all ' + state.bookings.length + ' items<span class="arw">+</span></summary>' +
+    ["flight", "lodging", "transport", "other"].map((catKey) => {
+      const items = grouped[catKey];
+      if (!items.length) return "";
+      return '<div class="budget-detail-group"><h4>' + BUDGET_CAT_LABELS[catKey] +
+        '<span>$' + Math.round(cats[catKey]).toLocaleString() + '</span></h4>' +
+        '<ul class="budget-item-list">' + items.map(budgetItemLine).join("") + '</ul></div>';
+    }).join("") +
+    '</details>';
 }
 
 // ---- toolkit: documents ----
