@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Italy + Croatia 2026</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title" id="tripTitle">Italy + Croatia 2026</div>
+    <div class="sync-status" id="syncStatus">local only</div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="itinerary">Itinerary</button>
+    <button class="tab-btn" data-tab="bookings">Bookings</button>
+    <button class="tab-btn" data-tab="packing">Packing</button>
+    <button class="tab-btn" data-tab="food">Food</button>
+    <button class="tab-btn" data-tab="map">Map</button>
+    <button class="tab-btn" data-tab="weather">Weather</button>
+    <button class="tab-btn" data-tab="documents">Documents</button>
+    <button class="tab-btn" data-tab="notes">Notes</button>
+  </nav>
+
+  <main id="app">
+    <section id="view-dashboard" class="view"></section>
+    <section id="view-itinerary" class="view hidden"></section>
+    <section id="view-bookings" class="view hidden"></section>
+    <section id="view-packing" class="view hidden"></section>
+    <section id="view-food" class="view hidden"></section>
+    <section id="view-map" class="view hidden"></section>
+    <section id="view-weather" class="view hidden"></section>
+    <section id="view-documents" class="view hidden"></section>
+    <section id="view-notes" class="view hidden"></section>
+  </main>
+
+  <div id="modalRoot"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
