@@ -70,6 +70,26 @@ const Store = (() => {
     });
   }
 
+  let lastRemoteJSON = null;
+  let pollHandle = null;
+
+  async function pollRemote() {
+    if (!remoteEnabled) return;
+    const remote = await loadRemote();
+    if (!remote) return;
+    const remoteJSON = JSON.stringify(remote);
+    if (remoteJSON !== lastRemoteJSON && remoteJSON !== JSON.stringify(state)) {
+      state = remote;
+      backfillFromSeed();
+      lastRemoteJSON = remoteJSON;
+      saveLocal();
+      notify();
+    } else {
+      lastRemoteJSON = remoteJSON;
+      notify();
+    }
+  }
+
   async function init() {
     const local = loadLocal();
     state = local || JSON.parse(JSON.stringify(SEED_DATA));
@@ -77,7 +97,15 @@ const Store = (() => {
     notify();
     if (remoteEnabled) {
       const remote = await loadRemote();
-      if (remote) { state = remote; backfillFromSeed(); saveLocal(); notify(); }
+      if (remote) { state = remote; backfillFromSeed(); saveLocal(); notify(); lastRemoteJSON = JSON.stringify(remote); }
+      // Poll for the other person's edits every 15s, so an already-open tab
+      // picks up changes without needing a manual reload. Simple last-write-
+      // wins: if you both edit inside the same ~15s window, whichever saves
+      // last is what sticks.
+      pollHandle = setInterval(pollRemote, 15000);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") pollRemote();
+      });
     }
   }
 
