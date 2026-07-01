@@ -438,13 +438,23 @@ function renderItineraryEditor(state) {
   const container = document.getElementById("itineraryStopsList");
   if (!container) return;
   const ranges = Store.computeStopRanges();
-  container.innerHTML = '<div class="ie-timeline">' + state.trip.stops.map((stop, i) => {
+  const totalNights = state.trip.stops.reduce((sum, s) => sum + s.nights, 0) || 1;
+
+  const routeStrip = '<div class="ie-route-strip">' + state.trip.stops.map((stop) => {
+    const place = PLACES.find((p) => p.id === stop.placeId);
+    const pct = (stop.nights / totalNights) * 100;
+    const color = PLACE_ACCENT[stop.placeId] || "#7cc0c2";
+    return '<div class="ie-route-seg" style="width:' + pct + '%;background:' + color + '" title="' + esc(place ? place.label : stop.placeId) + ' · ' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '"></div>';
+  }).join("") + '</div>';
+
+  const timeline = '<div class="ie-timeline">' + state.trip.stops.map((stop, i) => {
     const place = PLACES.find((p) => p.id === stop.placeId);
     const range = ranges[i];
     const dateLabel = range && range.dateStart ? fmtDate(range.dateStart) + " – " + fmtDate(range.dateEnd) : "";
-    const dotColor = PLACE_ACCENT[stop.placeId] || "var(--seaglass)";
+    const accent = PLACE_ACCENT[stop.placeId] || "#7cc0c2";
+    const thumbStyle = "color:" + accent + (place ? ";background-image:url('" + place.image + "')" : ";background:" + accent);
     return '<div class="ie-stop">' +
-      '<div class="ie-dot" style="background:' + dotColor + '"></div>' +
+      '<div class="ie-thumb" style="' + thumbStyle + '"></div>' +
       '<div class="ie-stop-card">' +
       '<div class="ie-stop-top">' +
       '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
@@ -455,22 +465,33 @@ function renderItineraryEditor(state) {
       '<div class="ie-stop-bottom">' +
       '<div class="ie-stop-nights">' +
       '<button class="ie-step" data-nights-dec="' + i + '">-</button>' +
-      '<span>' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</span>' +
+      '<span class="ie-nights-val" data-nights-val="' + i + '">' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</span>' +
       '<button class="ie-step" data-nights-inc="' + i + '">+</button>' +
       '</div>' +
       '<div class="ie-stop-dates muted">' + esc(dateLabel) + '</div>' +
       '<button class="link" data-remove-stop="' + i + '">remove</button>' +
       '</div></div></div>';
-  }).join("") + '</div>' || '<div class="muted">No stops yet -- add one below.</div>';
+  }).join("") + '</div>';
+
+  container.innerHTML = state.trip.stops.length ? (routeStrip + timeline) : '<div class="muted">No stops yet -- add one below.</div>';
+
+  function bump(i) {
+    const span = container.querySelector('[data-nights-val="' + i + '"]');
+    if (!span) return;
+    span.classList.add("bump");
+    setTimeout(() => span.classList.remove("bump"), 200);
+  }
 
   container.querySelectorAll("[data-move-up]").forEach((btn) => btn.addEventListener("click", () => Store.moveTripStop(parseInt(btn.dataset.moveUp, 10), -1)));
   container.querySelectorAll("[data-move-down]").forEach((btn) => btn.addEventListener("click", () => Store.moveTripStop(parseInt(btn.dataset.moveDown, 10), 1)));
   container.querySelectorAll("[data-nights-dec]").forEach((btn) => btn.addEventListener("click", () => {
     const i = parseInt(btn.dataset.nightsDec, 10);
+    bump(i);
     Store.setTripStopNights(i, state.trip.stops[i].nights - 1);
   }));
   container.querySelectorAll("[data-nights-inc]").forEach((btn) => btn.addEventListener("click", () => {
     const i = parseInt(btn.dataset.nightsInc, 10);
+    bump(i);
     Store.setTripStopNights(i, state.trip.stops[i].nights + 1);
   }));
   container.querySelectorAll("[data-remove-stop]").forEach((btn) => btn.addEventListener("click", () => Store.removeTripStop(parseInt(btn.dataset.removeStop, 10))));
@@ -684,20 +705,20 @@ async function renderBudget(state) {
   const pctOfHigh = high ? Math.min(100, Math.round((perPerson / high) * 100)) : 0;
   const over = high && perPerson > high;
 
+  // The details panel would otherwise slam shut every time anything in the
+  // app re-renders (which is constantly -- any edit anywhere calls renderAll).
+  // Read its current open/closed state before replacing the DOM and restore it.
+  const existingDetails = container.querySelector(".budget-detail");
+  const wasOpen = existingDetails ? existingDetails.open : false;
+
   container.innerHTML =
     '<div class="budget-total">' +
     '<div class="bt-amount">$' + Math.round(perPerson).toLocaleString() + ' <span style="font-size:1rem;color:var(--muted);font-family:\'Outfit\'">per person, booked so far</span></div>' +
     '<div class="bt-sub">Target: $' + low.toLocaleString() + '–$' + high.toLocaleString() + ' per person &middot; total for both of you: $' + Math.round(total).toLocaleString() + '</div>' +
     '<div class="budget-bar"><div class="budget-bar-fill' + (over ? " over" : "") + '" style="width:' + pctOfHigh + '%"></div></div>' +
     '</div>' +
-    '<div class="budget-cats">' +
-    '<div class="budget-cat"><h4>Flights</h4><div class="amt">$' + Math.round(cats.flight / travelers).toLocaleString() + '</div></div>' +
-    '<div class="budget-cat"><h4>Lodging</h4><div class="amt">$' + Math.round(cats.lodging / travelers).toLocaleString() + '</div></div>' +
-    '<div class="budget-cat"><h4>Transport</h4><div class="amt">$' + Math.round(cats.transport / travelers).toLocaleString() + '</div></div>' +
-    '<div class="budget-cat"><h4>Other</h4><div class="amt">$' + Math.round(cats.other / travelers).toLocaleString() + '</div></div>' +
-    '</div>' +
-    '<div class="muted" style="margin-top:.7rem;font-size:.78rem">EUR converted at ~' + rate.toFixed(3) + ' USD. Figures use each booking\'s current cost/status, whether idea, booked, or confirmed.</div>' +
-    '<details class="budget-detail"><summary>Show all ' + state.bookings.length + ' items<span class="arw">+</span></summary>' +
+    '<div class="muted" style="margin-top:.7rem;font-size:.78rem">Sourced from every flight/train/ferry/hotel booking below, whether idea, booked, or confirmed -- not from the hotel/restaurant shortlists. EUR converted at ~' + rate.toFixed(3) + ' USD.</div>' +
+    '<details class="budget-detail"' + (wasOpen ? " open" : "") + '><summary>Show all ' + state.bookings.length + ' items<span class="arw">+</span></summary>' +
     ["flight", "lodging", "transport", "other"].map((catKey) => {
       const items = grouped[catKey];
       if (!items.length) return "";
