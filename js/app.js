@@ -1,4 +1,4 @@
-// App shell: tabs, rendering dispatch, shared helpers, modal system.
+// App shell: scrollspy nav, per-place rendering, shared helpers, modal system.
 
 function cityName(id) {
   const c = CITIES.find((x) => x.id === id);
@@ -13,40 +13,8 @@ function fmtDate(iso) {
 function esc(s) { return (s === undefined || s === null) ? "" : String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
 
-const VIEWS = ["dashboard", "itinerary", "bookings", "packing", "food", "map", "weather", "documents", "notes"];
 let mapInstance = null;
-
-function switchTab(name) {
-  document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
-  VIEWS.forEach((v) => document.getElementById("view-" + v).classList.toggle("hidden", v !== name));
-  renderView(name, Store.getState());
-}
-
-document.getElementById("tabs").addEventListener("click", (e) => {
-  const btn = e.target.closest(".tab-btn");
-  if (btn) switchTab(btn.dataset.tab);
-});
-
-function renderView(name, state) {
-  if (name === "dashboard") renderDashboard(state);
-  if (name === "itinerary") renderItinerary(state);
-  if (name === "bookings") renderBookings(state);
-  if (name === "packing") renderPacking(state);
-  if (name === "food") renderFood(state);
-  if (name === "map") renderMap(state);
-  if (name === "weather") renderWeather(state);
-  if (name === "documents") renderDocuments(state);
-  if (name === "notes") renderNotes(state);
-}
-
-function renderAll(state, syncStatus) {
-  document.getElementById("tripTitle").textContent = state.meta.tripName || "Trip Planner";
-  const statusEl = document.getElementById("syncStatus");
-  const labels = { "local-only": "saved on this device", connecting: "connecting...", synced: "synced", offline: "offline, saved locally" };
-  statusEl.textContent = labels[syncStatus] || syncStatus;
-  const active = document.querySelector(".tab-btn.active");
-  renderView(active ? active.dataset.tab : "dashboard", state);
-}
+let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
 
 // ---- modal helper ----
 function openModal(title, bodyHtml, onSubmit, submitLabel) {
@@ -68,83 +36,123 @@ function openModal(title, bodyHtml, onSubmit, submitLabel) {
 }
 function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
 
-// ---- Dashboard ----
-function renderDashboard(state) {
-  const days = Store.getItineraryDays();
-  const bookingCounts = { idea: 0, booked: 0, confirmed: 0 };
-  state.bookings.forEach((b) => bookingCounts[b.status] = (bookingCounts[b.status] || 0) + 1);
-  const total = state.bookings.length || 1;
-  const pct = Math.round(((bookingCounts.booked + bookingCounts.confirmed) / total) * 100);
+// ---- build the static per-place shells once, then re-render their dynamic parts ----
+function buildPlacesSkeleton() {
+  const container = document.getElementById("places");
+  container.innerHTML = PLACES.map((p, i) => {
+    const num = String(i + 1).padStart(2, "0");
+    const tips = (PLACE_TIPS[p.id] || []).map((t) => "<li>" + esc(t) + "</li>").join("");
+    return '<section id="' + p.id + '">' +
+      '<div class="place-head"><div class="bg" style="background-image:url(\'' + p.image + '\')"></div>' +
+      '<div class="ph-inner"><div class="place-num">' + num + " / " + PLACES.length + '</div>' +
+      "<h2>" + esc(p.title) + " <em>" + esc(p.titleEm) + "</em></h2>" +
+      '<div class="nights">' + esc(p.nights) + " in " + esc(p.label) + "</div></div></div>" +
+      '<div class="wrap">' +
+      '<p class="blurb">' + esc(p.blurb) + "</p>" +
+      '<div class="sub-h"><h3>Where you\'re staying</h3><span class="rule"></span></div>' +
+      '<div id="stay-' + p.id + '"></div>' +
+      '<div class="sub-h"><h3>Day by day</h3><span class="rule"></span></div>' +
+      '<div id="days-' + p.id + '"></div>' +
+      '<div class="sub-h"><h3>Food &amp; drink</h3><span class="tag">vegetarian friendly noted</span><span class="rule"></span></div>' +
+      '<div class="filters" id="filters-' + p.id + '">' +
+      '<button class="chip on" data-filter="all">All</button>' +
+      '<button class="chip" data-filter="veg">Vegetarian</button>' +
+      '<button class="chip" data-filter="nonveg">Omnivore</button>' +
+      '</div>' +
+      '<div id="foodcards-' + p.id + '" class="cards"></div>' +
+      (tips ? '<details class="tips"><summary>Good to know<span class="arw">+</span></summary><ul>' + tips + "</ul></details>" : "") +
+      "</div></section>" + (i < PLACES.length - 1 ? '<div class="divider"></div>' : "");
+  }).join("");
 
-  let countdown = "Dates not set yet";
-  if (state.meta.startDate) {
-    const days2go = Math.ceil((new Date(state.meta.startDate) - new Date()) / 86400000);
-    countdown = days2go > 0 ? days2go + " days to go" : "Trip underway or past";
-  }
-
-  const nextUp = days.find((d) => d.lodging || d.transport.length || d.activities.length);
-
-  document.getElementById("view-dashboard").innerHTML =
-    '<div class="card"><h3>' + esc(state.meta.tripName) + '</h3>' +
-    '<div class="grid2">' +
-      '<div><div class="muted">Countdown</div><div>' + esc(countdown) + '</div></div>' +
-      '<div><div class="muted">Trip length</div><div>' + state.meta.numDays + ' days, from ' + esc(state.meta.homeAirport) + '</div></div>' +
-    '</div>' +
-    '<label class="field">Start date (once locked in, the whole itinerary recalculates)</label>' +
-    '<input type="date" id="dashStartDate" value="' + esc(state.meta.startDate || "") + '">' +
-    '<div style="margin-top:10px"><button class="btn small" id="editTripBtn">Edit trip name / length</button></div>' +
-    '</div>' +
-
-    '<div class="card"><h3>Booking progress</h3>' +
-    '<div class="row"><div>' + pct + '% booked or confirmed</div><div class="muted">' + bookingCounts.idea + ' idea &middot; ' + bookingCounts.booked + ' booked &middot; ' + bookingCounts.confirmed + ' confirmed</div></div>' +
-    '</div>' +
-
-    '<div class="card"><h3>Route</h3><div class="muted">' + esc(state.meta.routeNotes) + '</div></div>' +
-
-    (nextUp ? '<div class="card day-card"><h3>Day ' + nextUp.day + (nextUp.date ? " -- " + fmtDate(nextUp.date) : "") + '</h3>' +
-      '<div class="muted">' + (nextUp.cityId ? cityName(nextUp.cityId) : "") + '</div></div>' : "");
-
-  document.getElementById("dashStartDate").addEventListener("change", (e) => {
-    Store.updateMeta({ startDate: e.target.value || null });
-  });
-  document.getElementById("editTripBtn").addEventListener("click", () => {
-    openModal("Edit trip", '<label class="field">Trip name</label><input data-field="tripName" value="' + esc(state.meta.tripName) + '">' +
-      '<label class="field">Number of days</label><input data-field="numDays" type="number" value="' + state.meta.numDays + '">',
-      (data) => Store.updateMeta({ tripName: data.tripName, numDays: parseInt(data.numDays, 10) || state.meta.numDays }));
+  document.querySelectorAll(".filters").forEach((box) => {
+    box.addEventListener("click", (e) => {
+      const btn = e.target.closest(".chip");
+      if (!btn) return;
+      const placeId = box.id.replace("filters-", "");
+      foodFilter[placeId] = btn.dataset.filter;
+      box.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c === btn));
+      renderPlaceFood(placeId, Store.getState());
+    });
   });
 }
 
-// ---- Itinerary: fully derived from bookings + activities ----
-function renderItinerary(state) {
-  const days = Store.getItineraryDays();
-  const html = days.map((d) => {
-    const lodgingHtml = d.lodging
-      ? '<div class="muted">Staying: ' + esc(d.lodging.title) + (d.lodging.provider ? " (" + esc(d.lodging.provider) + ")" : "") + ' <span class="badge ' + d.lodging.status + '">' + d.lodging.status + "</span></div>"
-      : "";
-    const transportHtml = d.transport.map((t) =>
-      '<div class="activity-row"><span>' + esc(t.title) + '</span><span class="badge ' + t.status + '">' + t.status + "</span></div>").join("");
-    const actHtml = d.activities.map((a) =>
-      '<div class="activity-row"><span>' + (a.time ? esc(a.time) + " -- " : "") + esc(a.title) + '</span>' +
-      '<span><button class="link" data-edit-act="' + a.id + '">edit</button></span></div>').join("");
-    return '<div class="card day-card"><div class="row"><h3>Day ' + d.day + (d.date ? " -- " + fmtDate(d.date) : "") +
-      (d.cityId ? " -- " + esc(cityName(d.cityId)) : "") + '</h3>' +
-      '<button class="btn small secondary" data-add-act="' + d.day + '">+ Add to this day</button></div>' +
-      lodgingHtml + transportHtml + (actHtml || '<div class="muted">Nothing planned yet.</div>') + '</div>';
-  }).join("");
-  document.getElementById("view-itinerary").innerHTML = html;
+function placeForCity(cityId) { return PLACES.find((p) => p.cityIds.indexOf(cityId) !== -1); }
 
-  document.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, parseInt(btn.dataset.addAct, 10))));
-  document.querySelectorAll("[data-edit-act]").forEach((btn) => btn.addEventListener("click", () => {
+function renderPlaceStay(placeId, state) {
+  const place = PLACES.find((p) => p.id === placeId);
+  const stays = state.bookings.filter((b) => place.cityIds.indexOf(b.city) !== -1 || place.cityIds.indexOf(b.fromCity) !== -1 || place.cityIds.indexOf(b.toCity) !== -1);
+  const el2 = document.getElementById("stay-" + placeId);
+  if (!stays.length) {
+    el2.innerHTML = '<div class="stay-card"><div><div class="stay-name">Nothing booked yet</div><div class="stay-meta">Add a hotel stay, flight, train, or ferry for ' + esc(place.label) + '</div></div>' +
+      '<button class="btn secondary" data-add-booking="' + placeId + '">+ Add</button></div>';
+  } else {
+    el2.innerHTML = stays.map((b) =>
+      '<div class="stay-card"><div><div class="stay-name">' + esc(b.title) + '</div><div class="stay-meta">' + esc(b.category) +
+      (b.provider ? " · " + esc(b.provider) : "") + (b.cost ? " · " + fmtMoney(b.cost, b.currency) : "") + '</div></div>' +
+      '<div style="display:flex;align-items:center;gap:.6rem"><span class="status-pill ' + b.status + '">' + b.status + '</span>' +
+      '<button class="link" data-edit-booking="' + b.id + '">edit</button></div></div>').join("") +
+      '<div style="margin-top:.6rem"><button class="link" data-add-booking="' + placeId + '">+ add another</button></div>';
+  }
+  el2.querySelectorAll("[data-add-booking]").forEach((b) => b.addEventListener("click", () => openBookingForm(state, null, place)));
+  el2.querySelectorAll("[data-edit-booking]").forEach((b) => b.addEventListener("click", () => openBookingForm(state, state.bookings.find((x) => x.id === b.dataset.editBooking))));
+}
+
+function renderPlaceDays(placeId, state) {
+  const place = PLACES.find((p) => p.id === placeId);
+  const days = Store.getItineraryDays().filter((d) => d.cityId && place.cityIds.indexOf(d.cityId) !== -1);
+  const el2 = document.getElementById("days-" + placeId);
+  if (!days.length) { el2.innerHTML = '<div class="day-rows"><div class="day-row"><div class="day-body muted">No days assigned to ' + esc(place.label) + ' yet, add a stay above.</div></div></div>'; return; }
+  el2.innerHTML = '<div class="day-rows">' + days.map((d) => {
+    const lines = d.activities.map((a) =>
+      '<div class="item-line"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span>' +
+      '<button class="link" data-edit-act="' + a.id + '">edit</button></div>').join("");
+    const transportLines = d.transport.map((t) =>
+      '<div class="item-line"><span>' + esc(t.title) + '</span><span class="status-pill ' + t.status + '">' + t.status + '</span></div>').join("");
+    return '<div class="day-row"><div class="day-num">' + d.day + '</div><div class="day-body">' +
+      '<div class="day-date">' + (d.date ? fmtDate(d.date) : "Day " + d.day) + '</div>' +
+      transportLines + lines +
+      '<button class="add-line" data-add-act="' + d.day + '">+ add to this day</button></div></div>';
+  }).join("") + "</div>";
+  el2.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, parseInt(btn.dataset.addAct, 10))));
+  el2.querySelectorAll("[data-edit-act]").forEach((btn) => btn.addEventListener("click", () => {
     const a = state.activities.find((x) => x.id === btn.dataset.editAct);
     openActivityForm(state, a.day, a);
   }));
 }
 
+function renderPlaceFood(placeId, state) {
+  const place = PLACES.find((p) => p.id === placeId);
+  let list = state.restaurants.filter((r) => place.cityIds.indexOf(r.city) !== -1);
+  const filter = foodFilter[placeId] || "all";
+  if (filter === "veg") list = list.filter((r) => r.vegetarian);
+  if (filter === "nonveg") list = list.filter((r) => !r.vegetarian);
+  const el2 = document.getElementById("foodcards-" + placeId);
+  el2.innerHTML = list.map((r) =>
+    '<div class="card"><div class="pic"></div><div class="body"><h4>' + esc(r.name) + '</h4>' +
+    '<div class="kind">' + esc(r.dish) + '</div><p>' + esc(r.notes || "") + '</p>' +
+    '<div class="foot"><span class="veg ' + (r.vegetarian ? "yes" : "no") + '">' + (r.vegetarian ? "vegetarian" : "omnivore") + '</span>' +
+    '<button class="site" data-add-day="' + r.id + '">add to a day</button></div>' +
+    '<div style="margin-top:.4rem"><button class="link" data-edit-rest="' + r.id + '">edit</button></div></div></div>').join("") +
+    '<div class="card" style="align-items:center;justify-content:center;min-height:150px"><button class="link" data-add-rest="' + placeId + '">+ add restaurant</button></div>';
+  el2.querySelectorAll("[data-edit-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, state.restaurants.find((x) => x.id === btn.dataset.editRest))));
+  el2.querySelectorAll("[data-add-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, null, place.cityIds[0])));
+  el2.querySelectorAll("[data-add-day]").forEach((btn) => btn.addEventListener("click", () => {
+    const r = state.restaurants.find((x) => x.id === btn.dataset.addDay);
+    openModal('Add "' + r.name + '" to which day?', '<label class="field">Day number</label><input data-field="day" type="number" value="1">',
+      (data) => Store.add("activities", { day: parseInt(data.day, 10) || 1, city: r.city, time: "", title: r.name + " (" + r.dish + ")", type: "meal", notes: r.notes, status: "idea" }, "a"));
+  }));
+}
+
+function renderPlaces(state) {
+  PLACES.forEach((p) => { renderPlaceStay(p.id, state); renderPlaceDays(p.id, state); renderPlaceFood(p.id, state); });
+}
+
+// ---- forms ----
 function openActivityForm(state, day, existing) {
   const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (existing && existing.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
   const typeOpts = ["sight", "meal", "experience", "free"].map((t) => '<option value="' + t + '"' + (existing && existing.type === t ? " selected" : "") + ">" + t + "</option>").join("");
   const body =
-    '<label class="field">Title (e.g. a dinner spot, a sight, a tour)</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
+    '<label class="field">Title (a dinner spot, a sight, a tour)</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
     '<label class="field">Time</label><input data-field="time" placeholder="19:30" value="' + esc(existing ? existing.time : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Type</label><select data-field="type">' + typeOpts + '</select>' +
@@ -155,46 +163,27 @@ function openActivityForm(state, day, existing) {
     if (existing) Store.update("activities", existing.id, payload);
     else Store.add("activities", payload, "a");
   }, "Save");
-  if (existing) {
-    setTimeout(() => {
-      const delBtn = document.getElementById("deleteActBtn");
-      if (delBtn) delBtn.addEventListener("click", () => { Store.remove("activities", existing.id); closeModal(); });
-    }, 0);
-  }
+  if (existing) setTimeout(() => {
+    const d = document.getElementById("deleteActBtn");
+    if (d) d.addEventListener("click", () => { Store.remove("activities", existing.id); closeModal(); });
+  }, 0);
 }
 
-// ---- Bookings: lodging + transport. Editing these drives the Itinerary tab. ----
-function renderBookings(state) {
-  const rows = state.bookings.slice().sort((a, b) => a.day - b.day).map((b) => {
-    const span = b.category === "lodging" ? "Day " + b.day + "-" + b.endDay : "Day " + b.day;
-    return '<div class="card"><div class="row">' +
-      '<div><strong>' + esc(b.title) + '</strong><div class="muted">' + esc(b.category) + " -- " + span + (b.cost ? " -- " + fmtMoney(b.cost, b.currency) : "") + '</div></div>' +
-      '<div><span class="badge ' + b.status + '">' + b.status + '</span></div></div>' +
-      (b.notes ? '<div class="muted" style="margin-top:6px">' + esc(b.notes) + '</div>' : "") +
-      '<div style="margin-top:8px"><button class="link" data-edit-bk="' + b.id + '">edit</button></div></div>';
-  }).join("");
-  document.getElementById("view-bookings").innerHTML =
-    '<div style="margin-bottom:10px"><button class="btn" id="addBookingBtn">+ Add hotel stay / flight / ferry / train</button></div>' + rows;
-  document.getElementById("addBookingBtn").addEventListener("click", () => openBookingForm(state));
-  document.querySelectorAll("[data-edit-bk]").forEach((btn) => btn.addEventListener("click", () => {
-    openBookingForm(state, state.bookings.find((x) => x.id === btn.dataset.editBk));
-  }));
-}
-
-function openBookingForm(state, existing) {
+function openBookingForm(state, existing, place) {
   const cats = ["lodging", "flight", "train", "ferry", "catamaran", "bus", "other"];
   const catOpts = cats.map((c) => '<option value="' + c + '"' + (existing && existing.category === c ? " selected" : "") + ">" + c + "</option>").join("");
   const statusOpts = ["idea", "booked", "confirmed"].map((s) => '<option value="' + s + '"' + (existing && existing.status === s ? " selected" : "") + ">" + s + "</option>").join("");
-  const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (existing && existing.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
+  const defaultCity = existing ? existing.city : (place ? place.cityIds[0] : CITIES[0].id);
+  const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (defaultCity === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
   const body =
     '<label class="field">What is this? (e.g. "Hotel Ravello" or "Rome -> Bari train")</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
     '<label class="field">Category</label><select data-field="category">' + catOpts + '</select>' +
     '<label class="field">City (for a stay)</label><select data-field="city">' + cityOpts + '</select>' +
-    '<div class="grid2"><div><label class="field">Start day (check-in / departure day)</label><input data-field="day" type="number" value="' + (existing ? existing.day : "1") + '"></div>' +
-    '<div><label class="field">End day (check-out day, same as start for transport)</label><input data-field="endDay" type="number" value="' + (existing ? existing.endDay : "1") + '"></div></div>' +
+    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Start day</label><input data-field="day" type="number" value="' + (existing ? existing.day : "1") + '"></div>' +
+    '<div><label class="field">End day (checkout day)</label><input data-field="endDay" type="number" value="' + (existing ? existing.endDay : "1") + '"></div></div>' +
     '<label class="field">Provider</label><input data-field="provider" value="' + esc(existing ? existing.provider : "") + '">' +
     '<label class="field">Confirmation #</label><input data-field="confirmation" value="' + esc(existing ? existing.confirmation : "") + '">' +
-    '<div class="grid2"><div><label class="field">Cost per person</label><input data-field="cost" type="number" value="' + (existing ? existing.cost : "") + '"></div>' +
+    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person</label><input data-field="cost" type="number" value="' + (existing ? existing.cost : "") + '"></div>' +
     '<div><label class="field">Status</label><select data-field="status">' + statusOpts + '</select></div></div>' +
     '<label class="field">Link</label><input data-field="link" value="' + esc(existing ? existing.link : "") + '">' +
     '<label class="field">Notes</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
@@ -209,74 +198,53 @@ function openBookingForm(state, existing) {
     if (existing) Store.update("bookings", existing.id, payload);
     else Store.add("bookings", payload, "bk");
   }, "Save");
-  if (existing) {
-    setTimeout(() => {
-      const delBtn = document.getElementById("deleteBkBtn");
-      if (delBtn) delBtn.addEventListener("click", () => { Store.remove("bookings", existing.id); closeModal(); });
-    }, 0);
-  }
+  if (existing) setTimeout(() => {
+    const d = document.getElementById("deleteBkBtn");
+    if (d) d.addEventListener("click", () => { Store.remove("bookings", existing.id); closeModal(); });
+  }, 0);
 }
 
-// ---- Packing ----
-function renderPacking(state) {
-  const byCat = {};
-  state.packing.forEach((p) => { (byCat[p.category] = byCat[p.category] || []).push(p); });
-  let html = '<div style="margin-bottom:10px"><button class="btn" id="addPackBtn">+ Add packing item</button></div>';
-  Object.keys(byCat).forEach((cat) => {
-    html += '<div class="card"><h3>' + esc(cat) + '</h3>' + byCat[cat].map((p) =>
-      '<div class="pack-item' + (p.checked ? " checked" : "") + '"><input type="checkbox" data-toggle-pack="' + p.id + '" ' + (p.checked ? "checked" : "") + '>' +
-      '<span>' + esc(p.item) + '</span><button class="link" data-del-pack="' + p.id + '" style="margin-left:auto">remove</button></div>').join("") + '</div>';
-  });
-  document.getElementById("view-packing").innerHTML = html;
-  document.getElementById("addPackBtn").addEventListener("click", () => {
-    openModal("Add packing item", '<label class="field">Item</label><input data-field="item">' +
-      '<label class="field">Category</label><input data-field="category" placeholder="Documents, Clothing, Gear...">',
-      (data) => Store.add("packing", { item: data.item, category: data.category || "Other", checked: false }, "p"));
-  });
-  document.querySelectorAll("[data-toggle-pack]").forEach((cb) => cb.addEventListener("change", (e) =>
-    Store.update("packing", cb.dataset.togglePack, { checked: e.target.checked })));
-  document.querySelectorAll("[data-del-pack]").forEach((btn) => btn.addEventListener("click", () =>
-    Store.remove("packing", btn.dataset.delPack)));
-}
-
-// ---- Food / restaurant guide ----
-function renderFood(state) {
-  let html = '<div style="margin-bottom:10px"><button class="btn" id="addRestBtn">+ Add restaurant / dish</button></div>';
-  const byCity = {};
-  state.restaurants.forEach((r) => { (byCity[r.city] = byCity[r.city] || []).push(r); });
-  Object.keys(byCity).forEach((cityId) => {
-    html += '<div class="card"><h3>' + esc(cityName(cityId)) + '</h3>' + byCity[cityId].map((r) =>
-      '<div class="card rest-card ' + (r.vegetarian ? "veg" : "nonveg") + '"><div class="row"><strong>' + esc(r.name) + '</strong>' +
-      '<span class="badge ' + (r.vegetarian ? "confirmed" : "idea") + '">' + (r.vegetarian ? "vegetarian friendly" : "omnivore") + '</span></div>' +
-      '<div class="muted">' + esc(r.dish) + '</div>' + (r.notes ? '<div class="muted">' + esc(r.notes) + '</div>' : "") +
-      '<div style="margin-top:6px"><button class="link" data-add-day="' + r.id + '">add to a day</button> &middot; <button class="link" data-edit-rest="' + r.id + '">edit</button></div></div>').join("") + '</div>';
-  });
-  document.getElementById("view-food").innerHTML = html;
-  document.getElementById("addRestBtn").addEventListener("click", () => openRestForm(state));
-  document.querySelectorAll("[data-edit-rest]").forEach((btn) => btn.addEventListener("click", () =>
-    openRestForm(state, state.restaurants.find((x) => x.id === btn.dataset.editRest))));
-  document.querySelectorAll("[data-add-day]").forEach((btn) => btn.addEventListener("click", () => {
-    const r = state.restaurants.find((x) => x.id === btn.dataset.addDay);
-    openModal("Add \"" + r.name + "\" to which day?", '<label class="field">Day number</label><input data-field="day" type="number" value="1">',
-      (data) => Store.add("activities", { day: parseInt(data.day, 10) || 1, city: r.city, time: "", title: r.name + " (" + r.dish + ")", type: "meal", notes: r.notes, status: "idea" }, "a"));
-  }));
-}
-function openRestForm(state, existing) {
-  const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (existing && existing.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
+function openRestForm(state, existing, defaultCity) {
+  const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + ((existing ? existing.city : defaultCity) === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
   const body = '<label class="field">Name</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
     '<label class="field">Dish / specialty</label><input data-field="dish" value="' + esc(existing ? existing.dish : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
-    '<label class="field">Notes / reservation info</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>';
+    '<label class="field">Notes / reservation info</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
+    (existing ? '<div style="margin-top:8px"><button class="link" id="deleteRestBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add restaurant", body, (data) => {
     const payload = { name: data.name, dish: data.dish, city: data.city, notes: data.notes, vegetarian: existing ? existing.vegetarian : true };
     if (existing) Store.update("restaurants", existing.id, payload);
     else Store.add("restaurants", payload, "r");
   });
+  if (existing) setTimeout(() => {
+    const d = document.getElementById("deleteRestBtn");
+    if (d) d.addEventListener("click", () => { Store.remove("restaurants", existing.id); closeModal(); });
+  }, 0);
 }
 
-// ---- Map ----
-function renderMap(state) {
-  document.getElementById("view-map").innerHTML = '<div id="map-canvas"></div><div class="muted" style="margin-top:8px">Pins follow city order from your bookings/activities.</div>';
+// ---- hero + intro ----
+function renderHero(state) {
+  document.title = state.meta.tripName + " · " + (state.meta.numDays) + " days";
+  let countdown = "Dates not set";
+  if (state.meta.startDate) {
+    const days2go = Math.ceil((new Date(state.meta.startDate) - new Date()) / 86400000);
+    countdown = days2go > 0 ? days2go + " days to go" : "Underway or past";
+  }
+  document.getElementById("heroMeta").innerHTML =
+    '<span>' + PLACES.length + " stops</span><span>" + state.meta.numDays + ' days</span><span><strong>' + countdown + '</strong></span>';
+
+  const bookingCounts = { idea: 0, booked: 0, confirmed: 0 };
+  state.bookings.forEach((b) => bookingCounts[b.status] = (bookingCounts[b.status] || 0) + 1);
+  const total = state.bookings.length || 1;
+  const pct = Math.round(((bookingCounts.booked + bookingCounts.confirmed) / total) * 100);
+  document.getElementById("bookingProgress").textContent = pct + "% booked or confirmed (" + bookingCounts.idea + " still ideas)";
+
+  const startInput = document.getElementById("startDateInput");
+  if (document.activeElement !== startInput) startInput.value = state.meta.startDate || "";
+}
+
+// ---- toolkit: map ----
+function renderMap() {
   setTimeout(() => {
     if (mapInstance) { mapInstance.remove(); mapInstance = null; }
     mapInstance = L.map("map-canvas").setView([42.5, 16.5], 6);
@@ -290,41 +258,110 @@ function renderMap(state) {
       L.marker([c.lat, c.lng]).addTo(mapInstance).bindPopup(c.name);
       latlngs.push([c.lat, c.lng]);
     });
-    if (latlngs.length > 1) L.polyline(latlngs, { color: "#2f6b5e" }).addTo(mapInstance);
+    if (latlngs.length > 1) L.polyline(latlngs, { color: "#1d6a8c" }).addTo(mapInstance);
     if (latlngs.length) mapInstance.fitBounds(latlngs, { padding: [30, 30] });
   }, 50);
 }
 
-// ---- Weather (Open-Meteo, no key needed) ----
-async function renderWeather(state) {
+// ---- toolkit: weather ----
+async function renderWeather() {
   const visited = [];
   Store.getItineraryDays().forEach((d) => { if (d.cityId && visited.indexOf(d.cityId) === -1) visited.push(d.cityId); });
-  const container = document.getElementById("view-weather");
+  const container = document.getElementById("weatherGrid");
   container.innerHTML = '<div class="muted">Loading forecast...</div>';
   const cards = await Promise.all(visited.map(async (id) => {
     const c = CITIES.find((x) => x.id === id);
     if (!c) return "";
     try {
-      const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + c.lat + "&longitude=" + c.lng + "&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&forecast_days=7&temperature_unit=fahrenheit&timezone=auto");
+      const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + c.lat + "&longitude=" + c.lng + "&current=temperature_2m&daily=temperature_2m_max,temperature_2m_min&forecast_days=7&temperature_unit=fahrenheit&timezone=auto");
       const j = await res.json();
       const cur = j.current ? Math.round(j.current.temperature_2m) + "F now" : "";
-      return '<div class="card"><h3>' + esc(c.name) + '</h3><div class="muted">' + cur + '</div>' +
+      return '<div class="util-card"><h4>' + esc(c.name) + '</h4><div class="muted">' + cur + '</div>' +
         '<div class="muted">7-day highs: ' + (j.daily ? j.daily.temperature_2m_max.map((t) => Math.round(t)).join(", ") : "n/a") + 'F</div></div>';
-    } catch (e) { return '<div class="card"><h3>' + esc(c.name) + '</h3><div class="muted">Forecast unavailable right now.</div></div>'; }
+    } catch (e) { return '<div class="util-card"><h4>' + esc(c.name) + '</h4><div class="muted">Forecast unavailable right now.</div></div>'; }
   }));
-  container.innerHTML = (cards.join("") || '<div class="muted">Add a stay or activity to see weather for that city.</div>') +
-    '<div class="muted" style="margin-top:8px">Forecasts sharpen inside the 14-day window before travel.</div>';
+  container.innerHTML = cards.join("") || '<div class="muted">Add a stay to see weather for that city.</div>';
 }
 
-// ---- Documents ----
+// ---- toolkit: documents ----
 function renderDocuments(state) {
-  let html = '<div style="margin-bottom:10px"><button class="btn" id="addDocBtn">+ Add document link</button></div>';
-  html += state.documents.map((d) =>
-    '<div class="card"><div class="row"><strong>' + esc(d.title) + '</strong><span class="muted">' + esc(d.category) + '</span></div>' +
+  document.getElementById("docGrid").innerHTML = state.documents.map((d) =>
+    '<div class="util-card"><h4>' + esc(d.title) + '</h4><div class="muted">' + esc(d.category) + '</div>' +
     (d.link ? '<div><a href="' + esc(d.link) + '" target="_blank" rel="noopener">' + esc(d.link) + '</a></div>' : "") +
     (d.notes ? '<div class="muted">' + esc(d.notes) + '</div>' : "") +
-    '<div style="margin-top:6px"><button class="link" data-del-doc="' + d.id + '">remove</button></div></div>').join("");
-  document.getElementById("view-documents").innerHTML = html;
+    '<div style="margin-top:6px"><button class="link" data-del-doc="' + d.id + '">remove</button></div></div>').join("") ||
+    '<div class="muted">No documents yet.</div>';
+  document.querySelectorAll("[data-del-doc]").forEach((btn) => btn.addEventListener("click", () => Store.remove("documents", btn.dataset.delDoc)));
+}
+
+// ---- toolkit: notes ----
+function renderNotes(state) {
+  document.getElementById("notesList").innerHTML = state.notesLog.slice().reverse().map((n) =>
+    '<div class="note-row">' + esc(n.text) + '<time>' + new Date(n.ts).toLocaleString() + '</time></div>').join("") ||
+    '<div class="muted">No notes yet.</div>';
+}
+
+// ---- prep checklist ----
+function renderPrep(state) {
+  const phases = [];
+  (state.prepChecklist || []).forEach((item) => {
+    let group = phases.find((p) => p.phase === item.phase);
+    if (!group) { group = { phase: item.phase, items: [] }; phases.push(group); }
+    group.items.push(item);
+  });
+  document.getElementById("prepList").innerHTML = phases.map((g) =>
+    '<div class="prep-phase"><h4>' + esc(g.phase) + '</h4>' + g.items.map((item) =>
+      '<label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>').join("") +
+    "</div>").join("");
+  document.querySelectorAll("[data-prep-toggle]").forEach((cb) => cb.addEventListener("change", (e) => {
+    const state2 = Store.getState();
+    state2.prepChecklist = state2.prepChecklist.map((it) => it.id === cb.dataset.prepToggle ? Object.assign({}, it, { done: e.target.checked }) : it);
+    Store.persist();
+  }));
+}
+
+// ---- master render ----
+function renderAll(state, syncStatus) {
+  const labels = { "local-only": "saved on this device", connecting: "connecting...", synced: "synced across devices", offline: "offline, saved locally" };
+  document.getElementById("syncStatus").textContent = labels[syncStatus] || syncStatus;
+  renderHero(state);
+  renderPlaces(state);
+  renderDocuments(state);
+  renderNotes(state);
+  renderPrep(state);
+  renderWeather();
+  renderMap();
+}
+
+// ---- scrollspy ----
+function setupScrollspy() {
+  const links = Array.from(document.querySelectorAll(".tl"));
+  const sections = links.map((l) => document.getElementById(l.dataset.target)).filter(Boolean);
+  links.forEach((l) => l.addEventListener("click", () => {
+    const target = document.getElementById(l.dataset.target);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        links.forEach((l) => l.classList.toggle("active", l.dataset.target === id));
+      }
+    });
+  }, { rootMargin: "-40% 0px -55% 0px" });
+  sections.forEach((s) => io.observe(s));
+}
+
+// ---- back to top ----
+function setupTotop() {
+  const btn = document.getElementById("totop");
+  window.addEventListener("scroll", () => { btn.classList.toggle("show", window.scrollY > 800); }, { passive: true });
+  btn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+}
+
+// ---- static UI bindings ----
+function setupStaticBindings() {
+  document.getElementById("startDateInput").addEventListener("change", (e) => Store.updateMeta({ startDate: e.target.value || null }));
   document.getElementById("addDocBtn").addEventListener("click", () => {
     openModal("Add document", '<label class="field">Title</label><input data-field="title">' +
       '<label class="field">Category</label><input data-field="category" placeholder="Passport, Confirmation, Ticket...">' +
@@ -332,34 +369,18 @@ function renderDocuments(state) {
       '<label class="field">Notes</label><textarea data-field="notes"></textarea>',
       (data) => Store.add("documents", data, "doc"));
   });
-  document.querySelectorAll("[data-del-doc]").forEach((btn) => btn.addEventListener("click", () => Store.remove("documents", btn.dataset.delDoc)));
-}
-
-// ---- Notes / prep tips ----
-const PREP_TIPS = [
-  "Currency: Euro everywhere. Croatia adopted EUR in 2023.",
-  "Tipping: not expected. Round up 5-10% at sit-down restaurants for good service.",
-  "Dining rhythm: lunch is the big meal. Restaurants close 3-5pm. Dinner starts 8pm+.",
-  "Scams: check menu prices in Dubrovnik Old Town before ordering. Avoid picture-menu spots near Rome tourist sites.",
-  "Weather: September 75-85F, sea still swimmable (~75F). Pack layers for evenings.",
-  "Passports: US citizens need a valid passport, no visa under 90 days. No border crossing between Italy and Croatia, both Schengen.",
-  "Peka in Croatia: order 2-3 hours ahead. Ask your host to recommend a place and call ahead.",
-  "Ferry check-in: arrive 60-90 minutes early for international Jadrolinija ferries, passport ready."
-];
-function renderNotes(state) {
-  const notesHtml = state.notesLog.slice().reverse().map((n) =>
-    '<div class="card"><div>' + esc(n.text) + '</div><div class="muted">' + new Date(n.ts).toLocaleString() + '</div></div>').join("");
-  document.getElementById("view-notes").innerHTML =
-    '<div class="card"><h3>Prep &amp; culture notes</h3>' + PREP_TIPS.map((t) => '<div class="activity-row">' + esc(t) + '</div>').join("") + '</div>' +
-    '<div style="margin:10px 0"><button class="btn" id="addNoteBtn">+ Add a note</button></div>' + notesHtml;
   document.getElementById("addNoteBtn").addEventListener("click", () => {
     openModal("Add note", '<label class="field">Note</label><textarea data-field="text"></textarea>',
       (data) => Store.add("notesLog", { text: data.text, ts: new Date().toISOString() }, "n"));
   });
 }
 
-// ---- Boot ----
+// ---- boot ----
 window.addEventListener("DOMContentLoaded", async () => {
+  buildPlacesSkeleton();
+  setupStaticBindings();
+  setupScrollspy();
+  setupTotop();
   Store.subscribe(renderAll);
   await Store.init();
 });

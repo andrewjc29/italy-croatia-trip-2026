@@ -3,46 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Italy + Croatia 2026</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<title>Italy &amp; Croatia · September 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-title" id="tripTitle">Italy + Croatia 2026</div>
-    <div class="sync-status" id="syncStatus">local only</div>
-  </header>
 
-  <nav class="tabs" id="tabs">
-    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-    <button class="tab-btn" data-tab="itinerary">Itinerary</button>
-    <button class="tab-btn" data-tab="bookings">Bookings</button>
-    <button class="tab-btn" data-tab="packing">Packing</button>
-    <button class="tab-btn" data-tab="food">Food</button>
-    <button class="tab-btn" data-tab="map">Map</button>
-    <button class="tab-btn" data-tab="weather">Weather</button>
-    <button class="tab-btn" data-tab="documents">Documents</button>
-    <button class="tab-btn" data-tab="notes">Notes</button>
-  </nav>
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="brand">Italy &amp; Croatia '26</div>
+    <div class="timeline" id="timeline">
+      <button class="tl" data-target="rome"><span class="dot"></span><span class="lbl">Rome</span><span class="num">2 nt</span></button>
+      <button class="tl" data-target="puglia"><span class="dot"></span><span class="lbl">Puglia</span><span class="num">4 nt</span></button>
+      <button class="tl" data-target="dubrovnik"><span class="dot"></span><span class="lbl">Dubrovnik</span><span class="num">2 nt</span></button>
+      <button class="tl" data-target="hvar"><span class="dot"></span><span class="lbl">Hvar</span><span class="num">1 nt</span></button>
+      <button class="tl" data-target="split"><span class="dot"></span><span class="lbl">Split</span><span class="num">2 nt</span></button>
+      <button class="tl" data-target="toolkit"><span class="dot"></span><span class="lbl">Toolkit</span><span class="num">map</span></button>
+      <button class="tl" data-target="prep"><span class="dot"></span><span class="lbl">Prep</span><span class="num">todo</span></button>
+    </div>
+    <div class="sync-pill" id="syncStatus">saved on this device</div>
+  </div>
+</nav>
 
-  <main id="app">
-    <section id="view-dashboard" class="view"></section>
-    <section id="view-itinerary" class="view hidden"></section>
-    <section id="view-bookings" class="view hidden"></section>
-    <section id="view-packing" class="view hidden"></section>
-    <section id="view-food" class="view hidden"></section>
-    <section id="view-map" class="view hidden"></section>
-    <section id="view-weather" class="view hidden"></section>
-    <section id="view-documents" class="view hidden"></section>
-    <section id="view-notes" class="view hidden"></section>
-  </main>
+<header class="hero">
+  <div class="bg" style="background-image:url('assets/images/hero.jpg')"></div>
+  <div class="hero-inner">
+    <div class="eyebrow" id="heroEyebrow">A coast-to-coast itinerary</div>
+    <h1>From the Eternal City<br>to the <em>Adriatic</em></h1>
+    <p class="sub">Rome, the Puglia coast, a ferry crossing, and the island towns of Dalmatia. Good food the whole way, one of you vegetarian, one eating everything.</p>
+    <div class="meta" id="heroMeta"></div>
+  </div>
+</header>
 
-  <div id="modalRoot"></div>
+<section class="intro">
+  <span class="mk">~</span>
+  <p>The working guide for the trip: where to stay, what to see, and where to eat well. Add a hotel stay or a dinner spot anywhere below and it folds straight into the itinerary, no rebuilding required.</p>
+  <div class="trip-controls">
+    <div class="field-block">
+      <label for="startDateInput">Start date</label>
+      <input type="date" id="startDateInput">
+    </div>
+    <div class="field-block">
+      <label>Booking progress</label>
+      <div id="bookingProgress" class="muted"></div>
+    </div>
+  </div>
+</section>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/config.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/store.js"></script>
-  <script src="js/app.js"></script>
+<main id="places"></main>
+
+<section class="wrap toolkit-block" id="toolkit">
+  <div class="sub-h"><h3>Toolkit</h3><span class="tag">Map · Weather · Documents · Notes</span><span class="rule"></span></div>
+  <div id="map-canvas"></div>
+  <div class="sub-h" style="margin-top:2.4rem"><h3>Weather</h3><span class="rule"></span></div>
+  <div class="weather-grid" id="weatherGrid"></div>
+  <div class="sub-h" style="margin-top:2.4rem"><h3>Documents</h3><span class="rule"></span></div>
+  <div style="margin-bottom:10px"><button class="btn" id="addDocBtn">+ Add document link</button></div>
+  <div class="doc-grid" id="docGrid"></div>
+  <div class="sub-h" style="margin-top:2.4rem"><h3>Notes &amp; journal</h3><span class="rule"></span></div>
+  <div style="margin-bottom:10px"><button class="btn" id="addNoteBtn">+ Add a note</button></div>
+  <div id="notesList"></div>
+</section>
+
+<div class="divider"></div>
+
+<section class="prep" id="prep">
+  <div class="prep-wrap">
+    <h2>Before you <em>book</em></h2>
+    <p class="fp">Everything left to do, in order. Check items off as you go, it is saved automatically.</p>
+    <div id="prepList"></div>
+    <p class="foot-note">Currency is the euro throughout (Croatia adopted it in 2023). Location photos are from the original trip guide.</p>
+  </div>
+</section>
+
+<button class="totop" id="totop" aria-label="Back to top">&uarr;</button>
+
+<div id="modalRoot"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

@@ -30,7 +30,6 @@ const SEED_DATA = {
   bookings: [],
   activities: [],
   restaurants: [],
-  packing: [],
   documents: [],
   notesLog: []
 };
@@ -77,20 +76,52 @@ SEED_DATA.restaurants.push(
   { id: "r7", city: "split", name: "(shortlist TBD)", dish: "Soparnik, black risotto, grilled fish", vegetarian: false, notes: "For vegetarian: grilled vegetables, salads, cheese plates, truffle dishes if visiting Istria." }
 );
 
-// -- Packing list --
-SEED_DATA.packing.push(
-  { id: "p1", item: "Passport (valid, no visa needed under 90 days)", category: "Documents", checked: false },
-  { id: "p2", item: "Booking confirmations (offline copies)", category: "Documents", checked: false },
-  { id: "p3", item: "Credit card with no foreign transaction fee", category: "Documents", checked: false },
-  { id: "p4", item: "Offline maps downloaded (Google Maps / Maps.me)", category: "Documents", checked: false },
-  { id: "p5", item: "Layers for cool evenings", category: "Clothing", checked: false },
-  { id: "p6", item: "Swimwear", category: "Clothing", checked: false },
-  { id: "p7", item: "Comfortable walking shoes", category: "Clothing", checked: false },
-  { id: "p8", item: "EU power adapter", category: "Gear", checked: false },
-  { id: "p9", item: "Portable charger", category: "Gear", checked: false },
-  { id: "p10", item: "Sunscreen", category: "Health", checked: false }
-);
-
 SEED_DATA.notesLog.push(
   { id: "n1", text: "Trip plan imported from research doc (2026-06-24). Route B confirmed: Italy first, Croatia second. Open decisions: exact September dates, points/miles check, final Croatia direction (Dubrovnik-first vs Split-first, depends on ferry schedule).", ts: new Date().toISOString() }
 );
+
+// -- Places: the blog-style sections. Each pulls its bookings/activities/
+// restaurants by matching city id. Accent colors carried over from the
+// original travel guide's per-city theming. --
+const PLACES = [
+  { id: "rome", label: "Rome", nights: "2 nt", cityIds: ["rome"], image: "assets/images/rome.jpg",
+    title: "Rome", titleEm: "the Eternal City", blurb: "Two nights to shake off jet lag: ancient ruins in the morning, long lunches, a slow walk through Trastevere at golden hour." },
+  { id: "puglia", label: "Puglia", nights: "4 nt", cityIds: ["bari", "polignano", "alberobello", "matera", "lecce"], image: "assets/images/bari.jpg",
+    title: "Puglia", titleEm: "the heel of Italy", blurb: "Four nights based in Bari, with day trips to whitewashed towns, cave dwellings, and cliffside swimming. Naturally vegetarian-friendly, course after course." },
+  { id: "dubrovnik", label: "Dubrovnik", nights: "2 nt", cityIds: ["dubrovnik"], image: "assets/images/dubrovnik.jpg",
+    title: "Dubrovnik", titleEm: "the Pearl of the Adriatic", blurb: "Old town walls, kayaking the coastline, and a first taste of Croatia after the ferry crossing from Bari." },
+  { id: "hvar", label: "Hvar", nights: "1 nt", cityIds: ["hvar"], image: "assets/images/hvar.jpg",
+    title: "Hvar", titleEm: "island time", blurb: "One overnight on the island, reached by catamaran, with lavender hills and a slower pace than the mainland cities." },
+  { id: "split", label: "Split", nights: "2 nt", cityIds: ["split"], image: "assets/images/split.jpg",
+    title: "Split", titleEm: "Diocletian's city", blurb: "Two nights in a Roman palace turned living city, before the flight home." }
+];
+
+const PLACE_TIPS = {
+  rome: ["Lunch is the big meal, restaurants close 3-5pm, dinner starts 8pm+.", "Tipping is not expected. Round up 5-10% at sit-down restaurants for good service.", "Avoid picture-menu restaurants near the big tourist sites."],
+  puglia: ["Book day-trip trains (Polignano, Alberobello, Matera, Lecce) a day ahead in September.", "Puglia is naturally vegetarian-friendly: fave e cicoria, burrata, orecchiette cime di rapa, focaccia Barese.", "WhatsApp is commonly used to reserve tables at smaller trattorias."],
+  dubrovnik: ["Peka must be ordered 2-3 hours ahead. Ask your host to recommend a place and call ahead.", "Check menu prices in the Old Town before ordering, some tourist-facing spots overcharge.", "Ferry check-in: arrive 60-90 minutes early, passport ready."],
+  hvar: ["Catamarans can sell out in September, book 1-2 weeks ahead.", "Currency is the euro throughout, Croatia adopted it in 2023."],
+  split: ["No border crossing between Italy and Croatia, both are Schengen.", "September sea temperature is still swimmable, around 75F, pack layers for evenings."]
+};
+
+// -- Prep checklist: merges the trip-plan's phased next-steps with the
+// original guide's before-you-book steps. Interactive, checkable, persisted. --
+SEED_DATA.prepChecklist = [
+  { id: "pc1", phase: "Now (6 months out)", text: "Check credit cards and airline accounts for points, miles, travel credits, and foreign transaction fee status.", done: false },
+  { id: "pc2", phase: "Now (6 months out)", text: "Pick exact September dates (early vs mid vs late). Late September has slightly lower prices and thinner crowds.", done: false },
+  { id: "pc3", phase: "Now (6 months out)", text: "Set up price alerts on Google Flights for the open-jaw: SFO to Rome + Dubrovnik or Split to SFO.", done: false },
+  { id: "pc4", phase: "Now (6 months out)", text: "Confirm the Croatia direction against the Jadrolinija ferry schedule. This decides which city you book first and which is your departure airport.", done: false },
+  { id: "pc5", phase: "3-4 months before", text: "Book transatlantic flights (open-jaw). Best prices typically 2-3 months ahead for September.", done: false },
+  { id: "pc6", phase: "3-4 months before", text: "Book Rome to Bari train on trenitalia.com or italotreno.com. Cheapest fares go fast.", done: false },
+  { id: "pc7", phase: "3-4 months before", text: "Book the Bari to Dubrovnik (or Split) ferry on jadrolinija.hr.", done: false },
+  { id: "pc8", phase: "2-3 months before", text: "Book accommodation. Boutique hotels for Rome and Dubrovnik, Airbnbs for Puglia and Split/Hvar.", done: false },
+  { id: "pc9", phase: "2-3 months before", text: "Book Ryanair Bari to Dubrovnik if choosing flight over ferry, add checked bag at booking for the lowest fee.", done: false },
+  { id: "pc10", phase: "2-3 months before", text: "Research and shortlist restaurants. Reserve any splurge or tasting-menu dinners in Rome and Puglia.", done: false },
+  { id: "pc11", phase: "1-2 months before", text: "Book catamaran tickets for the Croatian island hops (Krilo, TP Line, Jadrolinija). These sell out in September.", done: false },
+  { id: "pc12", phase: "1-2 months before", text: "Book any day-trip activities: cooking class in Puglia, kayaking in Dubrovnik, wine tour.", done: false },
+  { id: "pc13", phase: "1-2 months before", text: "Confirm all transport connections and save confirmations somewhere both of you can reach.", done: false },
+  { id: "pc14", phase: "1-2 weeks before", text: "Download offline maps (Google Maps or Maps.me) for every city on the route.", done: false },
+  { id: "pc15", phase: "1-2 weeks before", text: "Notify your bank and credit cards of travel dates.", done: false },
+  { id: "pc16", phase: "1-2 weeks before", text: "Check ETIAS status for your September 2026 dates, visa-exempt US travelers will need it once it launches.", done: false },
+  { id: "pc17", phase: "1-2 weeks before", text: "Final packing: layers for evenings, swimwear, comfortable walking shoes.", done: false }
+];
