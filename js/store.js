@@ -4,7 +4,7 @@
 // APPS_SCRIPT_URL is configured in config.js).
 
 const Store = (() => {
-  const LOCAL_KEY = "itcroatia2026_trip_state_v1";
+  const LOCAL_KEY = "itcroatia2026_trip_state_v2";
   let state = null;
   let listeners = [];
   let remoteEnabled = typeof APPS_SCRIPT_URL === "string" && APPS_SCRIPT_URL.length > 0;
@@ -61,13 +61,23 @@ const Store = (() => {
     listeners.forEach((fn) => fn(state, syncStatus));
   }
 
+  function backfillFromSeed() {
+    // Defensive: if a schema addition (new collection) lands after someone
+    // already has a saved local state, make sure it does not silently
+    // disappear. Existing collections are left untouched.
+    Object.keys(SEED_DATA).forEach((key) => {
+      if (state[key] === undefined) state[key] = JSON.parse(JSON.stringify(SEED_DATA[key]));
+    });
+  }
+
   async function init() {
     const local = loadLocal();
     state = local || JSON.parse(JSON.stringify(SEED_DATA));
+    backfillFromSeed();
     notify();
     if (remoteEnabled) {
       const remote = await loadRemote();
-      if (remote) { state = remote; saveLocal(); notify(); }
+      if (remote) { state = remote; backfillFromSeed(); saveLocal(); notify(); }
     }
   }
 

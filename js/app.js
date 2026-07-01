@@ -408,22 +408,43 @@ function renderNotes(state) {
 }
 
 // ---- prep checklist ----
-function renderPrep(state) {
+function groupByPhase(items) {
   const phases = [];
-  (state.prepChecklist || []).forEach((item) => {
+  items.forEach((item) => {
     let group = phases.find((p) => p.phase === item.phase);
     if (!group) { group = { phase: item.phase, items: [] }; phases.push(group); }
     group.items.push(item);
   });
-  document.getElementById("prepList").innerHTML = phases.map((g) =>
-    '<div class="prep-phase"><h4>' + esc(g.phase) + '</h4>' + g.items.map((item) =>
-      '<label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>').join("") +
-    "</div>").join("");
-  document.querySelectorAll("[data-prep-toggle]").forEach((cb) => cb.addEventListener("change", (e) => {
+  return phases;
+}
+
+function attachPrepToggleHandlers(container) {
+  container.querySelectorAll("[data-prep-toggle]").forEach((cb) => cb.addEventListener("change", (e) => {
     const state2 = Store.getState();
     state2.prepChecklist = state2.prepChecklist.map((it) => it.id === cb.dataset.prepToggle ? Object.assign({}, it, { done: e.target.checked }) : it);
     Store.persist();
   }));
+}
+
+// The "Before you book" section: the original guide's 6 foundational steps only.
+function renderPrep(state) {
+  const beforeItems = (state.prepChecklist || []).filter((it) => it.phase === "Before you book");
+  const container = document.getElementById("prepList");
+  container.innerHTML = beforeItems.map((item) =>
+    '<label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>').join("");
+  attachPrepToggleHandlers(container);
+}
+
+// The Toolkit "Next steps" block: the full phased plan (Now / 3-4mo / 2-3mo / 1-2mo / 1-2wk).
+function renderNextSteps(state) {
+  const rest = (state.prepChecklist || []).filter((it) => it.phase !== "Before you book");
+  const phases = groupByPhase(rest);
+  const container = document.getElementById("nextStepsList");
+  container.innerHTML = phases.map((g) =>
+    '<div class="nextstep-phase"><h4>' + esc(g.phase) + '</h4>' + g.items.map((item) =>
+      '<label class="nextstep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>').join("") +
+    "</div>").join("");
+  attachPrepToggleHandlers(container);
 }
 
 // ---- master render ----
@@ -435,6 +456,7 @@ function renderAll(state, syncStatus) {
   renderDocuments(state);
   renderNotes(state);
   renderPrep(state);
+  renderNextSteps(state);
   renderWeather();
   renderMap();
 }
