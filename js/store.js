@@ -2,9 +2,15 @@
 // writes through Store.* methods. Every write re-renders automatically
 // and persists (localStorage always, plus the remote Sheet backend if
 // APPS_SCRIPT_URL is configured in config.js).
+//
+// The trip's calendar is driven entirely by state.trip = { startDate, stops }.
+// stops is an ordered list of { placeId, nights }. Bookings and activities
+// are keyed by real ISO dates (not day numbers), so editing the stop order,
+// nights, or start date automatically reflows which city "owns" each date --
+// nothing else needs to be renumbered by hand.
 
 const Store = (() => {
-  const LOCAL_KEY = "itcroatia2026_trip_state_v2";
+  const LOCAL_KEY = "itcroatia2026_trip_state_v3";
   let state = null;
   let listeners = [];
   let remoteEnabled = typeof APPS_SCRIPT_URL === "string" && APPS_SCRIPT_URL.length > 0;
@@ -144,32 +150,105 @@ const Store = (() => {
     persist();
   }
 
-  // ---- derived itinerary: computed fresh from bookings + activities ----
-  // Adding/editing a lodging booking or an activity automatically changes
-  // this output on the next render. Nothing here is stored separately.
+  // ---- trip structure: ordered stops (placeId + nights) driving the whole calendar ----
+  function addDays(iso, n) {
+    const d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // Returns one entry per stop: { placeId, nights, place, dayStart, dayEnd, dateStart, dateEnd }.
+  // dayEnd/dateEnd is the checkout/departure day (exclusive of the next night, inclusive
+  // as a calendar day since travel/transition happens on it).
+  function computeStopRanges() {
+    const stops = (state.trip && state.trip.stops) || [];
+    const startDate = state.trip && state.trip.startDate;
+    let day = 1;
+    let cursor = startDate || null;
+    return stops.map((stop) => {
+      const place = PLACES.find((p) => p.id === stop.placeId);
+      const dayStart = day;
+      const dayEnd = day + stop.nights;
+      const dateStart = cursor;
+      const dateEnd = cursor ? addDays(cursor, stop.nights) : null;
+      day = dayEnd;
+      cursor = dateEnd;
+      return { placeId: stop.placeId, nights: stop.nights, place, dayStart, dayEnd, dateStart, dateEnd };
+    });
+  }
+
+  function getTotalDays() {
+    const ranges = computeStopRanges();
+    return ranges.length ? ranges[ranges.length - 1].dayEnd : 0;
+  }
+
+  function getTripDateRange() {
+    const ranges = computeStopRanges();
+    if (!ranges.length) return { start: state.trip ? state.trip.startDate : null, end: null };
+    return { start: ranges[0].dateStart, end: ranges[ranges.length - 1].dateEnd };
+  }
+
+  function getStopRangeForPlace(placeId) {
+    return computeStopRanges().find((r) => r.placeId === placeId) || null;
+  }
+
+  function updateTripStops(newStops) {
+    state.trip.stops = newStops;
+    persist();
+  }
+  function addTripStop(placeId, nights) {
+    state.trip.stops.push({ placeId, nights: nights || 1 });
+    persist();
+  }
+  function removeTripStop(index) {
+    state.trip.stops.splice(index, 1);
+    persist();
+  }
+  function moveTripStop(index, delta) {
+    const stops = state.trip.stops;
+    const newIndex = index + delta;
+    if (newIndex < 0 || newIndex >= stops.length) return;
+    const [item] = stops.splice(index, 1);
+    stops.splice(newIndex, 0, item);
+    persist();
+  }
+  function setTripStopNights(index, nights) {
+    state.trip.stops[index].nights = Math.max(1, nights);
+    persist();
+  }
+
+  // ---- derived itinerary: computed fresh from trip.stops + bookings + activities ----
+  // Adding/editing a lodging booking or an activity (or reordering/resizing stops)
+  // automatically changes this output on the next render. Nothing here is stored
+  // separately from those three sources.
+  function buildDay(dayNum, dateStr, range) {
+    const cityId = range.place ? range.place.cityIds[0] : null;
+    const lodging = state.bookings.find(
+      (b) => b.category === "lodging" && b.date <= dateStr && dateStr < b.endDate
+    ) || state.bookings.find(
+      (b) => b.category === "lodging" && b.date === dateStr && b.date === b.endDate
+    );
+    const transport = state.bookings.filter(
+      (b) => b.category !== "lodging" && (dateStr === b.date || dateStr === b.endDate)
+    );
+    const dayActivities = state.activities
+      .filter((a) => a.date === dateStr)
+      .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+    return { day: dayNum, date: dateStr, placeId: range.placeId, cityId, lodging, transport, activities: dayActivities };
+  }
+
   function getItineraryDays() {
-    const numDays = state.meta.numDays || 12;
+    const ranges = computeStopRanges();
     const days = [];
-    for (let d = 1; d <= numDays; d++) {
-      const lodging = state.bookings.find(
-        (b) => b.category === "lodging" && d >= b.day && d < b.endDay
-      ) || state.bookings.find(
-        (b) => b.category === "lodging" && d === b.day && b.day === b.endDay
-      );
-      const transport = state.bookings.filter(
-        (b) => b.category !== "lodging" && (d === b.day || d === b.endDay)
-      );
-      const dayActivities = state.activities
-        .filter((a) => a.day === d)
-        .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
-      const cityId = lodging ? lodging.city : (transport[0] ? transport[0].toCity || transport[0].fromCity : null);
-      let calDate = null;
-      if (state.meta.startDate) {
-        const dt = new Date(state.meta.startDate + "T00:00:00");
-        dt.setDate(dt.getDate() + (d - 1));
-        calDate = dt.toISOString().slice(0, 10);
+    ranges.forEach((r) => {
+      for (let d = r.dayStart; d < r.dayEnd; d++) {
+        const dateStr = r.dateStart ? addDays(r.dateStart, d - r.dayStart) : null;
+        days.push(buildDay(d, dateStr, r));
       }
-      days.push({ day: d, date: calDate, cityId, lodging, transport, activities: dayActivities });
+    });
+    if (ranges.length) {
+      const last = ranges[ranges.length - 1];
+      days.push(buildDay(last.dayEnd, last.dateEnd, last));
     }
     return days;
   }
@@ -177,6 +256,8 @@ const Store = (() => {
   return {
     init, subscribe, getState, getSyncStatus, persist,
     add, update, remove, updateMeta,
+    computeStopRanges, getTotalDays, getTripDateRange, getStopRangeForPlace,
+    updateTripStops, addTripStop, removeTripStop, moveTripStop, setTripStopNights,
     getItineraryDays, uid
   };
 })();

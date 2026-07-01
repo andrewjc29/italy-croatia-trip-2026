@@ -16,11 +16,30 @@ const CITIES = [
   { id: "split",       name: "Split",              country: "Croatia", lat: 43.5081, lng: 16.4402 }
 ];
 
+// -- Maps link helpers: every hotel/restaurant/thing-to-do link is a Google
+// Maps search built from its name + place, so it always resolves. --
+const CITY_LABEL_MAP = {
+  rome: "Rome, Italy", bari: "Bari, Italy", polignano: "Polignano a Mare, Italy",
+  alberobello: "Alberobello, Italy", matera: "Matera, Italy", lecce: "Lecce, Italy",
+  dubrovnik: "Dubrovnik, Croatia", hvar: "Hvar, Croatia", split: "Split, Croatia"
+};
+const PLACE_LABEL_MAP = {
+  rome: "Rome, Italy", puglia: "Bari, Italy", dubrovnik: "Dubrovnik, Croatia",
+  hvar: "Hvar, Croatia", split: "Split, Croatia"
+};
+function mapsUrl(query) {
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+}
+function mapsUrlForCity(name, cityId) {
+  return mapsUrl([name, CITY_LABEL_MAP[cityId] || ""].filter(Boolean).join(", "));
+}
+function mapsUrlForPlace(name, extra, placeId) {
+  return mapsUrl([name, extra, PLACE_LABEL_MAP[placeId] || ""].filter(Boolean).join(", "));
+}
+
 const SEED_DATA = {
   meta: {
     tripName: "Italy + Croatia 2026",
-    startDate: null,
-    numDays: 12,
     homeAirport: "SFO",
     travelers: ["Andrew", "Partner"],
     budgetPerPersonLow: 3000,
@@ -35,34 +54,45 @@ const SEED_DATA = {
 };
 
 // -- Bookings: lodging + transport legs, day = day index (1-based) --
+SEED_DATA.trip = {
+  startDate: "2026-09-03",
+  stops: [
+    { placeId: "rome", nights: 2 },
+    { placeId: "puglia", nights: 4 },
+    { placeId: "dubrovnik", nights: 2 },
+    { placeId: "hvar", nights: 1 },
+    { placeId: "split", nights: 2 }
+  ]
+};
+
 SEED_DATA.bookings.push(
-  { id: "bk1", category: "flight", title: "SFO -> Rome (nonstop)", fromCity: "SFO", toCity: "rome", day: 1, endDay: 1, time: "", provider: "United / ITA Airways", confirmation: "", cost: 500, currency: "USD", link: "https://www.google.com/travel/flights", status: "idea", notes: "~12h nonstop. Est $400-600pp. Avoid Basic Economy to keep checked bag free." },
-  { id: "bk2", category: "lodging", title: "Rome hotel", city: "rome", day: 1, endDay: 3, time: "", provider: "", confirmation: "", cost: 200, currency: "USD", link: "", status: "idea", notes: "2 nights. Trastevere or Testaccio area. Est $80-120/night pp." },
-  { id: "bk3", category: "train", title: "Rome -> Bari (high-speed)", fromCity: "rome", toCity: "bari", day: 3, endDay: 3, time: "", provider: "Trenitalia Frecciargento / Italo", confirmation: "", cost: 30, currency: "EUR", link: "https://www.trenitalia.com", status: "idea", notes: "~4h direct. From EUR13-20 booked ahead, EUR30-60 closer to travel. ~10 trains/day." },
-  { id: "bk4", category: "lodging", title: "Bari / Puglia base", city: "bari", day: 3, endDay: 7, time: "", provider: "Airbnb", confirmation: "", cost: 220, currency: "USD", link: "", status: "idea", notes: "4 nights. Base for Polignano, Alberobello, Matera, Lecce day trips. Est $40-70/night pp." },
-  { id: "bk5", category: "ferry", title: "Bari -> Dubrovnik ferry (Jadrolinija Line 54)", fromCity: "bari", toCity: "dubrovnik", day: 7, endDay: 7, time: "11:00", provider: "Jadrolinija", confirmation: "", cost: 85, currency: "EUR", link: "https://www.jadrolinija.hr/en/search-buy-ticket", status: "idea", notes: "RECOMMENDED crossing. Sept 1-15: Fri/Sat. Sept 16+: Tue/Thu/Sat 11:00am. 7-10hr daytime crossing. ~EUR78-90pp, bags included." },
-  { id: "bk6", category: "other", title: "Alt: Ryanair Bari -> Dubrovnik flight", fromCity: "bari", toCity: "dubrovnik", day: 7, endDay: 7, time: "", provider: "Ryanair", confirmation: "", cost: 100, currency: "USD", link: "https://www.ryanair.com", status: "idea", notes: "Backup to the ferry. 45 min. Base fare $30-60 + checked bag EUR40-55. Total ~$75-120pp. More flexible, multiple days/week." },
-  { id: "bk7", category: "lodging", title: "Dubrovnik hotel", city: "dubrovnik", day: 7, endDay: 9, time: "", provider: "", confirmation: "", cost: 400, currency: "USD", link: "", status: "idea", notes: "2 nights. Boutique hotel. Est $60-100/night pp." },
-  { id: "bk8", category: "catamaran", title: "Dubrovnik -> Hvar catamaran", fromCity: "dubrovnik", toCity: "hvar", day: 9, endDay: 9, time: "", provider: "Krilo / TP Line / Jadrolinija", confirmation: "", cost: 50, currency: "EUR", link: "https://www.krilo.hr", status: "idea", notes: "~3h with island stops. Book 1-2 weeks ahead in September, these sell out." },
-  { id: "bk9", category: "lodging", title: "Hvar stay", city: "hvar", day: 9, endDay: 10, time: "", provider: "", confirmation: "", cost: 80, currency: "USD", link: "", status: "idea", notes: "1 night overnight on the island." },
-  { id: "bk10", category: "catamaran", title: "Hvar -> Split catamaran", fromCity: "hvar", toCity: "split", day: 10, endDay: 10, time: "", provider: "Krilo / TP Line", confirmation: "", cost: 30, currency: "EUR", link: "https://www.tp-line.hr", status: "idea", notes: "~1h, multiple daily departures." },
-  { id: "bk11", category: "lodging", title: "Split hotel", city: "split", day: 10, endDay: 12, time: "", provider: "", confirmation: "", cost: 200, currency: "USD", link: "", status: "idea", notes: "2 nights." },
-  { id: "bk12", category: "flight", title: "Split/Dubrovnik -> SFO (1 stop)", fromCity: "split", toCity: "SFO", day: 12, endDay: 12, time: "", provider: "", confirmation: "", cost: 750, currency: "USD", link: "https://www.google.com/travel/flights", status: "idea", notes: "One stop via European hub, ~14-18h. Est $600-900pp. Whichever city ends the itinerary is the return departure city -- no backtracking." }
+  {"id":"bk1","category":"flight","title":"SFO -> Rome (nonstop)","fromCity":"SFO","toCity":"rome","time":"","provider":"United / ITA Airways","confirmation":"","cost":500,"currency":"USD","link":"https://www.google.com/travel/flights","status":"idea","notes":"~12h nonstop. Est $400-600pp. Avoid Basic Economy to keep checked bag free.","date":"2026-09-03","endDate":"2026-09-03"},
+  {"id":"bk2","category":"lodging","title":"Rome hotel","city":"rome","time":"","provider":"","confirmation":"","cost":200,"currency":"USD","link":"","status":"idea","notes":"2 nights. Trastevere or Testaccio area. Est $80-120/night pp.","date":"2026-09-03","endDate":"2026-09-05"},
+  {"id":"bk3","category":"train","title":"Rome -> Bari (high-speed)","fromCity":"rome","toCity":"bari","time":"","provider":"Trenitalia Frecciargento / Italo","confirmation":"","cost":30,"currency":"EUR","link":"https://www.trenitalia.com","status":"idea","notes":"~4h direct. From EUR13-20 booked ahead, EUR30-60 closer to travel. ~10 trains/day.","date":"2026-09-05","endDate":"2026-09-05"},
+  {"id":"bk4","category":"lodging","title":"Bari / Puglia base","city":"bari","time":"","provider":"Airbnb","confirmation":"","cost":220,"currency":"USD","link":"","status":"idea","notes":"4 nights. Base for Polignano, Alberobello, Matera, Lecce day trips. Est $40-70/night pp.","date":"2026-09-05","endDate":"2026-09-09"},
+  {"id":"bk5","category":"ferry","title":"Bari -> Dubrovnik ferry (Jadrolinija Line 54)","fromCity":"bari","toCity":"dubrovnik","time":"11:00","provider":"Jadrolinija","confirmation":"","cost":85,"currency":"EUR","link":"https://www.jadrolinija.hr/en/search-buy-ticket","status":"idea","notes":"RECOMMENDED crossing. Sept 1-15: Fri/Sat. Sept 16+: Tue/Thu/Sat 11:00am. 7-10hr daytime crossing. ~EUR78-90pp, bags included.","date":"2026-09-09","endDate":"2026-09-09"},
+  {"id":"bk6","category":"other","title":"Alt: Ryanair Bari -> Dubrovnik flight","fromCity":"bari","toCity":"dubrovnik","time":"","provider":"Ryanair","confirmation":"","cost":100,"currency":"USD","link":"https://www.ryanair.com","status":"idea","notes":"Backup to the ferry. 45 min. Base fare $30-60 + checked bag EUR40-55. Total ~$75-120pp. More flexible, multiple days/week.","date":"2026-09-09","endDate":"2026-09-09"},
+  {"id":"bk7","category":"lodging","title":"Dubrovnik hotel","city":"dubrovnik","time":"","provider":"","confirmation":"","cost":400,"currency":"USD","link":"","status":"idea","notes":"2 nights. Boutique hotel. Est $60-100/night pp.","date":"2026-09-09","endDate":"2026-09-11"},
+  {"id":"bk8","category":"catamaran","title":"Dubrovnik -> Hvar catamaran","fromCity":"dubrovnik","toCity":"hvar","time":"","provider":"Krilo / TP Line / Jadrolinija","confirmation":"","cost":50,"currency":"EUR","link":"https://www.krilo.hr","status":"idea","notes":"~3h with island stops. Book 1-2 weeks ahead in September, these sell out.","date":"2026-09-11","endDate":"2026-09-11"},
+  {"id":"bk9","category":"lodging","title":"Hvar stay","city":"hvar","time":"","provider":"","confirmation":"","cost":80,"currency":"USD","link":"","status":"idea","notes":"1 night overnight on the island.","date":"2026-09-11","endDate":"2026-09-12"},
+  {"id":"bk10","category":"catamaran","title":"Hvar -> Split catamaran","fromCity":"hvar","toCity":"split","time":"","provider":"Krilo / TP Line","confirmation":"","cost":30,"currency":"EUR","link":"https://www.tp-line.hr","status":"idea","notes":"~1h, multiple daily departures.","date":"2026-09-12","endDate":"2026-09-12"},
+  {"id":"bk11","category":"lodging","title":"Split hotel","city":"split","time":"","provider":"","confirmation":"","cost":200,"currency":"USD","link":"","status":"idea","notes":"2 nights.","date":"2026-09-12","endDate":"2026-09-14"},
+  {"id":"bk12","category":"flight","title":"Split/Dubrovnik -> SFO (1 stop)","fromCity":"split","toCity":"SFO","time":"","provider":"","confirmation":"","cost":750,"currency":"USD","link":"https://www.google.com/travel/flights","status":"idea","notes":"One stop via European hub, ~14-18h. Est $600-900pp. Whichever city ends the itinerary is the return departure city -- no backtracking.","date":"2026-09-14","endDate":"2026-09-14"}
 );
 
 // -- Activities: day-specific sights, meals, experiences, free time --
 SEED_DATA.activities.push(
-  { id: "a1", day: 1, city: "rome", time: "", title: "Jet lag buffer -- walk Trastevere", type: "free", cost: 0, status: "idea", notes: "Slow lunch, early dinner. Arrive morning off the nonstop." },
-  { id: "a2", day: 2, city: "rome", time: "09:00", title: "Colosseum + Forum + Pantheon", type: "sight", cost: 30, status: "idea", notes: "Optional Vatican in the morning instead." },
-  { id: "a3", day: 2, city: "rome", time: "13:00", title: "Lunch in Trastevere", type: "meal", cost: 25, status: "idea", notes: "Cacio e pepe, supplì.", vegetarianFriendly: true },
-  { id: "a4", day: 2, city: "rome", time: "20:00", title: "Dinner in Testaccio", type: "meal", cost: 35, status: "idea", notes: "Authentic, less touristy neighborhood.", vegetarianFriendly: true },
-  { id: "a5", day: 4, city: "bari", time: "10:00", title: "Bari Vecchia + orecchiette making", type: "experience", cost: 20, status: "idea", notes: "Morning in old town." },
-  { id: "a6", day: 4, city: "polignano", time: "14:00", title: "Polignano a Mare -- cliffs + swim", type: "sight", cost: 0, status: "idea", notes: "30 min regional train from Bari. Return to Bari for dinner." },
-  { id: "a7", day: 5, city: "alberobello", time: "09:00", title: "Alberobello trulli + Ostuni", type: "sight", cost: 0, status: "idea", notes: "Option A day trip. FSE regional train/bus ~1h from Bari." },
-  { id: "a8", day: 5, city: "matera", time: "09:00", title: "Matera cave dwellings", type: "sight", cost: 0, status: "idea", notes: "Option B day trip instead of Alberobello/Ostuni. ~1h by train/bus from Bari." },
-  { id: "a9", day: 6, city: "lecce", time: "09:00", title: "Lecce -- Baroque architecture + pasticciotto", type: "sight", cost: 0, status: "idea", notes: "1.5h Trenitalia regional train. OR a free/slow day in Bari (cooking class, beach, long lunch) as buffer before Croatia." },
-  { id: "a10", day: 8, city: "dubrovnik", time: "", title: "Old town walls + kayaking", type: "experience", cost: 40, status: "idea", notes: "" },
-  { id: "a11", day: 11, city: "split", time: "", title: "Diocletian's Palace old town", type: "sight", cost: 0, status: "idea", notes: "" }
+  {"id":"a1","city":"rome","time":"","title":"Jet lag buffer -- walk Trastevere","type":"free","cost":0,"status":"idea","notes":"Slow lunch, early dinner. Arrive morning off the nonstop.","date":"2026-09-03"},
+  {"id":"a2","city":"rome","time":"09:00","title":"Colosseum + Forum + Pantheon","type":"sight","cost":30,"status":"idea","notes":"Optional Vatican in the morning instead.","date":"2026-09-04"},
+  {"id":"a3","city":"rome","time":"13:00","title":"Lunch in Trastevere","type":"meal","cost":25,"status":"idea","notes":"Cacio e pepe, supplì.","vegetarianFriendly":true,"date":"2026-09-04"},
+  {"id":"a4","city":"rome","time":"20:00","title":"Dinner in Testaccio","type":"meal","cost":35,"status":"idea","notes":"Authentic, less touristy neighborhood.","vegetarianFriendly":true,"date":"2026-09-04"},
+  {"id":"a5","city":"bari","time":"10:00","title":"Bari Vecchia + orecchiette making","type":"experience","cost":20,"status":"idea","notes":"Morning in old town.","date":"2026-09-06"},
+  {"id":"a6","city":"polignano","time":"14:00","title":"Polignano a Mare -- cliffs + swim","type":"sight","cost":0,"status":"idea","notes":"30 min regional train from Bari. Return to Bari for dinner.","date":"2026-09-06"},
+  {"id":"a7","city":"alberobello","time":"09:00","title":"Alberobello trulli + Ostuni","type":"sight","cost":0,"status":"idea","notes":"Option A day trip. FSE regional train/bus ~1h from Bari.","date":"2026-09-07"},
+  {"id":"a8","city":"matera","time":"09:00","title":"Matera cave dwellings","type":"sight","cost":0,"status":"idea","notes":"Option B day trip instead of Alberobello/Ostuni. ~1h by train/bus from Bari.","date":"2026-09-07"},
+  {"id":"a9","city":"lecce","time":"09:00","title":"Lecce -- Baroque architecture + pasticciotto","type":"sight","cost":0,"status":"idea","notes":"1.5h Trenitalia regional train. OR a free/slow day in Bari (cooking class, beach, long lunch) as buffer before Croatia.","date":"2026-09-08"},
+  {"id":"a10","city":"dubrovnik","time":"","title":"Old town walls + kayaking","type":"experience","cost":40,"status":"idea","notes":"","date":"2026-09-10"},
+  {"id":"a11","city":"split","time":"","title":"Diocletian's Palace old town","type":"sight","cost":0,"status":"idea","notes":"","date":"2026-09-13"}
 );
 
 SEED_DATA.notesLog.push(
@@ -73,15 +103,15 @@ SEED_DATA.notesLog.push(
 // restaurants by matching city id. Accent colors carried over from the
 // original travel guide's per-city theming. --
 const PLACES = [
-  { id: "rome", label: "Rome", nights: "2 nt", cityIds: ["rome"], image: "assets/images/rome.jpg", dayStart: 1, dayEnd: 3,
+  { id: "rome", label: "Rome", cityIds: ["rome"], image: "assets/images/rome.jpg",
     title: "Rome", titleEm: "the Eternal City", blurb: "Base in <strong>Monti</strong> (local, trendy, metro-connected, ten minutes from the Colosseum) or <strong>Trastevere</strong> (cobblestoned, best food density, no metro but very walkable). Both beat the tourist zones around Trevi and the Spanish Steps for value and atmosphere." },
-  { id: "puglia", label: "Puglia", nights: "4 nt", cityIds: ["bari", "polignano", "alberobello", "matera", "lecce"], image: "assets/images/bari.jpg", dayStart: 3, dayEnd: 7,
+  { id: "puglia", label: "Puglia", cityIds: ["bari", "polignano", "alberobello", "matera", "lecce"], image: "assets/images/bari.jpg",
     title: "Puglia", titleEm: "the heel of Italy", blurb: "Base in the <strong>Murat Quarter</strong>, Bari's modern heart of wide boulevards, the best dining and the main shopping street, beside Bari Centrale where every day trip departs. Puglia's cucina povera is largely vegetarian by default, the easiest eating of the whole trip." },
-  { id: "dubrovnik", label: "Dubrovnik", nights: "2 nt", cityIds: ["dubrovnik"], image: "assets/images/dubrovnik.jpg", dayStart: 7, dayEnd: 9,
+  { id: "dubrovnik", label: "Dubrovnik", cityIds: ["dubrovnik"], image: "assets/images/dubrovnik.jpg",
     title: "Dubrovnik", titleEm: "the Pearl of the Adriatic", blurb: "You arrive by Jadrolinija ferry into Gru\u017e, so a Gru\u017e or <strong>Plo\u010de</strong> base makes sense. Plo\u010de is the upscale 'Riviera' just east of the walls, sea-facing, ten minutes from the Old Town harbor, the local pick for couples. <strong>Pile</strong>, just west of the walls, is quieter and flatter with quick Old Town access." },
-  { id: "hvar", label: "Hvar", nights: "1 nt", cityIds: ["hvar"], image: "assets/images/hvar.jpg", dayStart: 9, dayEnd: 10,
+  { id: "hvar", label: "Hvar", cityIds: ["hvar"], image: "assets/images/hvar.jpg",
     title: "Hvar", titleEm: "island time", blurb: "One night between catamarans, so stay central in <strong>Hvar Town</strong>: it's walkable end to end in twenty minutes and puts the square, the harbor, the restaurants and the fortress walk at your door. Make this night count." },
-  { id: "split", label: "Split", nights: "2 nt", cityIds: ["split"], image: "assets/images/split.jpg", dayStart: 10, dayEnd: 12,
+  { id: "split", label: "Split", cityIds: ["split"], image: "assets/images/split.jpg",
     title: "Split", titleEm: "Diocletian's city", blurb: "Stay in <strong>Veli Varo\u0161</strong>, the stone neighborhood on Marjan Hill's slope, five to ten minutes from Diocletian's Palace and the Riva but quieter and better value, with the best local konobas and wine bars. The palace interior is atmospheric but the noisiest at night." }
 ];
 

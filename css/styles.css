@@ -59,10 +59,26 @@ button{font-family:inherit}
 .intro{max-width:760px;margin:0 auto;padding:4.5rem 2rem 1rem;text-align:center}
 .intro .mk{color:var(--seaglass);font-family:'Fraunces';font-style:italic;font-size:2rem;display:block;margin-bottom:.9rem}
 .intro p{font-size:1.14rem;color:var(--muted)}
-.trip-controls{max-width:640px;margin:2.2rem auto 0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:1.3rem 1.5rem;box-shadow:0 8px 24px var(--shadow);text-align:left;display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.trip-controls .field-block{display:flex;flex-direction:column;gap:.3rem}
-.trip-controls label{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--seaglass);font-weight:600}
-@media(max-width:600px){.trip-controls{grid-template-columns:1fr}}
+.itinerary-editor{max-width:720px;margin:2.2rem auto 0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:1.4rem 1.6rem 1.6rem;box-shadow:0 8px 24px var(--shadow);text-align:left}
+.itinerary-editor .field-block{display:flex;flex-direction:column;gap:.3rem}
+.itinerary-editor label{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--seaglass);font-weight:600}
+.ie-head{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin-bottom:.9rem;flex-wrap:wrap}
+.ie-head h3{font-family:'Fraunces';font-size:1.2rem;color:var(--adriatic-deep)}
+.ie-head .tag{font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--terracotta);font-weight:600}
+.ie-stop{display:flex;align-items:center;gap:.8rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.ie-stop:last-child{border-bottom:none}
+.ie-stop-order{display:flex;flex-direction:column;gap:2px}
+.ie-arrow{width:22px;height:20px;border:1px solid var(--line);background:none;border-radius:5px;cursor:pointer;font-size:.7rem;line-height:1;color:var(--muted)}
+.ie-arrow:hover:not(:disabled){border-color:var(--adriatic);color:var(--adriatic)}
+.ie-arrow:disabled{opacity:.3;cursor:default}
+.ie-stop-name{font-family:'Fraunces';font-size:1.05rem;color:var(--ink);min-width:90px;flex:1}
+.ie-stop-nights{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--muted);white-space:nowrap}
+.ie-step{width:22px;height:22px;border:1px solid var(--line);background:none;border-radius:50%;cursor:pointer;font-size:.85rem;line-height:1;color:var(--adriatic)}
+.ie-step:hover{border-color:var(--adriatic);background:#eef4f2}
+.ie-stop-dates{font-size:.78rem;min-width:150px;text-align:right}
+.ie-add{display:flex;gap:.6rem;margin-top:1rem;align-items:center}
+.ie-add select{font-family:'Outfit';font-size:.85rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:var(--radius-input);background:var(--paper)}
+@media(max-width:640px){.ie-stop{flex-wrap:wrap}.ie-stop-dates{text-align:left;min-width:0;width:100%;margin-left:calc(22px + .8rem)}}
 
 /* ---- place sections ---- */
 .place-head{position:relative;height:50vh;min-height:320px;overflow:hidden;display:flex;align-items:flex-end;background:var(--adriatic-deep)}
@@ -112,8 +128,8 @@ button{font-family:inherit}
 /* ---- restaurant / food cards ---- */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.4rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden;box-shadow:0 8px 24px var(--shadow);display:flex;flex-direction:column}
-.card .pic{height:150px;overflow:hidden;position:relative;background:var(--accent,var(--seaglass-soft))}
-.card .body{padding:1.1rem 1.2rem 1.3rem;flex:1;display:flex;flex-direction:column}
+.card .pic{height:4px;background:var(--accent,var(--seaglass-soft))}
+.card .body{padding:1.2rem 1.2rem 1.3rem;flex:1;display:flex;flex-direction:column}
 .card h4{font-size:1.1rem;color:var(--accent-deep,var(--adriatic-deep));margin-bottom:.15rem}
 .card .kind{font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent,var(--seaglass));font-weight:600;margin-bottom:.5rem}
 .card p{font-size:.88rem;color:#4a5c63;flex:1}

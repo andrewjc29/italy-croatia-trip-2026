@@ -43,13 +43,18 @@
 
 <section class="intro">
   <span class="mk">~</span>
-  <p>The working guide for the trip: where to stay, what to see, and where to eat well. Add a hotel stay or a dinner spot anywhere below and it folds straight into the itinerary, no rebuilding required.</p>
-  <div class="trip-controls">
-    <div class="field-block">
-      <label for="startDateInput">Start date</label>
-      <input type="date" id="startDateInput">
+  <p>The working guide for the trip: where to stay, what to see, and where to eat well. Add a hotel stay or a dinner spot anywhere below and it folds straight into the itinerary, no rebuilding required. Departing <strong>September 3, 2026</strong>.</p>
+  <div class="itinerary-editor">
+    <div class="ie-head">
+      <h3>Your itinerary</h3>
+      <span class="tag">reorder, adjust nights, add or remove stops</span>
     </div>
-    <div class="field-block">
+    <div id="itineraryStopsList"></div>
+    <div class="ie-add">
+      <select id="addStopSelect"></select>
+      <button class="btn secondary" id="addStopBtn">+ Add stop</button>
+    </div>
+    <div class="field-block" style="margin-top:1rem">
       <label>Booking progress</label>
       <div id="bookingProgress" class="muted"></div>
     </div>

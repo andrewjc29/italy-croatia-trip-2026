@@ -47,7 +47,7 @@ function buildPlacesSkeleton() {
       '<div class="place-head"><div class="bg" style="background-image:url(\'' + p.image + '\')"></div>' +
       '<div class="ph-inner"><div class="place-num">' + num + " / " + PLACES.length + '</div>' +
       "<h2>" + esc(p.title) + " <em>" + esc(p.titleEm) + "</em></h2>" +
-      '<div class="nights">' + esc(p.nights) + " in " + esc(p.label) + "</div></div></div>" +
+      '<div class="nights" id="nights-' + p.id + '"></div></div></div>' +
       '<div class="wrap">' +
       '<p class="blurb">' + p.blurb + "</p>" +
 
@@ -108,11 +108,23 @@ function currentLodgingBooking(state, place) {
   return state.bookings.find((b) => b.category === "lodging" && place.cityIds.indexOf(b.city) !== -1);
 }
 
+// The nights/date-range line under each place's title -- always reflects
+// the live trip itinerary (edited at the top of the page), not a fixed value.
+function renderPlaceNights(placeId, state) {
+  const range = Store.getStopRangeForPlace(placeId);
+  const el2 = document.getElementById("nights-" + placeId);
+  if (!el2) return;
+  if (!range) { el2.textContent = "Not currently in your itinerary"; return; }
+  const nightsLabel = range.nights + (range.nights === 1 ? " night" : " nights");
+  const dateLabel = range.dateStart && range.dateEnd ? " · " + fmtDate(range.dateStart) + " – " + fmtDate(range.dateEnd) : "";
+  el2.textContent = nightsLabel + dateLabel;
+}
+
 function renderPlaceDays(placeId, state) {
   const place = PLACES.find((p) => p.id === placeId);
-  const days = Store.getItineraryDays().filter((d) => d.cityId && place.cityIds.indexOf(d.cityId) !== -1);
+  const days = Store.getItineraryDays().filter((d) => d.placeId === placeId);
   const el2 = document.getElementById("days-" + placeId);
-  if (!days.length) { el2.innerHTML = '<div class="day-rows"><div class="day-row"><div class="day-body muted">No days assigned to ' + esc(place.label) + ' yet, choose a hotel below.</div></div></div>'; return; }
+  if (!days.length) { el2.innerHTML = '<div class="day-rows"><div class="day-row"><div class="day-body muted">Not currently in your itinerary. Add it back in the itinerary editor above.</div></div></div>'; return; }
   el2.innerHTML = '<div class="day-rows">' + days.map((d) => {
     const lines = d.activities.map((a) =>
       '<div class="item-line"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span>' +
@@ -122,12 +134,12 @@ function renderPlaceDays(placeId, state) {
     return '<div class="day-row"><div class="day-num">' + d.day + '</div><div class="day-body">' +
       '<div class="day-date">' + (d.date ? fmtDate(d.date) : "Day " + d.day) + '</div>' +
       transportLines + lines +
-      '<button class="add-line" data-add-act="' + d.day + '">+ add to this day</button></div></div>';
+      '<button class="add-line" data-add-act="' + esc(d.date || "") + '">+ add to this day</button></div></div>';
   }).join("") + "</div>";
-  el2.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, parseInt(btn.dataset.addAct, 10))));
+  el2.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, btn.dataset.addAct, null, place)));
   el2.querySelectorAll("[data-edit-act]").forEach((btn) => btn.addEventListener("click", () => {
     const a = state.activities.find((x) => x.id === btn.dataset.editAct);
-    openActivityForm(state, a.day, a);
+    openActivityForm(state, a.date, a, place);
   }));
 }
 
@@ -154,11 +166,32 @@ function renderPlaceHotels(placeId, state) {
     }).join("") + "</tbody></table></div>";
   el2.querySelectorAll("[data-choose-hotel]").forEach((btn) => btn.addEventListener("click", () => {
     const h = state.hotels.find((x) => x.id === btn.dataset.chooseHotel);
-    const payload = { category: "lodging", title: h.name, city: h.placeId === "puglia" ? "bari" : place.cityIds[0], provider: h.area, cost: h.cost, currency: "USD", link: h.url, notes: h.pros };
-    if (current) Store.update("bookings", current.id, payload);
-    else Store.add("bookings", Object.assign({ day: place.dayStart, endDay: place.dayEnd, status: "idea", confirmation: "" }, payload), "bk");
+    openHotelChooseConfirm(state, h, place, current);
   }));
   el2.querySelectorAll("[data-edit-hotel]").forEach((btn) => btn.addEventListener("click", () => openHotelForm(state, state.hotels.find((x) => x.id === btn.dataset.editHotel), place)));
+}
+
+// Choosing a hotel always confirms the exact check-in/check-out dates before
+// writing (or updating) the lodging booking -- this is what makes it show up
+// correctly in the day-by-day itinerary.
+function openHotelChooseConfirm(state, h, place, current) {
+  const range = Store.getStopRangeForPlace(place.id);
+  const tripRange = Store.getTripDateRange();
+  const defaultCheckin = current ? current.date : (range ? range.dateStart : (tripRange.start || ""));
+  const defaultCheckout = current ? current.endDate : (range ? range.dateEnd : (tripRange.end || ""));
+  const body =
+    '<p>Confirm your stay at <strong>' + esc(h.name) + '</strong>. This sets the dates shown in the day-by-day itinerary.</p>' +
+    '<label class="field">Check-in</label><input type="date" data-field="date" value="' + esc(defaultCheckin) + '">' +
+    '<label class="field">Check-out</label><input type="date" data-field="endDate" value="' + esc(defaultCheckout) + '">';
+  openModal("Confirm your stay", body, (data) => {
+    const payload = {
+      category: "lodging", title: h.name, city: h.placeId === "puglia" ? "bari" : place.cityIds[0],
+      provider: h.area, cost: h.cost, currency: "USD", link: h.url, notes: h.pros,
+      date: data.date, endDate: data.endDate || data.date
+    };
+    if (current) Store.update("bookings", current.id, payload);
+    else Store.add("bookings", Object.assign({ status: "idea", confirmation: "" }, payload), "bk");
+  }, "Confirm stay");
 }
 
 function openHotelForm(state, existing, place) {
@@ -168,10 +201,10 @@ function openHotelForm(state, existing, place) {
     '<label class="field">Nightly cost (label, e.g. "~$180-260")</label><input data-field="costLabel" value="' + esc(existing ? existing.costLabel : "") + '">' +
     '<label class="field">Why it works</label><textarea data-field="pros">' + esc(existing ? existing.pros : "") + '</textarea>' +
     '<label class="field">Trade-offs</label><textarea data-field="cons">' + esc(existing ? existing.cons : "") + '</textarea>' +
-    '<label class="field">Link</label><input data-field="url" value="' + esc(existing ? existing.url : "") + '">' +
     (existing ? '<div style="margin-top:8px"><button class="link" id="deleteHotelBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit hotel option" : "Add a hotel option", body, (data) => {
-    const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: data.url, placeId: existing ? existing.placeId : place.id, splurge: existing ? existing.splurge : false };
+    const placeId = existing ? existing.placeId : place.id;
+    const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: mapsUrlForPlace(data.name, data.area, placeId), placeId: placeId, splurge: existing ? existing.splurge : false };
     if (existing) Store.update("hotels", existing.id, payload);
     else Store.add("hotels", payload, "ht");
   });
@@ -197,8 +230,7 @@ function renderPlaceSee(placeId, state) {
   el2.querySelectorAll("[data-add-see]").forEach((btn) => btn.addEventListener("click", () => openSeeForm(state, null, place)));
   el2.querySelectorAll("[data-add-day-see]").forEach((btn) => btn.addEventListener("click", () => {
     const s = state.thingsToDo.find((x) => x.id === btn.dataset.addDaySee);
-    openModal('Add "' + s.name + '" to which day?', '<label class="field">Day number</label><input data-field="day" type="number" value="' + place.dayStart + '">',
-      (data) => Store.add("activities", { day: parseInt(data.day, 10) || place.dayStart, city: s.city, time: "", title: s.name, type: "sight", notes: s.description, status: "idea" }, "a"));
+    openAddToDayModal(s.name, s.city, s.description, "sight", place);
   }));
 }
 
@@ -209,10 +241,9 @@ function openSeeForm(state, existing, place) {
     '<label class="field">Kind / category</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Description</label><textarea data-field="description">' + esc(existing ? existing.description : "") + '</textarea>' +
-    '<label class="field">Link</label><input data-field="url" value="' + esc(existing ? existing.url : "") + '">' +
     (existing ? '<div style="margin-top:8px"><button class="link" id="deleteSeeBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add a thing to do", body, (data) => {
-    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.url, placeId: place.id };
+    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: mapsUrlForCity(data.name, data.city), placeId: place.id };
     if (existing) Store.update("thingsToDo", existing.id, payload);
     else Store.add("thingsToDo", payload, "td");
   });
@@ -241,29 +272,47 @@ function renderPlaceFood(placeId, state) {
   el2.querySelectorAll("[data-add-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, null, place)));
   el2.querySelectorAll("[data-add-day]").forEach((btn) => btn.addEventListener("click", () => {
     const r = state.restaurants.find((x) => x.id === btn.dataset.addDay);
-    openModal('Add "' + r.name + '" to which day?', '<label class="field">Day number</label><input data-field="day" type="number" value="' + place.dayStart + '">',
-      (data) => Store.add("activities", { day: parseInt(data.day, 10) || place.dayStart, city: r.city, time: "", title: r.name + " (" + r.kind + ")", type: "meal", notes: r.description, status: "idea" }, "a"));
+    openAddToDayModal(r.name + " (" + r.kind + ")", r.city, r.description, "meal", place);
   }));
 }
 
+// Shared "add to a day" modal used by both See & Do and Where to Eat cards --
+// a real calendar date (bounded to the trip's date range) plus an optional
+// time, so a dinner reservation can carry its time. Feeds straight into the
+// day-by-day itinerary via a new activity.
+function openAddToDayModal(title, cityId, notes, type, place) {
+  const range = place ? Store.getStopRangeForPlace(place.id) : null;
+  const tripRange = Store.getTripDateRange();
+  const defaultDate = (range && range.dateStart) || tripRange.start || "";
+  const body =
+    '<label class="field">Date</label><input type="date" data-field="date" value="' + esc(defaultDate) +
+    '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
+    '<label class="field">Time (optional)</label><input type="time" data-field="time">';
+  openModal('Add "' + title + '" to your itinerary', body, (data) => {
+    Store.add("activities", { date: data.date, time: data.time || "", city: cityId, title: title, type: type, notes: notes, status: "idea" }, "a");
+  }, "Add to itinerary");
+}
+
 function renderPlaces(state) {
-  PLACES.forEach((p) => { renderPlaceDays(p.id, state); renderPlaceHotels(p.id, state); renderPlaceSee(p.id, state); renderPlaceFood(p.id, state); });
+  PLACES.forEach((p) => { renderPlaceNights(p.id, state); renderPlaceDays(p.id, state); renderPlaceHotels(p.id, state); renderPlaceSee(p.id, state); renderPlaceFood(p.id, state); });
 }
 
 // ---- forms ----
-// ---- forms ----
-function openActivityForm(state, day, existing) {
+function openActivityForm(state, date, existing, place) {
   const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (existing && existing.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
   const typeOpts = ["sight", "meal", "experience", "free"].map((t) => '<option value="' + t + '"' + (existing && existing.type === t ? " selected" : "") + ">" + t + "</option>").join("");
+  const tripRange = Store.getTripDateRange();
+  const dateVal = existing ? existing.date : date;
   const body =
     '<label class="field">Title (a dinner spot, a sight, a tour)</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
-    '<label class="field">Time</label><input data-field="time" placeholder="19:30" value="' + esc(existing ? existing.time : "") + '">' +
+    '<label class="field">Date</label><input type="date" data-field="date" value="' + esc(dateVal || "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
+    '<label class="field">Time (optional)</label><input type="time" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Type</label><select data-field="type">' + typeOpts + '</select>' +
     '<label class="field">Notes</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
     (existing ? '<div style="margin-top:8px"><button class="link" id="deleteActBtn">Remove this item</button></div>' : "");
-  openModal(existing ? "Edit itinerary item" : "Add to day " + day, body, (data) => {
-    const payload = { day: day, title: data.title, time: data.time, city: data.city, type: data.type, notes: data.notes, status: existing ? existing.status : "idea" };
+  openModal(existing ? "Edit itinerary item" : "Add to " + (dateVal ? fmtDate(dateVal) : "your itinerary"), body, (data) => {
+    const payload = { date: data.date, title: data.title, time: data.time, city: data.city, type: data.type, notes: data.notes, status: existing ? existing.status : "idea" };
     if (existing) Store.update("activities", existing.id, payload);
     else Store.add("activities", payload, "a");
   }, "Save");
@@ -279,12 +328,14 @@ function openBookingForm(state, existing, place) {
   const statusOpts = ["idea", "booked", "confirmed"].map((s) => '<option value="' + s + '"' + (existing && existing.status === s ? " selected" : "") + ">" + s + "</option>").join("");
   const defaultCity = existing ? existing.city : (place ? place.cityIds[0] : CITIES[0].id);
   const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (defaultCity === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
+  const tripRange = Store.getTripDateRange();
   const body =
     '<label class="field">What is this? (e.g. "Hotel Ravello" or "Rome -> Bari train")</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
     '<label class="field">Category</label><select data-field="category">' + catOpts + '</select>' +
     '<label class="field">City (for a stay)</label><select data-field="city">' + cityOpts + '</select>' +
-    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Start day</label><input data-field="day" type="number" value="' + (existing ? existing.day : "1") + '"></div>' +
-    '<div><label class="field">End day (checkout day)</label><input data-field="endDay" type="number" value="' + (existing ? existing.endDay : "1") + '"></div></div>' +
+    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Date (check-in / travel day)</label><input type="date" data-field="date" value="' + esc(existing ? existing.date : (tripRange.start || "")) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
+    '<div><label class="field">End date (checkout day, if a stay)</label><input type="date" data-field="endDate" value="' + esc(existing ? existing.endDate : "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div></div>' +
+    '<label class="field">Time (optional)</label><input type="time" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
     '<label class="field">Provider</label><input data-field="provider" value="' + esc(existing ? existing.provider : "") + '">' +
     '<label class="field">Confirmation #</label><input data-field="confirmation" value="' + esc(existing ? existing.confirmation : "") + '">' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person</label><input data-field="cost" type="number" value="' + (existing ? existing.cost : "") + '"></div>' +
@@ -294,8 +345,8 @@ function openBookingForm(state, existing, place) {
     (existing ? '<div style="margin-top:8px"><button class="link" id="deleteBkBtn">Remove this booking</button></div>' : "");
   openModal(existing ? "Edit booking" : "Add booking", body, (data) => {
     const payload = Object.assign({}, data, {
-      day: parseInt(data.day, 10) || 1,
-      endDay: parseInt(data.endDay, 10) || parseInt(data.day, 10) || 1,
+      date: data.date,
+      endDate: data.endDate || data.date,
       cost: parseFloat(data.cost) || 0,
       currency: existing ? existing.currency : "USD"
     });
@@ -314,11 +365,10 @@ function openRestForm(state, existing, place) {
     '<label class="field">Kind / specialty</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Description / reservation info</label><textarea data-field="description">' + esc(existing ? existing.description : "") + '</textarea>' +
-    '<label class="field">Link</label><input data-field="url" value="' + esc(existing ? existing.url : "") + '">' +
     '<label class="field">Vegetarian friendly?</label><select data-field="vegetarian"><option value="true"' + (existing && existing.vegetarian ? " selected" : "") + '>Yes</option><option value="false"' + (existing && !existing.vegetarian ? " selected" : "") + '>No</option></select>' +
     (existing ? '<div style="margin-top:8px"><button class="link" id="deleteRestBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add restaurant", body, (data) => {
-    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.url, vegetarian: data.vegetarian === "true", placeId: place.id };
+    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: mapsUrlForCity(data.name, data.city), vegetarian: data.vegetarian === "true", placeId: place.id };
     if (existing) Store.update("restaurants", existing.id, payload);
     else Store.add("restaurants", payload, "r");
   });
@@ -330,23 +380,73 @@ function openRestForm(state, existing, place) {
 
 // ---- hero + intro ----
 function renderHero(state) {
-  document.title = state.meta.tripName + " · " + (state.meta.numDays) + " days";
+  const totalDays = Store.getTotalDays();
+  document.title = state.meta.tripName + " · " + totalDays + " days";
+  const startDate = state.trip && state.trip.startDate;
   let countdown = "Dates not set";
-  if (state.meta.startDate) {
-    const days2go = Math.ceil((new Date(state.meta.startDate) - new Date()) / 86400000);
+  if (startDate) {
+    const days2go = Math.ceil((new Date(startDate) - new Date()) / 86400000);
     countdown = days2go > 0 ? days2go + " days to go" : "Underway or past";
   }
   document.getElementById("heroMeta").innerHTML =
-    '<span>' + PLACES.length + " stops</span><span>" + state.meta.numDays + ' days</span><span><strong>' + countdown + '</strong></span>';
+    '<span>' + (state.trip ? state.trip.stops.length : PLACES.length) + " stops</span><span>" + totalDays + ' days</span><span><strong>' + countdown + '</strong></span>';
 
   const bookingCounts = { idea: 0, booked: 0, confirmed: 0 };
   state.bookings.forEach((b) => bookingCounts[b.status] = (bookingCounts[b.status] || 0) + 1);
   const total = state.bookings.length || 1;
   const pct = Math.round(((bookingCounts.booked + bookingCounts.confirmed) / total) * 100);
   document.getElementById("bookingProgress").textContent = pct + "% booked or confirmed (" + bookingCounts.idea + " still ideas)";
+}
 
-  const startInput = document.getElementById("startDateInput");
-  if (document.activeElement !== startInput) startInput.value = state.meta.startDate || "";
+// ---- itinerary editor: flexible, editable stop order / nights / add-remove ----
+function renderItineraryEditor(state) {
+  const container = document.getElementById("itineraryStopsList");
+  if (!container) return;
+  const ranges = Store.computeStopRanges();
+  container.innerHTML = state.trip.stops.map((stop, i) => {
+    const place = PLACES.find((p) => p.id === stop.placeId);
+    const range = ranges[i];
+    const dateLabel = range && range.dateStart ? fmtDate(range.dateStart) + " – " + fmtDate(range.dateEnd) : "";
+    return '<div class="ie-stop">' +
+      '<div class="ie-stop-order">' +
+      '<button class="ie-arrow" data-move-up="' + i + '"' + (i === 0 ? " disabled" : "") + '>&uarr;</button>' +
+      '<button class="ie-arrow" data-move-down="' + i + '"' + (i === state.trip.stops.length - 1 ? " disabled" : "") + '>&darr;</button>' +
+      '</div>' +
+      '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
+      '<div class="ie-stop-nights">' +
+      '<button class="ie-step" data-nights-dec="' + i + '">-</button>' +
+      '<span>' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</span>' +
+      '<button class="ie-step" data-nights-inc="' + i + '">+</button>' +
+      '</div>' +
+      '<div class="ie-stop-dates muted">' + esc(dateLabel) + '</div>' +
+      '<button class="link" data-remove-stop="' + i + '">remove</button>' +
+      '</div>';
+  }).join("") || '<div class="muted">No stops yet -- add one below.</div>';
+
+  container.querySelectorAll("[data-move-up]").forEach((btn) => btn.addEventListener("click", () => Store.moveTripStop(parseInt(btn.dataset.moveUp, 10), -1)));
+  container.querySelectorAll("[data-move-down]").forEach((btn) => btn.addEventListener("click", () => Store.moveTripStop(parseInt(btn.dataset.moveDown, 10), 1)));
+  container.querySelectorAll("[data-nights-dec]").forEach((btn) => btn.addEventListener("click", () => {
+    const i = parseInt(btn.dataset.nightsDec, 10);
+    Store.setTripStopNights(i, state.trip.stops[i].nights - 1);
+  }));
+  container.querySelectorAll("[data-nights-inc]").forEach((btn) => btn.addEventListener("click", () => {
+    const i = parseInt(btn.dataset.nightsInc, 10);
+    Store.setTripStopNights(i, state.trip.stops[i].nights + 1);
+  }));
+  container.querySelectorAll("[data-remove-stop]").forEach((btn) => btn.addEventListener("click", () => Store.removeTripStop(parseInt(btn.dataset.removeStop, 10))));
+
+  const addSelect = document.getElementById("addStopSelect");
+  const addBtn = document.getElementById("addStopBtn");
+  if (addSelect) {
+    const usedIds = state.trip.stops.map((s) => s.placeId);
+    const available = PLACES.filter((p) => usedIds.indexOf(p.id) === -1);
+    addSelect.innerHTML = available.map((p) => '<option value="' + p.id + '">' + esc(p.label) + '</option>').join("");
+    const wrap = addSelect.closest(".ie-add");
+    if (wrap) wrap.style.display = available.length ? "" : "none";
+  }
+  if (addBtn) addBtn.onclick = () => {
+    if (addSelect && addSelect.value) Store.addTripStop(addSelect.value, 1);
+  };
 }
 
 // ---- toolkit: map ----
@@ -452,6 +552,7 @@ function renderAll(state, syncStatus) {
   const labels = { "local-only": "saved on this device", connecting: "connecting...", synced: "synced across devices", offline: "offline, saved locally" };
   document.getElementById("syncStatus").textContent = labels[syncStatus] || syncStatus;
   renderHero(state);
+  renderItineraryEditor(state);
   renderPlaces(state);
   renderDocuments(state);
   renderNotes(state);
@@ -489,7 +590,6 @@ function setupTotop() {
 
 // ---- static UI bindings ----
 function setupStaticBindings() {
-  document.getElementById("startDateInput").addEventListener("change", (e) => Store.updateMeta({ startDate: e.target.value || null }));
   document.getElementById("addDocBtn").addEventListener("click", () => {
     openModal("Add document", '<label class="field">Title</label><input data-field="title">' +
       '<label class="field">Category</label><input data-field="category" placeholder="Passport, Confirmation, Ticket...">' +
