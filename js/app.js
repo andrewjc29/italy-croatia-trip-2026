@@ -1014,7 +1014,7 @@ function prepItemHtml(item) {
 }
 function prepPhaseBlock(phaseName, items) {
   return '<div class="prep-phase"><h4>' + esc(phaseName) + '</h4>' + items.map(prepItemHtml).join("") +
-    '<button class="prep-add" data-prep-add-phase="' + esc(phaseName) + '">+ add to this section</button></div>';
+    '<button class="prep-add" data-prep-add-phase="' + esc(phaseName) + '">+ Add to-do</button></div>';
 }
 
 function renderPrep(state) {
