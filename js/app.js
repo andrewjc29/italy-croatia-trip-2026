@@ -95,14 +95,40 @@ function hourLabel(h) {
   return h === 0 ? "12 AM" : h < 12 ? h + " AM" : h === 12 ? "12 PM" : (h - 12) + " PM";
 }
 
+// Timed booking moments for a given date: hotel check-in/check-out (when a
+// time is set) and any transport with a departure time. These render as
+// fixed blocks on the hour rail alongside the draggable activities.
+function bookingEventsForDate(state, dateStr) {
+  if (!dateStr) return [];
+  const evs = [];
+  (state.bookings || []).forEach((b) => {
+    if (b.category === "lodging") {
+      if (b.date === dateStr && b.checkinTime) evs.push({ time: b.checkinTime, label: "Check-in", booking: b });
+      if (b.endDate === dateStr && b.checkoutTime) evs.push({ time: b.checkoutTime, label: "Check-out", booking: b });
+    } else if (b.time && (b.date === dateStr || b.endDate === dateStr)) {
+      evs.push({ time: b.time, label: b.type || "Transport", booking: b });
+    }
+  });
+  return evs.sort((a, b2) => a.time.localeCompare(b2.time));
+}
+
+function renderRailEvent(ev) {
+  return '<div class="item-line item-line-clickable rail-event" data-view-booking="' + ev.booking.id + '">' +
+    '<span><span class="time">' + esc(ev.time) + '</span><span class="rail-event-label">' + esc(ev.label) + '</span> ' + esc(ev.booking.title) + '</span>' +
+    '<span class="il-actions"><span class="status-pill ' + esc(ev.booking.status || "idea") + '">' + esc(ev.booking.status || "idea") + '</span></span></div>';
+}
+
 // One day rendered as an hour rail (8 AM - 10 PM by default, stretched to
-// fit any earlier/later activities) plus an "anytime" tray for untimed items.
-function renderDayTimeline(d) {
+// fit any earlier/later items) plus an "anytime" tray for untimed items.
+// events are fixed booking moments (check-in/out, timed transport) that
+// occupy their hour slot but can't be dragged.
+function renderDayTimeline(d, events) {
+  events = events || [];
   const timed = d.activities.filter((a) => a.time);
   const untimed = d.activities.filter((a) => !a.time);
   let minH = 8, maxH = 22;
-  timed.forEach((a) => {
-    const h = parseInt(a.time.slice(0, 2), 10);
+  timed.concat(events).forEach((x) => {
+    const h = parseInt(x.time.slice(0, 2), 10);
     if (h < minH) minH = h;
     if (h > maxH) maxH = h;
   });
@@ -112,10 +138,14 @@ function renderDayTimeline(d) {
     : '<div class="day-anytime day-anytime-empty" data-date="' + dateAttr + '"><span class="anytime-label">Anytime · drop here to unschedule a time</span></div>';
   const slots = [];
   for (let h = minH; h <= maxH; h++) {
-    const items = timed.filter((a) => parseInt(a.time.slice(0, 2), 10) === h);
-    slots.push('<div class="hour-slot' + (items.length ? " has-items" : "") + '" data-hour="' + h + '" data-date="' + dateAttr + '">' +
+    const hourOf = (t) => parseInt(t.slice(0, 2), 10);
+    const rows = [
+      ...events.filter((ev) => hourOf(ev.time) === h).map((ev) => ({ time: ev.time, html: renderRailEvent(ev) })),
+      ...timed.filter((a) => hourOf(a.time) === h).map((a) => ({ time: a.time, html: renderActivityLine(a) }))
+    ].sort((x, y) => x.time.localeCompare(y.time));
+    slots.push('<div class="hour-slot' + (rows.length ? " has-items" : "") + '" data-hour="' + h + '" data-date="' + dateAttr + '">' +
       '<span class="hour-label">' + hourLabel(h) + '</span>' +
-      '<div class="hour-items">' + items.map(renderActivityLine).join("") + '</div></div>');
+      '<div class="hour-items">' + rows.map((r) => r.html).join("") + '</div></div>');
   }
   return anytime + '<div class="hour-rail">' + slots.join("") + '</div>';
 }
@@ -361,8 +391,8 @@ function buildPlacesSkeleton() {
       '<div class="wishlist" id="wishlist-' + p.id + '" style="display:none"></div>' +
       '<div id="days-' + p.id + '"></div>' +
 
-      '<details class="plan-collapse" data-collapse-key="stay-' + p.id + '" open>' +
-      '<summary><div class="sub-h"><h3>Where to stay</h3><span class="rule"></span><span class="arw">+</span></div></summary>' +
+      '<details class="plan-collapse" data-collapse-key="stay-' + p.id + '">' +
+      '<summary><div class="sub-h"><h3>Where to stay</h3><span class="rule"></span><span class="arw">&rsaquo;</span></div></summary>' +
       '<div class="plan-collapse-body">' +
       '<p class="sub-sub">Choose one to book</p>' +
       '<div class="filters" id="hotelfilters-' + p.id + '">' +
@@ -374,14 +404,14 @@ function buildPlacesSkeleton() {
       '<button class="link add-row-btn" data-add-hotel="' + p.id + '">+ add a hotel option</button>' +
       '</div></details>' +
 
-      '<details class="plan-collapse" data-collapse-key="seedo-' + p.id + '" open>' +
-      '<summary><div class="sub-h"><h3>See &amp; do</h3><span class="rule"></span><span class="arw">+</span></div></summary>' +
+      '<details class="plan-collapse" data-collapse-key="seedo-' + p.id + '">' +
+      '<summary><div class="sub-h"><h3>See &amp; do</h3><span class="rule"></span><button class="sec-add" data-sec-add="see:' + p.id + '" title="Add a thing to do" aria-label="Add a thing to do">+</button><span class="arw">&rsaquo;</span></div></summary>' +
       '<div class="plan-collapse-body">' +
       '<div id="seedo-' + p.id + '" class="cards"></div>' +
       '</div></details>' +
 
-      '<details class="plan-collapse" data-collapse-key="food-' + p.id + '" open>' +
-      '<summary><div class="sub-h"><h3>Where to eat</h3><span class="rule"></span><span class="arw">+</span></div></summary>' +
+      '<details class="plan-collapse" data-collapse-key="food-' + p.id + '">' +
+      '<summary><div class="sub-h"><h3>Where to eat</h3><span class="rule"></span><button class="sec-add" data-sec-add="food:' + p.id + '" title="Add a restaurant" aria-label="Add a restaurant">+</button><span class="arw">&rsaquo;</span></div></summary>' +
       '<div class="plan-collapse-body">' +
       '<p class="sub-sub">Vegetarian friendly noted</p>' +
       '<div class="filters" id="filters-' + p.id + '">' +
@@ -396,17 +426,31 @@ function buildPlacesSkeleton() {
       "</div></section>" + (i < PLACES.length - 1 ? '<div class="divider"></div>' : "");
   }).join("");
 
-  // Planning sections (stay / see&do / eat) collapse per city -- handy once a
-  // city is fully planned. Open/closed is remembered on this device.
-  let collapsed = {};
-  try { collapsed = JSON.parse(localStorage.getItem("planCollapse") || "{}"); } catch (err) { collapsed = {}; }
+  // Planning sections (stay / see&do / eat) collapse per city, and start
+  // CLOSED -- they're planning-phase tools; the day-by-day is the main view.
+  // Any section you open stays open on this device.
+  let planOpen = {};
+  try { planOpen = JSON.parse(localStorage.getItem("planOpen") || "{}"); } catch (err) { planOpen = {}; }
   container.querySelectorAll(".plan-collapse").forEach((det) => {
-    if (collapsed[det.dataset.collapseKey]) det.removeAttribute("open");
+    if (planOpen[det.dataset.collapseKey]) det.setAttribute("open", "");
+    else det.removeAttribute("open");
     det.addEventListener("toggle", () => {
-      collapsed[det.dataset.collapseKey] = !det.open;
-      try { localStorage.setItem("planCollapse", JSON.stringify(collapsed)); } catch (err) { /* private mode */ }
+      planOpen[det.dataset.collapseKey] = det.open;
+      try { localStorage.setItem("planOpen", JSON.stringify(planOpen)); } catch (err) { /* private mode */ }
     });
   });
+
+  // The + in each planning-section header adds an item without needing to
+  // expand the section first.
+  container.querySelectorAll("[data-sec-add]").forEach((btn) => btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const parts = btn.dataset.secAdd.split(":");
+    const place = PLACES.find((p) => p.id === parts[1]);
+    if (!place) return;
+    if (parts[0] === "see") openSeeForm(Store.getState(), null, place);
+    else if (parts[0] === "food") openRestForm(Store.getState(), null, place);
+  }));
 
   document.getElementById("places").querySelectorAll('.filters[id^="filters-"]').forEach((box) => {
     box.addEventListener("click", (e) => {
@@ -459,16 +503,47 @@ function renderPlaceNights(placeId, state) {
 
 function renderPlaceDays(placeId, state) {
   const place = PLACES.find((p) => p.id === placeId);
-  const days = Store.getItineraryDays().filter((d) => d.placeId === placeId);
+  const allDays = Store.getItineraryDays();
+  const ranges = Store.computeStopRanges();
+  const myIdx = ranges.findIndex((r) => r.placeId === placeId);
+  const days = allDays.filter((d) => d.placeId === placeId).map((d) => ({ d, transition: null }));
   const el2 = document.getElementById("days-" + placeId);
   if (!days.length) { el2.innerHTML = '<div class="day-rows"><div class="day-row"><div class="day-body muted">Not currently in your itinerary. Add it back in the itinerary editor above.</div></div></div>'; return; }
-  el2.innerHTML = '<div class="day-rows">' + days.map((d) => {
-    const lines = renderDayTimeline(d);
-    const transportLines = d.transport.map(renderTransportLine).join("");
-    const hotelBar = renderDayHotelBar(d.lodging, d.date, placeId);
-    return '<div class="day-row"><div class="day-dot">' + d.day + '</div><div class="day-body">' +
+
+  // Transition days live in BOTH city sections. The checkout/travel day
+  // technically belongs to the next stop, so append a synced copy of it here
+  // with a travel banner; the arriving city's own copy gets the matching
+  // banner. Same date, same data, edits show up in both.
+  if (myIdx >= 0 && myIdx < ranges.length - 1 && ranges[myIdx].dateEnd) {
+    const outDay = allDays.find((d) => d.date === ranges[myIdx].dateEnd);
+    const nextPlace = PLACES.find((p) => p.id === ranges[myIdx + 1].placeId);
+    if (outDay && nextPlace) days.push({ d: outDay, transition: { dir: "out", other: nextPlace, from: place } });
+  }
+  if (myIdx > 0 && ranges[myIdx].dateStart && ranges[myIdx].dateStart === ranges[myIdx - 1].dateEnd) {
+    const prevPlace = PLACES.find((p) => p.id === ranges[myIdx - 1].placeId);
+    if (prevPlace && days.length) days[0].transition = { dir: "in", other: prevPlace, from: prevPlace };
+  }
+
+  el2.innerHTML = '<div class="day-rows">' + days.map((entry) => {
+    const d = entry.d;
+    const events = bookingEventsForDate(state, d.date);
+    const lines = renderDayTimeline(d, events);
+    const transportLines = d.transport.filter((t) => !t.time).map(renderTransportLine).join("");
+    const hotelBar = renderDayHotelBar(d.lodging, d.date, d.placeId);
+    let banner = "";
+    if (entry.transition) {
+      const t = entry.transition;
+      const accent = PLACE_ACCENT[t.other.id] || "#1d6a8c";
+      banner = '<div class="travel-banner" style="border-color:' + accent + ';color:' + accent + '">' +
+        '<span class="tb-label" style="background:' + accent + '">Travel day</span>' +
+        (t.dir === "out"
+          ? esc(t.from.label) + ' &rarr; ' + esc(t.other.label) + '<a class="tb-jump" href="#' + t.other.id + '">Continue in ' + esc(t.other.label) + ' &darr;</a>'
+          : 'Arriving from ' + esc(t.other.label) + '<a class="tb-jump" href="#' + t.other.id + '">&uarr; Back to ' + esc(t.other.label) + '</a>') +
+        '</div>';
+    }
+    return '<div class="day-row' + (entry.transition ? " day-row-transition" : "") + '"><div class="day-dot"></div><div class="day-body">' +
       '<div class="day-date">' + (d.date ? fmtDate(d.date) : "Day " + d.day) + '</div>' +
-      transportLines + lines +
+      banner + transportLines + lines +
       '<div class="day-add-row">' +
       '<button class="add-line" data-add-act="' + esc(d.date || "") + '">+ add to this day</button>' +
       '<button class="add-line" data-add-booking="' + esc(d.date || "") + '">+ add a booking</button>' +
@@ -545,8 +620,8 @@ function openHotelChooseConfirm(state, h, place, current, placeLodgings) {
     splitNote +
     '<label class="field">Check-in</label><input type="date" data-field="date" value="' + esc(defaultCheckin) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
     '<label class="field">Check-out</label><input type="date" data-field="endDate" value="' + esc(defaultCheckout) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
-    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Check-in time (optional)</label><input type="time" data-field="checkinTime" value="' + esc(current ? current.checkinTime : "") + '"></div>' +
-    '<div><label class="field">Check-out time (optional)</label><input type="time" data-field="checkoutTime" value="' + esc(current ? current.checkoutTime : "") + '"></div></div>';
+    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Check-in time (optional)</label><input type="time" step="900" data-field="checkinTime" value="' + esc(current ? current.checkinTime : "") + '"></div>' +
+    '<div><label class="field">Check-out time (optional)</label><input type="time" step="900" data-field="checkoutTime" value="' + esc(current ? current.checkoutTime : "") + '"></div></div>';
   openModal("Confirm your stay", body, (data) => {
     const payload = {
       category: "lodging", title: h.name, city: h.placeId === "puglia" ? "bari" : place.cityIds[0],
@@ -590,9 +665,8 @@ function renderPlaceSee(placeId, state) {
     '<div class="foot">' +
     '<button class="site" data-add-day-see="' + s.id + '">+ Add to a day</button>' +
     (s.url ? '<a class="site" href="' + esc(s.url) + '" target="_blank" rel="noopener">Map</a>' : "") +
-    '</div></div></div>').join("") +
-    '<div class="card" style="align-items:center;justify-content:center;min-height:150px"><button class="link" data-add-see="' + placeId + '">+ add a thing to do</button></div>';
-  el2.querySelectorAll("[data-add-see]").forEach((btn) => btn.addEventListener("click", () => openSeeForm(state, null, place)));
+    '</div></div></div>').join("") ||
+    '<div class="muted" style="padding:.5rem 0">Nothing saved yet -- use the + next to the section title.</div>';
   el2.querySelectorAll("[data-add-day-see]").forEach((btn) => btn.addEventListener("click", (e) => {
     e.stopPropagation();
     const s = state.thingsToDo.find((x) => x.id === btn.dataset.addDaySee);
@@ -644,9 +718,8 @@ function renderPlaceFood(placeId, state) {
     '<div class="foot">' +
     '<button class="site" data-add-day="' + r.id + '">+ Add to a day</button>' +
     (r.url ? '<a class="site" href="' + esc(r.url) + '" target="_blank" rel="noopener">Map</a>' : "") +
-    '</div></div></div>').join("") +
-    '<div class="card" style="align-items:center;justify-content:center;min-height:150px"><button class="link" data-add-rest="' + placeId + '">+ add restaurant</button></div>';
-  el2.querySelectorAll("[data-add-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, null, place)));
+    '</div></div></div>').join("") ||
+    '<div class="muted" style="padding:.5rem 0">Nothing saved yet -- use the + next to the section title.</div>';
   el2.querySelectorAll("[data-add-day]").forEach((btn) => btn.addEventListener("click", (e) => {
     e.stopPropagation();
     const r = state.restaurants.find((x) => x.id === btn.dataset.addDay);
@@ -671,7 +744,7 @@ function openAddToDayModal(title, cityId, notes, type, place) {
     '<label class="field">Date</label><input type="date" data-field="date" value="' + esc(defaultDate) +
     '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
     '<p class="wl-hint">Not sure which day? Clear the date to park it on the <strong>wishlist</strong> and pick a day later.</p>' +
-    '<label class="field">Time (optional)</label><input type="time" data-field="time">' +
+    '<label class="field">Time (optional)</label><input type="time" step="900" data-field="time">' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person (optional)</label><input data-field="cost" type="number"></div>' +
     '<div><label class="field">Currency</label><select data-field="currency"><option value="USD">USD</option><option value="EUR">EUR</option></select></div></div>';
   openModal('Add "' + title + '" to your itinerary', body, (data) => {
@@ -707,7 +780,7 @@ function renderPlaceWishlist(placeId, state) {
     const tripRange = Store.getTripDateRange();
     const body = '<label class="field">Date</label><input type="date" data-field="date" value="' +
       esc((range && range.dateStart) || tripRange.start || "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
-      '<label class="field">Time (optional)</label><input type="time" data-field="time" value="' + esc(a.time || "") + '">';
+      '<label class="field">Time (optional)</label><input type="time" step="900" data-field="time" value="' + esc(a.time || "") + '">';
     openModal('Schedule "' + a.title + '"', body, (data) => {
       if (data.date) Store.update("activities", a.id, { date: data.date, time: data.time || "" });
     }, "Schedule");
@@ -733,7 +806,7 @@ function openActivityForm(state, date, existing, place) {
   const body =
     '<label class="field">Title (a dinner spot, a sight, a tour)</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
     '<label class="field">Date</label><input type="date" data-field="date" value="' + esc(dateVal || "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
-    '<label class="field">Time (optional)</label><input type="time" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
+    '<label class="field">Time (optional)</label><input type="time" step="900" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Type</label><select data-field="type">' + typeOpts + '</select>' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person (optional)</label><input data-field="cost" type="number" value="' + (existing && existing.cost ? existing.cost : "") + '"></div>' +
@@ -767,9 +840,9 @@ function openBookingForm(state, existing, place, defaultDate) {
     '<label class="field">City (for a stay)</label><select data-field="city">' + cityOpts + '</select>' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Date (check-in / travel day)</label><input type="date" data-field="date" value="' + esc(startVal) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
     '<div><label class="field">End date (checkout day, if a stay)</label><input type="date" data-field="endDate" value="' + esc(existing ? existing.endDate : "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div></div>' +
-    '<label class="field">Time (optional)</label><input type="time" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
-    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Check-in time (for a stay)</label><input type="time" data-field="checkinTime" value="' + esc(existing ? existing.checkinTime : "") + '"></div>' +
-    '<div><label class="field">Check-out time (for a stay)</label><input type="time" data-field="checkoutTime" value="' + esc(existing ? existing.checkoutTime : "") + '"></div></div>' +
+    '<label class="field">Time (optional)</label><input type="time" step="900" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
+    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Check-in time (for a stay)</label><input type="time" step="900" data-field="checkinTime" value="' + esc(existing ? existing.checkinTime : "") + '"></div>' +
+    '<div><label class="field">Check-out time (for a stay)</label><input type="time" step="900" data-field="checkoutTime" value="' + esc(existing ? existing.checkoutTime : "") + '"></div></div>' +
     '<label class="field">Provider</label><input data-field="provider" value="' + esc(existing ? existing.provider : "") + '">' +
     '<label class="field">Confirmation #</label><input data-field="confirmation" value="' + esc(existing ? existing.confirmation : "") + '">' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person</label><input data-field="cost" type="number" value="' + (existing ? existing.cost : "") + '"></div>' +
@@ -871,13 +944,34 @@ function renderTodayView(state) {
       '<span class="tv-daynum">Day ' + dayNum + " of " + days.length + '</span></div>'
     : "";
   const hotelHtml = renderDayHotelBar(today.lodging, today.date, today.placeId);
-  const transportHtml = today.transport.map(renderTransportLine).join("");
-  const actsHtml = today.activities.map((a) =>
-    renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)).join("");
+  const transportHtml = today.transport.filter((t) => !t.time).map(renderTransportLine).join("");
+  // Timed booking moments (check-in/out, departures) interleave with the
+  // activities in time order, so the day reads as one schedule.
+  const merged = [
+    ...bookingEventsForDate(state, today.date).map((ev) => ({ time: ev.time, html: renderRailEvent(ev) })),
+    ...today.activities.map((a) => ({
+      time: a.time || "99:99",
+      html: renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)
+    }))
+  ].sort((x, y) => x.time.localeCompare(y.time)).map((x) => x.html).join("");
+  // Travel-day banner when this date is a stop boundary.
+  let travelHtml = "";
+  const ranges = Store.computeStopRanges();
+  const arrIdx = ranges.findIndex((r, i) => i > 0 && r.dateStart === today.date);
+  if (arrIdx > 0) {
+    const fromP = PLACES.find((p) => p.id === ranges[arrIdx - 1].placeId);
+    const toP = PLACES.find((p) => p.id === ranges[arrIdx].placeId);
+    if (fromP && toP) {
+      const acc = PLACE_ACCENT[toP.id] || "#1d6a8c";
+      travelHtml = '<div class="travel-banner" style="border-color:' + acc + ';color:' + acc + '">' +
+        '<span class="tb-label" style="background:' + acc + '">Travel day</span>' +
+        esc(fromP.label) + ' &rarr; ' + esc(toP.label) + '</div>';
+    }
+  }
   const contentEl = document.getElementById("todayContent");
   contentEl.innerHTML =
-    cityHtml + transportHtml +
-    (actsHtml || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>') +
+    cityHtml + travelHtml + transportHtml +
+    (merged || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>') +
     hotelHtml;
   contentEl.querySelectorAll("[data-view-booking]").forEach((row) => row.addEventListener("click", () => {
     const b = Store.getState().bookings.find((x) => x.id === row.dataset.viewBooking);
