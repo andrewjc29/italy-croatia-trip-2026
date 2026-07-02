@@ -168,8 +168,9 @@ button{font-family:inherit}
 .travel-banner .tb-label{font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#fff;border-radius:var(--radius-pill);padding:.14rem .5rem}
 .tb-jump{margin-left:auto;font-size:.72rem;text-decoration:none;color:inherit;border:1px solid currentColor;border-radius:var(--radius-pill);padding:.18rem .6rem;white-space:nowrap}
 .tb-jump:hover{opacity:.75}
-.rail-event{border-left:3px solid var(--accent,var(--adriatic-deep))}
-.rail-event .rail-event-label{font-family:'Outfit';font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--muted);margin-right:.35rem}
+.rail-event{border-left:4px solid var(--accent,var(--adriatic-deep));justify-content:flex-start}
+.rail-event .il-actions{margin-left:auto}
+.rail-event .rail-event-label{font-family:'Outfit';font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--accent,var(--adriatic-deep));margin-right:.35rem}
 .day-row .day-body{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:0 6px 18px var(--shadow);padding:.9rem 1.1rem 1rem}
 .day-row .day-date{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;font-weight:600}
 .item-line{display:flex;justify-content:space-between;gap:.6rem;padding:.3rem 0;font-size:.92rem}
