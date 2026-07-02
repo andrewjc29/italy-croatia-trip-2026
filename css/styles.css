@@ -104,10 +104,11 @@ button{font-family:inherit}
 .wrap{max-width:1080px;margin:0 auto;padding:0 2rem}
 .blurb{max-width:720px;margin:2.4rem 0 1rem;font-size:1.06rem;color:#3f5158}
 
-.sub-h{display:flex;align-items:baseline;gap:1rem;margin:3rem 0 1.3rem}
+.sub-h{display:flex;align-items:baseline;gap:1rem;margin:3rem 0 1.3rem;flex-wrap:wrap}
 .sub-h h3{font-size:1.6rem;color:var(--accent-deep,var(--adriatic-deep))}
-.sub-h .tag{font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent,var(--terracotta));font-weight:600;white-space:nowrap}
-.sub-h .rule{flex:1;height:1px;background:var(--line)}
+.sub-h .tag{font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent,var(--terracotta));font-weight:600}
+.sub-h .rule{flex:1;height:1px;background:var(--line);min-width:2rem}
+.sub-sub{margin:-1rem 0 1.2rem;font-size:.82rem;color:var(--muted);font-family:'Outfit'}
 
 /* ---- collapsible toolkit sections (Documents, Emergency, Notes -- checked
    less often than Map/Weather/Budget, so they stay tucked away by default) ---- */
@@ -221,8 +222,23 @@ button{font-family:inherit}
 /* background-color is set inline per render to match that stop's accent color (see PLACE_ACCENT in data.js); the rule above is just a fallback before JS renders */
 .day-hotel-bar .dhb-label{font-family:'Outfit';font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;opacity:.85;white-space:nowrap}
 .day-hotel-bar .dhb-hotel{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.day-hotel-bar .dhb-edit{background:none;border:none;color:#fff;opacity:.8;font-size:.74rem;cursor:pointer;text-decoration:underline;padding:0;flex-shrink:0}
-.day-hotel-bar .dhb-edit:hover{opacity:1}
+.item-line-clickable{cursor:pointer;border-radius:8px;transition:background .15s}
+.item-line-clickable:hover{background:rgba(29,106,140,.06)}
+.day-hotel-bar.item-line-clickable:hover{filter:brightness(1.08)}
+
+/* ---- read-only item detail card (day-by-day tap-to-expand) ---- */
+.idc-status{margin-bottom:.8rem}
+.idc-rows{display:flex;flex-direction:column;gap:.55rem;margin-bottom:.4rem}
+.idc-row{display:flex;gap:.8rem;font-size:.9rem}
+.idc-label{font-family:'Outfit';font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;min-width:6.5rem;flex-shrink:0}
+.idc-val{color:var(--ink)}
+.idc-actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.1rem}
+.idc-actions .btn{text-decoration:none;display:inline-block}
+.idc-desc{font-size:.92rem;line-height:1.5;color:var(--ink);margin:.2rem 0 0}
+
+/* ---- restaurant / things-to-do card title + kind line ---- */
+.card-title-clickable{cursor:pointer;transition:color .15s}
+.card-title-clickable:hover{color:var(--accent,var(--terracotta))}
 .budget-detail{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:.2rem 1.3rem .9rem;margin-top:1.1rem}
 .budget-detail summary{cursor:pointer;list-style:none;padding:.9rem 0;font-family:'Fraunces';font-style:italic;font-size:1.08rem;color:var(--adriatic-deep);display:flex;align-items:center;justify-content:space-between}
 .budget-detail summary::-webkit-details-marker{display:none}
@@ -284,6 +300,8 @@ button.btn{background:var(--adriatic-deep);color:#fff;border:none;padding:9px 16
 button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid var(--line)}
 .link{background:none;border:none;color:var(--accent,var(--adriatic));cursor:pointer;padding:0;font-size:13px;font-family:'Outfit'}
 .hidden{display:none!important}
+.autofill-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.3rem 0 0}
+.autofill-status{font-size:.76rem;color:var(--muted)}
 
 /* ---- per-city accent theming (colors lifted from the original guide) ---- */
 #rome{--accent:#c0623a;--accent-deep:#7c3b22}
@@ -297,7 +315,10 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .hero-inner,.place-head .ph-inner{padding-left:6vw;padding-right:6vw}
   .wrap{padding:0 1.3rem}
   .brand{display:none}
+  .sync-pill{display:none}
   .stay-card{flex-direction:column;align-items:flex-start}
+  .sub-h{gap:.3rem .7rem}
+  .sub-h .rule{flex-basis:100%;order:3}
 }
 
 /* ---- where to stay: hotel shortlist table ---- */

@@ -493,7 +493,7 @@ SEED_DATA.thingsToDo = [
     "city": "rome",
     "name": "Colosseum, Forum & Palatine",
     "kind": "Ancient Rome",
-    "description": "Book the combined timed ticket online and go early. The Forum and Palatine Hill are included and far quieter than the arena.",
+    "description": "Book the combined timed ticket online and go early.",
     "url": "https://www.google.com/maps/search/?api=1&query=Colosseum%2C%20Forum%20%26%20Palatine%2C%20Rome%2C%20Italy"
   },
   {
@@ -502,7 +502,7 @@ SEED_DATA.thingsToDo = [
     "city": "rome",
     "name": "Roman Forum at golden hour",
     "kind": "Walk among ruins",
-    "description": "The political heart of the ancient city. Enter from the Palatine side late afternoon when the stone turns amber and crowds thin.",
+    "description": "The political heart of the ancient city.",
     "url": "https://www.google.com/maps/search/?api=1&query=Roman%20Forum%20at%20golden%20hour%2C%20Rome%2C%20Italy"
   },
   {
@@ -511,7 +511,7 @@ SEED_DATA.thingsToDo = [
     "city": "rome",
     "name": "Pantheon",
     "kind": "Free to enter",
-    "description": "The best-preserved Roman building still standing, its dome open to the sky. Pair with espresso at nearby Sant'Eustachio.",
+    "description": "The best-preserved Roman building still standing, its dome open to the sky.",
     "url": "https://www.google.com/maps/search/?api=1&query=Pantheon%2C%20Rome%2C%20Italy"
   },
   {
@@ -520,7 +520,7 @@ SEED_DATA.thingsToDo = [
     "city": "rome",
     "name": "Piazza Navona",
     "kind": "Baroque heart",
-    "description": "Bernini's fountains and a film-set square of cafes and street artists. A short walk from the Pantheon through the centro.",
+    "description": "Bernini's fountains and a film-set square of cafes and street artists.",
     "url": "https://www.google.com/maps/search/?api=1&query=Piazza%20Navona%2C%20Rome%2C%20Italy"
   },
   {
@@ -529,7 +529,7 @@ SEED_DATA.thingsToDo = [
     "city": "rome",
     "name": "Vatican Museums & St Peter's",
     "kind": "Optional morning",
-    "description": "If you want it, book the earliest slot or a skip-the-line tour. Otherwise trade it for a slower Trastevere morning.",
+    "description": "If you want it, book the earliest slot or a skip-the-line tour.",
     "url": "https://www.google.com/maps/search/?api=1&query=Vatican%20Museums%20%26%20St%20Peter's%2C%20Rome%2C%20Italy"
   },
   {
@@ -547,7 +547,7 @@ SEED_DATA.thingsToDo = [
     "city": "polignano",
     "name": "Polignano a Mare",
     "kind": "30 min by train",
-    "description": "Whitewashed town on limestone cliffs over a turquoise cove. Swim at Lama Monachile, then sit with a coffee on the terraces above.",
+    "description": "Whitewashed town on limestone cliffs over a turquoise cove.",
     "url": "https://www.google.com/maps/search/?api=1&query=Polignano%20a%20Mare%2C%20Polignano%20a%20Mare%2C%20Italy"
   },
   {
@@ -556,7 +556,7 @@ SEED_DATA.thingsToDo = [
     "city": "alberobello",
     "name": "Alberobello trulli",
     "kind": "~1 hr · FSE line",
-    "description": "UNESCO village of conical stone houses. Wander the Rione Monti and Aia Piccola districts early, before the tour buses.",
+    "description": "UNESCO village of conical stone houses.",
     "url": "https://www.google.com/maps/search/?api=1&query=Alberobello%20trulli%2C%20Alberobello%2C%20Italy"
   },
   {
@@ -565,7 +565,7 @@ SEED_DATA.thingsToDo = [
     "city": "matera",
     "name": "Matera's Sassi",
     "kind": "~1 hr · FAL line",
-    "description": "Ancient cave dwellings carved into a ravine, glowing at dusk. One of the oldest continuously inhabited places on earth.",
+    "description": "Ancient cave dwellings carved into a ravine, glowing at dusk.",
     "url": "https://www.google.com/maps/search/?api=1&query=Matera's%20Sassi%2C%20Matera%2C%20Italy"
   },
   {
@@ -574,7 +574,7 @@ SEED_DATA.thingsToDo = [
     "city": "lecce",
     "name": "Lecce, the Baroque south",
     "kind": "~1.5 hr by train",
-    "description": "Honey-colored Baroque facades and the famous pasticciotto custard pastry. The 'Florence of the south.'",
+    "description": "Honey-colored Baroque facades and the famous pasticciotto custard pastry.",
     "url": "https://www.google.com/maps/search/?api=1&query=Lecce%2C%20the%20Baroque%20south%2C%20Lecce%2C%20Italy"
   },
   {
@@ -592,7 +592,7 @@ SEED_DATA.thingsToDo = [
     "city": "bari",
     "name": "Orecchiette cooking class",
     "kind": "Hands-on",
-    "description": "Learn to hand-roll orecchiette with a local before feasting on the result. The most memorable Bari afternoon.",
+    "description": "Learn to hand-roll orecchiette with a local before feasting on the result.",
     "url": "https://www.google.com/maps/search/?api=1&query=Orecchiette%20cooking%20class%2C%20Bari%2C%20Italy"
   },
   {
@@ -601,7 +601,7 @@ SEED_DATA.thingsToDo = [
     "city": "dubrovnik",
     "name": "Walk the City Walls",
     "kind": "The icon",
-    "description": "A circuit of the medieval ramparts above terracotta roofs and the Adriatic. Go at opening or late afternoon to dodge heat and cruise crowds.",
+    "description": "A circuit of the medieval ramparts above terracotta roofs and the Adriatic.",
     "url": "https://www.google.com/maps/search/?api=1&query=Walk%20the%20City%20Walls%2C%20Dubrovnik%2C%20Croatia"
   },
   {
@@ -619,7 +619,7 @@ SEED_DATA.thingsToDo = [
     "city": "dubrovnik",
     "name": "Lokrum Island",
     "kind": "Short boat hop",
-    "description": "A ten-minute ferry to a forested islet with peacocks, a botanical garden and quiet swimming coves. An easy half-day escape.",
+    "description": "A ten-minute ferry to a forested islet with peacocks, a botanical garden and quiet swimming coves.",
     "url": "https://www.google.com/maps/search/?api=1&query=Lokrum%20Island%2C%20Dubrovnik%2C%20Croatia"
   },
   {
@@ -628,7 +628,7 @@ SEED_DATA.thingsToDo = [
     "city": "dubrovnik",
     "name": "Mount Srđ cable car",
     "kind": "Sunset",
-    "description": "Ride up for the panoramic view over the walled city and islands. Best timed for golden hour, with a drink at the top.",
+    "description": "Ride up for the panoramic view over the walled city and islands.",
     "url": "https://www.google.com/maps/search/?api=1&query=Mount%20Sr%C4%91%20cable%20car%2C%20Dubrovnik%2C%20Croatia"
   },
   {
@@ -637,7 +637,7 @@ SEED_DATA.thingsToDo = [
     "city": "dubrovnik",
     "name": "Sea kayak under the walls",
     "kind": "On the water",
-    "description": "Paddle out from Pile beneath the ramparts to a sea cave and Lokrum. The classic active afternoon; sunset trips available.",
+    "description": "Paddle out from Pile beneath the ramparts to a sea cave and Lokrum.",
     "url": "https://www.google.com/maps/search/?api=1&query=Sea%20kayak%20under%20the%20walls%2C%20Dubrovnik%2C%20Croatia"
   },
   {
@@ -646,7 +646,7 @@ SEED_DATA.thingsToDo = [
     "city": "dubrovnik",
     "name": "Game of Thrones film spots",
     "kind": "Pop culture",
-    "description": "The Old Town doubled as King's Landing. Self-guide the steps and squares, or take a themed walking tour.",
+    "description": "The Old Town doubled as King's Landing.",
     "url": "https://www.google.com/maps/search/?api=1&query=Game%20of%20Thrones%20film%20spots%2C%20Dubrovnik%2C%20Croatia"
   },
   {
@@ -655,7 +655,7 @@ SEED_DATA.thingsToDo = [
     "city": "hvar",
     "name": "Španjola (Spanish) Fortress",
     "kind": "The must-do",
-    "description": "A short uphill walk to the island's signature view: orange rooftops, the harbor and the Pakleni Islands beyond. Best at sunset.",
+    "description": "A short uphill walk to the island's signature view: orange rooftops, the harbor and the Pakleni Islands beyond.",
     "url": "https://www.google.com/maps/search/?api=1&query=%C5%A0panjola%20(Spanish)%20Fortress%2C%20Hvar%2C%20Croatia"
   },
   {
@@ -664,7 +664,7 @@ SEED_DATA.thingsToDo = [
     "city": "hvar",
     "name": "Pakleni Islands",
     "kind": "On the water",
-    "description": "A string of islets minutes offshore with clear lagoons and hidden coves. Hop a taxi-boat from the harbor for a swim.",
+    "description": "A string of islets minutes offshore with clear lagoons and hidden coves.",
     "url": "https://www.google.com/maps/search/?api=1&query=Pakleni%20Islands%2C%20Hvar%2C%20Croatia"
   },
   {
@@ -682,7 +682,7 @@ SEED_DATA.thingsToDo = [
     "city": "hvar",
     "name": "Hvar wine tasting",
     "kind": "Taste",
-    "description": "The island is known for its vineyards. Do a tasting in town or a short tour into the hills for local Plavac and Bogdanuša.",
+    "description": "The island is known for its vineyards.",
     "url": "https://www.google.com/maps/search/?api=1&query=Hvar%20wine%20tasting%2C%20Hvar%2C%20Croatia"
   },
   {
@@ -709,7 +709,7 @@ SEED_DATA.thingsToDo = [
     "city": "split",
     "name": "Diocletian's Palace",
     "kind": "UNESCO · the heart",
-    "description": "A 1,700-year-old Roman palace still lived in today. Walk the Peristyle, descend into the cellars, and get lost in the marble lanes.",
+    "description": "A 1,700-year-old Roman palace still lived in today.",
     "url": "https://www.google.com/maps/search/?api=1&query=Diocletian's%20Palace%2C%20Split%2C%20Croatia"
   },
   {
@@ -727,7 +727,7 @@ SEED_DATA.thingsToDo = [
     "city": "split",
     "name": "Marjan Hill",
     "kind": "Nature",
-    "description": "The forested peninsula above town. A morning walk to the viewpoints over Split and the islands, with quiet chapels along the way.",
+    "description": "The forested peninsula above town.",
     "url": "https://www.google.com/maps/search/?api=1&query=Marjan%20Hill%2C%20Split%2C%20Croatia"
   },
   {
@@ -754,7 +754,7 @@ SEED_DATA.thingsToDo = [
     "city": "split",
     "name": "Klis Fortress",
     "kind": "View & history",
-    "description": "A clifftop fortress just outside town with sweeping coastal views (and more Game of Thrones scenery). Quick bus from the center.",
+    "description": "A clifftop fortress just outside town with sweeping coastal views (and more Game of Thrones scenery).",
     "url": "https://www.google.com/maps/search/?api=1&query=Klis%20Fortress%2C%20Split%2C%20Croatia"
   }
 ];
@@ -767,7 +767,7 @@ SEED_DATA.restaurants = [
     "city": "rome",
     "name": "Il Duca",
     "kind": "Trastevere · trattoria",
-    "description": "Unassuming front, excellent homemade pasta. Fried artichokes, cacio e pepe and a standout truffle ravioli.",
+    "description": "Unassuming front, excellent homemade pasta.",
     "vegetarian": true,
     "vegLabel": "Very veg-friendly",
     "url": "https://www.google.com/maps/search/?api=1&query=Il%20Duca%2C%20Rome%2C%20Italy"
@@ -778,7 +778,7 @@ SEED_DATA.restaurants = [
     "city": "rome",
     "name": "Ivo a Trastevere",
     "kind": "Trastevere · classic",
-    "description": "Loud, homely, famous for pizza. Feels like a huge Italian family dinner; loved by locals and visitors.",
+    "description": "Loud, homely, famous for pizza.",
     "vegetarian": true,
     "vegLabel": "Easy veg options",
     "url": "https://www.google.com/maps/search/?api=1&query=Ivo%20a%20Trastevere%2C%20Rome%2C%20Italy"
@@ -789,7 +789,7 @@ SEED_DATA.restaurants = [
     "city": "rome",
     "name": "Aromaticus",
     "kind": "Monti · vegetarian",
-    "description": "Herb-forward, fresh and modern. Light lunches, brunch and aperitivo built around aromatic plants. A vegetarian home base.",
+    "description": "Herb-forward, fresh and modern.",
     "vegetarian": true,
     "vegLabel": "Vegetarian / vegan",
     "url": "https://www.google.com/maps/search/?api=1&query=Aromaticus%2C%20Rome%2C%20Italy"
@@ -800,7 +800,7 @@ SEED_DATA.restaurants = [
     "city": "rome",
     "name": "Da Fabrizio al 56",
     "kind": "Trastevere · trattoria",
-    "description": "Warm Roman trattoria where the owner greets guests himself. Mushroom-and-truffle pasta and a praised cacio e pepe.",
+    "description": "Warm Roman trattoria where the owner greets guests himself.",
     "vegetarian": true,
     "vegLabel": "Veg mains available",
     "url": "https://www.google.com/maps/search/?api=1&query=Da%20Fabrizio%20al%2056%2C%20Rome%2C%20Italy"
@@ -833,7 +833,7 @@ SEED_DATA.restaurants = [
     "city": "bari",
     "name": "La Uascezze",
     "kind": "Bari Vecchia · traditional",
-    "description": "Creamy burrata, marinated antipasti and a standout orecchiette con cime di rapa with a peppery bite. Book ahead.",
+    "description": "Creamy burrata, marinated antipasti and a standout orecchiette con cime di rapa with a peppery bite.",
     "vegetarian": true,
     "vegLabel": "Strong veg antipasti & pasta",
     "url": "https://www.google.com/maps/search/?api=1&query=La%20Uascezze%2C%20Bari%2C%20Italy"
@@ -844,7 +844,7 @@ SEED_DATA.restaurants = [
     "city": "bari",
     "name": "Antò",
     "kind": "Bari Vecchia · traditional",
-    "description": "Laid-back local favorite in the old town. Burrata, orecchiette in rich tomato sauce, seasonal contorni. Stone walls, buzzy vibe.",
+    "description": "Laid-back local favorite in the old town.",
     "vegetarian": true,
     "vegLabel": "Many veg classics",
     "url": "https://www.google.com/maps/search/?api=1&query=Ant%C3%B2%2C%20Bari%2C%20Italy"
@@ -866,7 +866,7 @@ SEED_DATA.restaurants = [
     "city": "bari",
     "name": "Panzerotti & focaccia barese",
     "kind": "Street food",
-    "description": "Fried dough oozing tomato and mozzarella, plus cherry-tomato focaccia. Grab from old-town bakeries and eat on the move.",
+    "description": "Fried dough oozing tomato and mozzarella, plus cherry-tomato focaccia.",
     "vegetarian": true,
     "vegLabel": "Naturally vegetarian",
     "url": "https://www.google.com/maps/search/?api=1&query=Panzerotti%20%26%20focaccia%20barese%2C%20Bari%2C%20Italy"
@@ -877,7 +877,7 @@ SEED_DATA.restaurants = [
     "city": "bari",
     "name": "La Tana del Polpo",
     "kind": "For the omnivore",
-    "description": "Octopus-focused trattoria in the old-town lanes. Seafood done with heart for the one of you who eats everything.",
+    "description": "Octopus-focused trattoria in the old-town lanes.",
     "vegetarian": false,
     "vegLabel": "Seafood-led",
     "url": "https://www.google.com/maps/search/?api=1&query=La%20Tana%20del%20Polpo%2C%20Bari%2C%20Italy"
@@ -888,7 +888,7 @@ SEED_DATA.restaurants = [
     "city": "bari",
     "name": "Caseificio cheese tasting",
     "kind": "Cheese pilgrimage",
-    "description": "A creamery near Bari making burrata, mozzarella and pecorino in the classic Pugliese tradition. Build your own cheese-and-wine board.",
+    "description": "A creamery near Bari making burrata, mozzarella and pecorino in the classic Pugliese tradition.",
     "vegetarian": true,
     "vegLabel": "Cheese tasting",
     "url": "https://www.google.com/maps/search/?api=1&query=Caseificio%20cheese%20tasting%2C%20Bari%2C%20Italy"
@@ -899,7 +899,7 @@ SEED_DATA.restaurants = [
     "city": "dubrovnik",
     "name": "Nautika",
     "kind": "Pile · fine dining",
-    "description": "Dubrovnik's most celebrated restaurant, on terraces above the sea with fortress views. Fine vegetarian dishes alongside the seafood. The special-occasion splurge.",
+    "description": "Dubrovnik's most celebrated restaurant, on terraces above the sea with fortress views.",
     "vegetarian": true,
     "vegLabel": "Veg menu on request",
     "url": "https://www.google.com/maps/search/?api=1&query=Nautika%2C%20Dubrovnik%2C%20Croatia"
@@ -910,7 +910,7 @@ SEED_DATA.restaurants = [
     "city": "dubrovnik",
     "name": "Nishta",
     "kind": "Old Town · vegetarian",
-    "description": "The city's beloved all-vegetarian/vegan spot. Inventive, globally-inspired plates and a daily-changing menu. Reserve, it's small.",
+    "description": "The city's beloved all-vegetarian/vegan spot.",
     "vegetarian": true,
     "vegLabel": "Fully vegetarian / vegan",
     "url": "https://www.google.com/maps/search/?api=1&query=Nishta%2C%20Dubrovnik%2C%20Croatia"
@@ -921,7 +921,7 @@ SEED_DATA.restaurants = [
     "city": "dubrovnik",
     "name": "Spaghetteria Toni",
     "kind": "Old Town · casual",
-    "description": "Twenty years in the center, light pastas, homemade gnocchi and a real selection of vegetarian dishes. Local olive oil on every table.",
+    "description": "Twenty years in the center, light pastas, homemade gnocchi and a real selection of vegetarian dishes.",
     "vegetarian": true,
     "vegLabel": "Veg dishes throughout",
     "url": "https://www.google.com/maps/search/?api=1&query=Spaghetteria%20Toni%2C%20Dubrovnik%2C%20Croatia"
@@ -932,7 +932,7 @@ SEED_DATA.restaurants = [
     "city": "dubrovnik",
     "name": "Pizzeria Papillon",
     "kind": "Old Town · pizza",
-    "description": "The town's Neapolitan-style pizza, light dough, leopard-spotted crust. The pumpkin-cream pizza is a vegetarian standout.",
+    "description": "The town's Neapolitan-style pizza, light dough, leopard-spotted crust.",
     "vegetarian": true,
     "vegLabel": "Easy veg",
     "url": "https://www.google.com/maps/search/?api=1&query=Pizzeria%20Papillon%2C%20Dubrovnik%2C%20Croatia"
@@ -954,7 +954,7 @@ SEED_DATA.restaurants = [
     "city": "dubrovnik",
     "name": "D'Vino Wine Bar",
     "kind": "Old Town · wine",
-    "description": "Snug bar for Croatian wine flights with simple cheese and charcuterie plates. The relaxed end to a wall-walking day.",
+    "description": "Snug bar for Croatian wine flights with simple cheese and charcuterie plates.",
     "vegetarian": true,
     "vegLabel": "Cheese & small plates",
     "url": "https://www.google.com/maps/search/?api=1&query=D'Vino%20Wine%20Bar%2C%20Dubrovnik%2C%20Croatia"
@@ -965,7 +965,7 @@ SEED_DATA.restaurants = [
     "city": "hvar",
     "name": "Konoba Menego",
     "kind": "Old Town · konoba",
-    "description": "Candlelit stone tavern between the square and the fortress. Dalmatian classics including a praised vegetarian stuffed-pepper dish. So traditional they don't sell Coca-Cola.",
+    "description": "Candlelit stone tavern between the square and the fortress.",
     "vegetarian": true,
     "vegLabel": "Veg dishes available",
     "url": "https://www.google.com/maps/search/?api=1&query=Konoba%20Menego%2C%20Hvar%2C%20Croatia"
@@ -976,7 +976,7 @@ SEED_DATA.restaurants = [
     "city": "hvar",
     "name": "Konoba Luviji",
     "kind": "Old Town · wine cellar",
-    "description": "Family-run in a renovated wine cellar with a rooftop terrace facing the cathedral and fortress. Ingredients from the owner's farm.",
+    "description": "Family-run in a renovated wine cellar with a rooftop terrace facing the cathedral and fortress.",
     "vegetarian": true,
     "vegLabel": "Farm produce, veg sides",
     "url": "https://www.google.com/maps/search/?api=1&query=Konoba%20Luviji%2C%20Hvar%2C%20Croatia"
@@ -987,7 +987,7 @@ SEED_DATA.restaurants = [
     "city": "hvar",
     "name": "Pizza on St Stephen's",
     "kind": "Main square · casual",
-    "description": "Reliable wood-fired pizza right on the square, with a calm sea view and the bell tower marking the hour. An easy veg lunch.",
+    "description": "Reliable wood-fired pizza right on the square, with a calm sea view and the bell tower marking the hour.",
     "vegetarian": true,
     "vegLabel": "Veg pizzas",
     "url": "https://www.google.com/maps/search/?api=1&query=Pizza%20on%20St%20Stephen's%2C%20Hvar%2C%20Croatia"
@@ -998,7 +998,7 @@ SEED_DATA.restaurants = [
     "city": "hvar",
     "name": "Fish of the day konoba",
     "kind": "For the omnivore",
-    "description": "Hvar's seafood is the draw: grilled whole fish, black risotto and octopus. Ask which fish came in that morning.",
+    "description": "Hvar's seafood is the draw: grilled whole fish, black risotto and octopus.",
     "vegetarian": false,
     "vegLabel": "Seafood-led",
     "url": "https://www.google.com/maps/search/?api=1&query=Fish%20of%20the%20day%20konoba%2C%20Hvar%2C%20Croatia"
@@ -1009,7 +1009,7 @@ SEED_DATA.restaurants = [
     "city": "hvar",
     "name": "Peka (order ahead)",
     "kind": "Dalmatian showpiece",
-    "description": "Meat or vegetables slow-roasted under a bell lid. Must be ordered 2–3 hours ahead; ask your hotel to call a konoba.",
+    "description": "Meat or vegetables slow-roasted under a bell lid.",
     "vegetarian": true,
     "vegLabel": "Vegetable peka possible",
     "url": "https://www.google.com/maps/search/?api=1&query=Peka%20(order%20ahead)%2C%20Hvar%2C%20Croatia"
@@ -1031,7 +1031,7 @@ SEED_DATA.restaurants = [
     "city": "split",
     "name": "Villa Spiza",
     "kind": "Old Town · daily menu",
-    "description": "Tiny counter-service spot where the chalkboard changes daily, usually one fish, one meat, one vegetarian. Everything fresh. Arrive at noon.",
+    "description": "Tiny counter-service spot where the chalkboard changes daily, usually one fish, one meat, one vegetarian.",
     "vegetarian": true,
     "vegLabel": "Daily veg option",
     "url": "https://www.google.com/maps/search/?api=1&query=Villa%20Spiza%2C%20Split%2C%20Croatia"
@@ -1042,7 +1042,7 @@ SEED_DATA.restaurants = [
     "city": "split",
     "name": "Konoba Fetivi",
     "kind": "Near the Palace · konoba",
-    "description": "Genuine Dalmatian cooking in the back streets, pašticada with gnocchi, peka, grilled fish. Popular with locals; book for dinner.",
+    "description": "Genuine Dalmatian cooking in the back streets, pašticada with gnocchi, peka, grilled fish.",
     "vegetarian": false,
     "vegLabel": "Some veg; pasta & sides",
     "url": "https://www.google.com/maps/search/?api=1&query=Konoba%20Fetivi%2C%20Split%2C%20Croatia"
@@ -1053,7 +1053,7 @@ SEED_DATA.restaurants = [
     "city": "split",
     "name": "Articok",
     "kind": "Veli Varoš · modern",
-    "description": "Varoš has a wave of modern kitchens doing creative, vegetable-forward Dalmatian plates. Good for the veg half of the table.",
+    "description": "Varoš has a wave of modern kitchens doing creative, vegetable-forward Dalmatian plates.",
     "vegetarian": true,
     "vegLabel": "Veg-forward modern",
     "url": "https://www.google.com/maps/search/?api=1&query=Articok%2C%20Split%2C%20Croatia"
@@ -1064,7 +1064,7 @@ SEED_DATA.restaurants = [
     "city": "split",
     "name": "Konoba Hvaranin",
     "kind": "For the omnivore",
-    "description": "Just outside the tourist zone, so better prices. Food from Hvar island, seafood, grilled meats, and an excellent octopus peka.",
+    "description": "Just outside the tourist zone, so better prices.",
     "vegetarian": false,
     "vegLabel": "Seafood & meat",
     "url": "https://www.google.com/maps/search/?api=1&query=Konoba%20Hvaranin%2C%20Split%2C%20Croatia"
@@ -1086,7 +1086,7 @@ SEED_DATA.restaurants = [
     "city": "split",
     "name": "Stow Coffee & Monika's Wine Bar",
     "kind": "Coffee & wine",
-    "description": "Varoš does specialty coffee by day and intimate Croatian wine by night. The perfect bookends to a relaxed final stop.",
+    "description": "Varoš does specialty coffee by day and intimate Croatian wine by night.",
     "vegetarian": true,
     "vegLabel": "Snacks & small plates",
     "url": "https://www.google.com/maps/search/?api=1&query=Stow%20Coffee%20%26%20Monika's%20Wine%20Bar%2C%20Split%2C%20Croatia"

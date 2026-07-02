@@ -23,27 +23,30 @@ function el(html) { const t = document.createElement("template"); t.innerHTML = 
 // Shared line renderers -- used by both each place's day-by-day timeline and
 // the "Today" view, so confirmation numbers and provider links are visible
 // right on the itinerary instead of only inside the edit modal.
+// These lines are click targets for the read-only detail card (see
+// openItemDetailCard) -- tapping anywhere on one pulls up its map link,
+// notes, and Edit/Remove actions instead of jumping straight to the edit
+// form. Only the status pill still needs to be visible inline.
 function renderLodgingLine(b) {
   if (!b) return "";
   const bits = [];
   if (b.provider) bits.push(esc(b.provider));
   if (b.confirmation) bits.push("Conf# " + esc(b.confirmation));
-  const linkHtml = b.link ? ' <a class="link" href="' + esc(b.link) + '" target="_blank" rel="noopener">map/site</a>' : "";
-  return '<div class="item-line lodging-line"><span><strong>Staying:</strong> ' + esc(b.title) +
-    (bits.length ? ' <span class="muted">(' + bits.join(" · ") + ')</span>' : "") + linkHtml + '</span>' +
-    '<span class="il-actions"><span class="status-pill ' + b.status + '">' + b.status + '</span>' +
-    '<button class="link" data-edit-booking="' + b.id + '">edit</button></span></div>';
+  return '<div class="item-line lodging-line item-line-clickable" data-view-booking="' + b.id + '"><span><strong>Staying:</strong> ' + esc(b.title) +
+    (bits.length ? ' <span class="muted">(' + bits.join(" · ") + ')</span>' : "") + '</span>' +
+    '<span class="il-actions"><span class="status-pill ' + b.status + '">' + b.status + '</span></span></div>';
 }
 function renderTransportLine(t) {
   const bits = [];
   if (t.provider) bits.push(esc(t.provider));
   if (t.confirmation) bits.push("Conf# " + esc(t.confirmation));
   if (t.time) bits.push(esc(t.time));
-  const linkHtml = t.link ? ' <a class="link" href="' + esc(t.link) + '" target="_blank" rel="noopener">book/track</a>' : "";
-  return '<div class="item-line"><span>' + esc(t.title) +
-    (bits.length ? ' <span class="muted">(' + bits.join(" · ") + ')</span>' : "") + linkHtml + '</span>' +
-    '<span class="il-actions"><span class="status-pill ' + t.status + '">' + t.status + '</span>' +
-    '<button class="link" data-edit-booking="' + t.id + '">edit</button></span></div>';
+  return '<div class="item-line item-line-clickable" data-view-booking="' + t.id + '"><span>' + esc(t.title) +
+    (bits.length ? ' <span class="muted">(' + bits.join(" · ") + ')</span>' : "") + '</span>' +
+    '<span class="il-actions"><span class="status-pill ' + t.status + '">' + t.status + '</span></span></div>';
+}
+function renderActivityLine(a) {
+  return '<div class="item-line item-line-clickable" data-view-activity="' + a.id + '"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span></div>';
 }
 
 let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
@@ -66,9 +69,8 @@ function renderDayHotelBar(lodging, dateStr, placeId) {
   else { label = "Staying at"; timeVal = ""; }
   const timeHtml = timeVal ? " · " + esc(fmtTime12(timeVal)) : "";
   const accent = PLACE_ACCENT[placeId] || "#1d6a8c";
-  return '<div class="day-hotel-bar" style="background:' + accent + '"><span class="dhb-label">' + esc(label) + timeHtml + '</span>' +
-    '<span class="dhb-hotel">' + esc(lodging.title) + '</span>' +
-    '<button class="dhb-edit" data-edit-booking="' + lodging.id + '">edit</button></div>';
+  return '<div class="day-hotel-bar item-line-clickable" data-view-booking="' + lodging.id + '" style="background:' + accent + '"><span class="dhb-label">' + esc(label) + timeHtml + '</span>' +
+    '<span class="dhb-hotel">' + esc(lodging.title) + '</span></div>';
 }
 
 // ---- modal helper ----
@@ -91,6 +93,133 @@ function openModal(title, bodyHtml, onSubmit, submitLabel) {
 }
 function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
 
+// Wires the "Auto-fill from Google" button used by the restaurant and
+// thing-to-do forms: reads the Name + City fields, looks up the place via
+// PlacesLookup (js/places.js), and fills in Kind / Notes / a precise map
+// link so entering something new is mostly just "type a name, hit auto-fill".
+// A no-op if the form doesn't have the button (e.g. this function got called
+// on some other modal), or if no API key is configured.
+function wireAutoFillButton(root) {
+  if (!root) return;
+  const btn = root.querySelector("#autoFillBtn");
+  const statusEl = root.querySelector("#autoFillStatus");
+  if (!btn || !statusEl || typeof PlacesLookup === "undefined") return;
+  btn.addEventListener("click", async () => {
+    const nameInput = root.querySelector('[data-field="name"]');
+    const citySelect = root.querySelector('[data-field="city"]');
+    const name = (nameInput && nameInput.value || "").trim();
+    if (!name) { statusEl.textContent = "Type a name first."; return; }
+    if (!PlacesLookup.isConfigured()) {
+      statusEl.textContent = "Not set up yet — add a Google Maps API key in js/config.js to enable this.";
+      return;
+    }
+    btn.disabled = true;
+    statusEl.textContent = "Looking up “" + name + "”…";
+    try {
+      const cityLabel = (typeof CITY_LABEL_MAP !== "undefined" && citySelect) ? CITY_LABEL_MAP[citySelect.value] || "" : "";
+      const result = await PlacesLookup.lookup(name, cityLabel);
+      const kindInput = root.querySelector('[data-field="kind"]');
+      const descInput = root.querySelector('[data-field="description"]');
+      const urlInput = root.querySelector('[data-field="placeUrl"]');
+      if (kindInput && result.kind) kindInput.value = result.kind;
+      if (descInput && result.description) descInput.value = result.description;
+      if (urlInput && result.url) urlInput.value = result.url;
+      statusEl.textContent = result.description ? "Filled in from Google." : "Filled in kind + map link (no short description available for this place).";
+    } catch (err) {
+      statusEl.textContent = err.message === "no-key" ? "Not set up yet — add a Google Maps API key in js/config.js." : "Couldn't look that up: " + err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+// A lighter modal for read-only content -- just a Close button, no Save flow.
+// Used by the day-by-day detail card below.
+function openViewModal(title, bodyHtml) {
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = "";
+  const overlay = el('<div class="modal-overlay"><div class="modal">' +
+    "<h3>" + esc(title) + "</h3><div class=\"modal-body\">" + bodyHtml + "</div>" +
+    '<div class="modal-actions"><button class="btn secondary" id="modalCancel">Close</button></div></div></div>');
+  root.appendChild(overlay);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) root.innerHTML = ""; });
+  document.getElementById("modalCancel").addEventListener("click", () => { root.innerHTML = ""; });
+}
+
+// Tapping an item in the day-by-day itinerary (activity, meal, transport, or
+// lodging) opens this instead of jumping straight into the edit form -- a
+// quick-reference card with the map link, notes, and status up front, and
+// Edit/Remove/Open Maps actions at the bottom for when you do need to change
+// something. kind is "activity" or "booking".
+function openItemDetailCard(kind, item, place) {
+  const isBooking = kind === "booking";
+  const mapsLink = isBooking ? item.link : mapsUrlForCity(item.title, item.city);
+  const rows = [];
+  if (isBooking) {
+    if (item.provider) rows.push(["Provider", item.provider]);
+    if (item.confirmation) rows.push(["Confirmation #", item.confirmation]);
+    const dateLabel = item.date ? fmtDate(item.date) + (item.endDate && item.endDate !== item.date ? " – " + fmtDate(item.endDate) : "") : "";
+    if (dateLabel) rows.push(["Date", dateLabel]);
+    if (item.time) rows.push(["Time", item.time]);
+    if (item.checkinTime) rows.push(["Check-in time", fmtTime12(item.checkinTime)]);
+    if (item.checkoutTime) rows.push(["Check-out time", fmtTime12(item.checkoutTime)]);
+  } else {
+    if (item.type) rows.push(["Type", item.type]);
+    if (item.time) rows.push(["Time", item.time]);
+  }
+  if (item.cost) rows.push(["Cost", fmtMoney(item.cost, item.currency)]);
+  if (item.notes) rows.push(["Notes", item.notes]);
+  const statusHtml = item.status ? '<div class="idc-status"><span class="status-pill ' + item.status + '">' + item.status + '</span></div>' : "";
+  const body = statusHtml +
+    '<div class="idc-rows">' + rows.map((r) => '<div class="idc-row"><span class="idc-label">' + esc(r[0]) + '</span><span class="idc-val">' + esc(r[1]) + '</span></div>').join("") + '</div>' +
+    (rows.length === 0 ? '<p class="muted">No extra details yet -- add some from Edit.</p>' : "") +
+    '<div class="idc-actions">' +
+    (mapsLink ? '<a class="btn secondary" href="' + esc(mapsLink) + '" target="_blank" rel="noopener">Open in Maps</a>' : "") +
+    '<button class="btn secondary" id="idcEditBtn">Edit</button>' +
+    '<button class="btn secondary" id="idcRemoveBtn">Remove</button>' +
+    '</div>';
+  openViewModal(item.title, body);
+  document.getElementById("idcEditBtn").addEventListener("click", () => {
+    if (isBooking) openBookingForm(Store.getState(), item, place);
+    else openActivityForm(Store.getState(), item.date, item, place);
+  });
+  document.getElementById("idcRemoveBtn").addEventListener("click", () => {
+    if (confirm('Remove "' + item.title + '"?')) {
+      Store.remove(isBooking ? "bookings" : "activities", item.id);
+      closeModal();
+    }
+  });
+}
+
+// Tapping a restaurant/thing-to-do card's title or "More" button opens this --
+// a bigger read-only view with the full description and a map link, plus
+// quick actions to add it to a day or jump to the edit form. type is
+// "restaurant" or "seedo" (things to do).
+function openPlaceDetailCard(type, item, place) {
+  const isRest = type === "restaurant";
+  const rows = [];
+  if (item.kind) rows.push(["Kind", item.kind]);
+  if (isRest) rows.push(["Diet", item.vegetarian ? "Vegetarian friendly" : "Omnivore"]);
+  const body =
+    '<div class="idc-rows">' + rows.map((r) => '<div class="idc-row"><span class="idc-label">' + esc(r[0]) + '</span><span class="idc-val">' + esc(r[1]) + '</span></div>').join("") + '</div>' +
+    (item.description ? '<p class="idc-desc">' + esc(item.description) + '</p>' : '<p class="muted">No notes yet -- add some from Edit.</p>') +
+    '<div class="idc-actions">' +
+    (item.url ? '<a class="btn secondary" href="' + esc(item.url) + '" target="_blank" rel="noopener">Open in Maps</a>' : "") +
+    '<button class="btn secondary" id="idcAddBtn">+ Add to a day</button>' +
+    '<button class="btn secondary" id="idcEditBtn2">Edit</button>' +
+    '</div>';
+  openViewModal(item.name, body);
+  document.getElementById("idcAddBtn").addEventListener("click", () => {
+    closeModal();
+    if (isRest) openAddToDayModal(item.name + " (" + item.kind + ")", item.city, item.description, "meal", place);
+    else openAddToDayModal(item.name, item.city, item.description, "sight", place);
+  });
+  document.getElementById("idcEditBtn2").addEventListener("click", () => {
+    if (isRest) openRestForm(Store.getState(), item, place);
+    else openSeeForm(Store.getState(), item, place);
+  });
+}
+
 // ---- build the static per-place shells once, then re-render their dynamic parts ----
 function buildPlacesSkeleton() {
   const container = document.getElementById("places");
@@ -106,7 +235,8 @@ function buildPlacesSkeleton() {
       '<div class="sub-h"><h3>Day by day</h3><span class="rule"></span></div>' +
       '<div id="days-' + p.id + '"></div>' +
 
-      '<div class="sub-h"><h3>Where to stay</h3><span class="tag">shortlist &middot; choose one to book</span><span class="rule"></span></div>' +
+      '<div class="sub-h"><h3>Where to stay</h3><span class="rule"></span></div>' +
+      '<p class="sub-sub">Choose one to book</p>' +
       '<div class="filters" id="hotelfilters-' + p.id + '">' +
       '<button class="chip on" data-filter="all">All</button>' +
       '<button class="chip" data-filter="budget">Within budget</button>' +
@@ -185,9 +315,7 @@ function renderPlaceDays(placeId, state) {
   const el2 = document.getElementById("days-" + placeId);
   if (!days.length) { el2.innerHTML = '<div class="day-rows"><div class="day-row"><div class="day-body muted">Not currently in your itinerary. Add it back in the itinerary editor above.</div></div></div>'; return; }
   el2.innerHTML = '<div class="day-rows">' + days.map((d) => {
-    const lines = d.activities.map((a) =>
-      '<div class="item-line"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span>' +
-      '<button class="link" data-edit-act="' + a.id + '">edit</button></div>').join("");
+    const lines = d.activities.map(renderActivityLine).join("");
     const transportLines = d.transport.map(renderTransportLine).join("");
     const hotelBar = renderDayHotelBar(d.lodging, d.date, placeId);
     return '<div class="day-row"><div class="day-dot">' + d.day + '</div><div class="day-body">' +
@@ -199,15 +327,15 @@ function renderPlaceDays(placeId, state) {
       '</div>' + hotelBar + '</div></div>';
   }).join("") + "</div>";
   el2.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, btn.dataset.addAct, null, place)));
-  el2.querySelectorAll("[data-edit-act]").forEach((btn) => btn.addEventListener("click", () => {
-    const a = state.activities.find((x) => x.id === btn.dataset.editAct);
-    openActivityForm(state, a.date, a, place);
-  }));
-  el2.querySelectorAll("[data-edit-booking]").forEach((btn) => btn.addEventListener("click", () => {
-    const b = state.bookings.find((x) => x.id === btn.dataset.editBooking);
-    if (b) openBookingForm(state, b, place);
-  }));
   el2.querySelectorAll("[data-add-booking]").forEach((btn) => btn.addEventListener("click", () => openBookingForm(state, null, place, btn.dataset.addBooking)));
+  el2.querySelectorAll("[data-view-activity]").forEach((row) => row.addEventListener("click", () => {
+    const a = state.activities.find((x) => x.id === row.dataset.viewActivity);
+    if (a) openItemDetailCard("activity", a, place);
+  }));
+  el2.querySelectorAll("[data-view-booking]").forEach((row) => row.addEventListener("click", () => {
+    const b = state.bookings.find((x) => x.id === row.dataset.viewBooking);
+    if (b) openItemDetailCard("booking", b, place);
+  }));
 }
 
 // ---- Where to stay (hotels shortlist -> "Choose this" writes/updates the lodging booking) ----
@@ -308,10 +436,12 @@ function renderPlaceSee(placeId, state) {
   const list = (state.thingsToDo || []).filter((s) => s.placeId === placeId);
   const el2 = document.getElementById("seedo-" + placeId);
   el2.innerHTML = list.map((s) =>
-    '<div class="card"><div class="pic"></div><div class="body"><div class="kind">' + esc(s.kind) + '</div><h4>' + esc(s.name) + '</h4>' +
-    '<p>' + esc(s.description) + '</p>' +
-    '<div class="foot">' + (s.url ? '<a class="site" href="' + esc(s.url) + '" target="_blank" rel="noopener">More</a>' : "<span></span>") +
-    '<button class="site" data-add-day-see="' + s.id + '">add to a day</button></div>' +
+    '<div class="card"><div class="pic"></div><div class="body"><div class="kind">' + esc(s.kind) + '</div>' +
+    '<h4 class="card-title-clickable" data-view-see="' + s.id + '">' + esc(s.name) + '</h4>' +
+    '<div class="foot">' +
+    '<button class="site" data-add-day-see="' + s.id + '">+ Add to a day</button>' +
+    (s.url ? '<a class="site" href="' + esc(s.url) + '" target="_blank" rel="noopener">Map</a>' : "") +
+    '<button class="site" data-view-see="' + s.id + '">More</button></div>' +
     '<div style="margin-top:.4rem"><button class="link" data-edit-see="' + s.id + '">edit</button></div></div></div>').join("") +
     '<div class="card" style="align-items:center;justify-content:center;min-height:150px"><button class="link" data-add-see="' + placeId + '">+ add a thing to do</button></div>';
   el2.querySelectorAll("[data-edit-see]").forEach((btn) => btn.addEventListener("click", () => openSeeForm(state, state.thingsToDo.find((x) => x.id === btn.dataset.editSee), place)));
@@ -320,24 +450,33 @@ function renderPlaceSee(placeId, state) {
     const s = state.thingsToDo.find((x) => x.id === btn.dataset.addDaySee);
     openAddToDayModal(s.name, s.city, s.description, "sight", place);
   }));
+  el2.querySelectorAll("[data-view-see]").forEach((el3) => el3.addEventListener("click", () => {
+    const s = state.thingsToDo.find((x) => x.id === el3.dataset.viewSee);
+    if (s) openPlaceDetailCard("seedo", s, place);
+  }));
 }
 
 function openSeeForm(state, existing, place) {
   const cityOpts = place.cityIds.map((id) => '<option value="' + id + '"' + ((existing ? existing.city : place.cityIds[0]) === id ? " selected" : "") + ">" + cityName(id) + "</option>").join("");
   const body =
     '<label class="field">Name</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
+    '<div class="autofill-row"><button type="button" class="link" id="autoFillBtn">✨ Auto-fill from Google</button><span id="autoFillStatus" class="autofill-status"></span></div>' +
+    '<input type="hidden" data-field="placeUrl" value="' + esc(existing ? existing.url || "" : "") + '">' +
     '<label class="field">Kind / category</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
-    '<label class="field">Description</label><textarea data-field="description">' + esc(existing ? existing.description : "") + '</textarea>' +
+    '<label class="field">Notes (optional, brief)</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
     (existing ? '<div style="margin-top:8px"><button class="link" id="deleteSeeBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add a thing to do", body, (data) => {
-    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: mapsUrlForCity(data.name, data.city), placeId: place.id };
+    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), placeId: place.id };
     if (existing) Store.update("thingsToDo", existing.id, payload);
     else Store.add("thingsToDo", payload, "td");
   });
-  if (existing) setTimeout(() => {
-    const d = document.getElementById("deleteSeeBtn");
-    if (d) d.addEventListener("click", () => { Store.remove("thingsToDo", existing.id); closeModal(); });
+  setTimeout(() => {
+    wireAutoFillButton(document.querySelector(".modal-body"));
+    if (existing) {
+      const d = document.getElementById("deleteSeeBtn");
+      if (d) d.addEventListener("click", () => { Store.remove("thingsToDo", existing.id); closeModal(); });
+    }
   }, 0);
 }
 
@@ -350,17 +489,24 @@ function renderPlaceFood(placeId, state) {
   if (filter === "nonveg") list = list.filter((r) => !r.vegetarian);
   const el2 = document.getElementById("foodcards-" + placeId);
   el2.innerHTML = list.map((r) =>
-    '<div class="card"><div class="pic"></div><div class="body"><h4>' + esc(r.name) + '</h4>' +
-    '<div class="kind">' + esc(r.kind) + '</div><p>' + esc(r.description || "") + '</p>' +
-    '<div class="foot"><span class="veg ' + (r.vegetarian ? "yes" : "no") + '">' + (r.vegetarian ? "vegetarian" : "omnivore") + '</span>' +
-    '<button class="site" data-add-day="' + r.id + '">add to a day</button></div>' +
-    '<div style="margin-top:.4rem">' + (r.url ? '<a class="link" href="' + esc(r.url) + '" target="_blank" rel="noopener">map</a> &middot; ' : "") + '<button class="link" data-edit-rest="' + r.id + '">edit</button></div></div></div>').join("") +
+    '<div class="card"><div class="pic"></div><div class="body">' +
+    '<h4 class="card-title-clickable" data-view-rest="' + r.id + '">' + esc(r.name) + '</h4>' +
+    '<div class="kind">' + esc(r.kind) + ' <span class="veg ' + (r.vegetarian ? "yes" : "no") + '">' + (r.vegetarian ? "vegetarian" : "omnivore") + '</span></div>' +
+    '<div class="foot">' +
+    '<button class="site" data-add-day="' + r.id + '">+ Add to a day</button>' +
+    (r.url ? '<a class="site" href="' + esc(r.url) + '" target="_blank" rel="noopener">Map</a>' : "") +
+    '<button class="site" data-view-rest="' + r.id + '">More</button></div>' +
+    '<div style="margin-top:.4rem"><button class="link" data-edit-rest="' + r.id + '">edit</button></div></div></div>').join("") +
     '<div class="card" style="align-items:center;justify-content:center;min-height:150px"><button class="link" data-add-rest="' + placeId + '">+ add restaurant</button></div>';
   el2.querySelectorAll("[data-edit-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, state.restaurants.find((x) => x.id === btn.dataset.editRest), place)));
   el2.querySelectorAll("[data-add-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, null, place)));
   el2.querySelectorAll("[data-add-day]").forEach((btn) => btn.addEventListener("click", () => {
     const r = state.restaurants.find((x) => x.id === btn.dataset.addDay);
     openAddToDayModal(r.name + " (" + r.kind + ")", r.city, r.description, "meal", place);
+  }));
+  el2.querySelectorAll("[data-view-rest]").forEach((el3) => el3.addEventListener("click", () => {
+    const r = state.restaurants.find((x) => x.id === el3.dataset.viewRest);
+    if (r) openPlaceDetailCard("restaurant", r, place);
   }));
 }
 
@@ -461,19 +607,24 @@ function openBookingForm(state, existing, place, defaultDate) {
 function openRestForm(state, existing, place) {
   const cityOpts = place.cityIds.map((id) => '<option value="' + id + '"' + ((existing ? existing.city : place.cityIds[0]) === id ? " selected" : "") + ">" + cityName(id) + "</option>").join("");
   const body = '<label class="field">Name</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
+    '<div class="autofill-row"><button type="button" class="link" id="autoFillBtn">✨ Auto-fill from Google</button><span id="autoFillStatus" class="autofill-status"></span></div>' +
+    '<input type="hidden" data-field="placeUrl" value="' + esc(existing ? existing.url || "" : "") + '">' +
     '<label class="field">Kind / specialty</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
-    '<label class="field">Description / reservation info</label><textarea data-field="description">' + esc(existing ? existing.description : "") + '</textarea>' +
+    '<label class="field">Notes (optional -- reservation info, tips)</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
     '<label class="field">Vegetarian friendly?</label><select data-field="vegetarian"><option value="true"' + (existing && existing.vegetarian ? " selected" : "") + '>Yes</option><option value="false"' + (existing && !existing.vegetarian ? " selected" : "") + '>No</option></select>' +
     (existing ? '<div style="margin-top:8px"><button class="link" id="deleteRestBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add restaurant", body, (data) => {
-    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: mapsUrlForCity(data.name, data.city), vegetarian: data.vegetarian === "true", placeId: place.id };
+    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), vegetarian: data.vegetarian === "true", placeId: place.id };
     if (existing) Store.update("restaurants", existing.id, payload);
     else Store.add("restaurants", payload, "r");
   });
-  if (existing) setTimeout(() => {
-    const d = document.getElementById("deleteRestBtn");
-    if (d) d.addEventListener("click", () => { Store.remove("restaurants", existing.id); closeModal(); });
+  setTimeout(() => {
+    wireAutoFillButton(document.querySelector(".modal-body"));
+    if (existing) {
+      const d = document.getElementById("deleteRestBtn");
+      if (d) d.addEventListener("click", () => { Store.remove("restaurants", existing.id); closeModal(); });
+    }
   }, 0);
 }
 
@@ -489,15 +640,18 @@ function renderTodayView(state) {
   const place = PLACES.find((p) => p.id === today.placeId);
   const lodgingHtml = renderLodgingLine(today.lodging);
   const transportHtml = today.transport.map(renderTransportLine).join("");
-  const actsHtml = today.activities.map((a) =>
-    '<div class="item-line"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span></div>').join("");
+  const actsHtml = today.activities.map(renderActivityLine).join("");
   const contentEl = document.getElementById("todayContent");
   contentEl.innerHTML =
     (place ? '<div class="tv-place">' + esc(place.label) + '</div>' : "") +
     lodgingHtml + transportHtml + (actsHtml || '<div class="muted">Nothing scheduled yet for today.</div>');
-  contentEl.querySelectorAll("[data-edit-booking]").forEach((btn) => btn.addEventListener("click", () => {
-    const b = Store.getState().bookings.find((x) => x.id === btn.dataset.editBooking);
-    if (b) openBookingForm(Store.getState(), b, place);
+  contentEl.querySelectorAll("[data-view-booking]").forEach((row) => row.addEventListener("click", () => {
+    const b = Store.getState().bookings.find((x) => x.id === row.dataset.viewBooking);
+    if (b) openItemDetailCard("booking", b, place);
+  }));
+  contentEl.querySelectorAll("[data-view-activity]").forEach((row) => row.addEventListener("click", () => {
+    const a = Store.getState().activities.find((x) => x.id === row.dataset.viewActivity);
+    if (a) openItemDetailCard("activity", a, place);
   }));
 }
 
