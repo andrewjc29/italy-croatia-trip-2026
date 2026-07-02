@@ -145,6 +145,9 @@ button{font-family:inherit}
 .day-row .day-date{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;font-weight:600}
 .item-line{display:flex;justify-content:space-between;gap:.6rem;padding:.3rem 0;font-size:.92rem}
 .item-line .time{color:var(--muted);font-size:.78rem;min-width:3.4rem;display:inline-block}
+.il-actions{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.il-actions .link{font-size:.72rem}
+.day-add-row{display:flex;gap:1.2rem;flex-wrap:wrap;margin-top:.2rem;padding-top:.3rem;border-top:1px dashed var(--line)}
 .add-line{font-family:'Outfit';font-size:.78rem;font-weight:500;color:var(--accent,var(--seaglass));cursor:pointer;background:none;border:none;padding:.3rem 0}
 .add-line:hover{color:var(--terracotta)}
 
