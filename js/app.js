@@ -156,8 +156,15 @@ function buildPlacesSkeleton() {
 
 function placeForCity(cityId) { return PLACES.find((p) => p.cityIds.indexOf(cityId) !== -1); }
 
+// A place can have more than one lodging booking -- e.g. 2 nights at one
+// hotel then 3 at another within the same stop. Anything that needs "the"
+// hotel for a place should go through lodgingBookingsForPlace and match by
+// hotel name, not assume there's only ever one.
+function lodgingBookingsForPlace(state, place) {
+  return state.bookings.filter((b) => b.category === "lodging" && place.cityIds.indexOf(b.city) !== -1);
+}
 function currentLodgingBooking(state, place) {
-  return state.bookings.find((b) => b.category === "lodging" && place.cityIds.indexOf(b.city) !== -1);
+  return lodgingBookingsForPlace(state, place)[0] || null;
 }
 
 // The nights/date-range line under each place's title -- always reflects
@@ -206,7 +213,7 @@ function renderPlaceDays(placeId, state) {
 // ---- Where to stay (hotels shortlist -> "Choose this" writes/updates the lodging booking) ----
 function renderPlaceHotels(placeId, state) {
   const place = PLACES.find((p) => p.id === placeId);
-  const current = currentLodgingBooking(state, place);
+  const placeLodgings = lodgingBookingsForPlace(state, place);
   let list = (state.hotels || []).filter((h) => h.placeId === placeId);
   const filter = hotelFilter[placeId] || "all";
   if (filter === "budget") list = list.filter((h) => !h.splurge);
@@ -214,19 +221,25 @@ function renderPlaceHotels(placeId, state) {
   const el2 = document.getElementById("hotels-" + placeId);
   el2.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Hotel</th><th>Nightly</th><th>Pros</th><th>Cons</th><th></th></tr></thead><tbody>' +
     list.map((h) => {
-      const chosen = current && current.title === h.name;
+      // Match per-hotel, not "does this place have any lodging booking at
+      // all" -- that's what lets two different hotels both show as chosen
+      // when a stay is split between them.
+      const existingForHotel = placeLodgings.find((b) => b.title === h.name);
       return '<tr><td class="hotel">' + esc(h.name) + '<span class="area">' + esc(h.area) + '</span>' +
         (h.splurge ? '<span class="pill">splurge</span>' : "") + '</td>' +
         '<td class="cost">' + esc(h.costLabel || fmtMoney(h.cost, "USD")) + '</td>' +
         '<td>' + esc(h.pros || "") + '</td><td>' + esc(h.cons || "") + '</td>' +
         '<td class="actions">' +
         (h.url ? '<a href="' + esc(h.url) + '" target="_blank" rel="noopener">Visit site</a><br>' : "") +
-        '<button class="site-link" data-choose-hotel="' + h.id + '">' + (chosen ? "Chosen" : "Choose this") + '</button><br>' +
+        '<button class="site-link" data-choose-hotel="' + h.id + '">' + (existingForHotel ? "Chosen -- edit dates" : "Choose this") + '</button><br>' +
         '<button class="link" data-edit-hotel="' + h.id + '">edit</button></td></tr>';
-    }).join("") + "</tbody></table></div>";
+    }).join("") + "</tbody></table></div>" +
+    (placeLodgings.length > 1 ? '<div class="muted" style="font-size:.82rem;margin-top:.4rem">Split stay: ' +
+      placeLodgings.map((b) => esc(b.title) + " (" + esc(fmtDate(b.date)) + "–" + esc(fmtDate(b.endDate)) + ")").join(", ") + '</div>' : "");
   el2.querySelectorAll("[data-choose-hotel]").forEach((btn) => btn.addEventListener("click", () => {
     const h = state.hotels.find((x) => x.id === btn.dataset.chooseHotel);
-    openHotelChooseConfirm(state, h, place, current);
+    const existingForHotel = placeLodgings.find((b) => b.title === h.name);
+    openHotelChooseConfirm(state, h, place, existingForHotel, placeLodgings);
   }));
   el2.querySelectorAll("[data-edit-hotel]").forEach((btn) => btn.addEventListener("click", () => openHotelForm(state, state.hotels.find((x) => x.id === btn.dataset.editHotel), place)));
 }
@@ -234,15 +247,27 @@ function renderPlaceHotels(placeId, state) {
 // Choosing a hotel always confirms the exact check-in/check-out dates before
 // writing (or updating) the lodging booking -- this is what makes it show up
 // correctly in the day-by-day itinerary.
-function openHotelChooseConfirm(state, h, place, current) {
+function openHotelChooseConfirm(state, h, place, current, placeLodgings) {
   const range = Store.getStopRangeForPlace(place.id);
   const tripRange = Store.getTripDateRange();
-  const defaultCheckin = current ? current.date : (range ? range.dateStart : (tripRange.start || ""));
-  const defaultCheckout = current ? current.endDate : (range ? range.dateEnd : (tripRange.end || ""));
+  const others = (placeLodgings || []).filter((b) => !current || b.id !== current.id);
+  // If this exact hotel already has a booking, edit its existing dates. If
+  // it's a brand new hotel for a place that has NO lodging yet, default to
+  // the full stop range like before. But if other hotels are already booked
+  // for this place (a split stay), don't default to the full range too --
+  // that would just create an overlapping duplicate. Leave it blank instead
+  // so the dates get set deliberately to whichever nights are this hotel's.
+  const defaultCheckin = current ? current.date : (others.length ? "" : (range ? range.dateStart : (tripRange.start || "")));
+  const defaultCheckout = current ? current.endDate : (others.length ? "" : (range ? range.dateEnd : (tripRange.end || "")));
+  const splitNote = others.length
+    ? '<p class="muted" style="font-size:.84rem">This place already has ' + others.map((b) => esc(b.title) + " (" + esc(fmtDate(b.date)) + "–" + esc(fmtDate(b.endDate)) + ")").join(", ") +
+      ' booked. Set the check-in/check-out for just the nights at ' + esc(h.name) + ' -- this adds a separate stay rather than replacing it.</p>'
+    : "";
   const body =
     '<p>Confirm your stay at <strong>' + esc(h.name) + '</strong>. This sets the dates shown in the day-by-day itinerary.</p>' +
-    '<label class="field">Check-in</label><input type="date" data-field="date" value="' + esc(defaultCheckin) + '">' +
-    '<label class="field">Check-out</label><input type="date" data-field="endDate" value="' + esc(defaultCheckout) + '">' +
+    splitNote +
+    '<label class="field">Check-in</label><input type="date" data-field="date" value="' + esc(defaultCheckin) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
+    '<label class="field">Check-out</label><input type="date" data-field="endDate" value="' + esc(defaultCheckout) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Check-in time (optional)</label><input type="time" data-field="checkinTime" value="' + esc(current ? current.checkinTime : "") + '"></div>' +
     '<div><label class="field">Check-out time (optional)</label><input type="time" data-field="checkoutTime" value="' + esc(current ? current.checkoutTime : "") + '"></div></div>';
   openModal("Confirm your stay", body, (data) => {
@@ -532,16 +557,29 @@ function renderBookingStatus(state) {
   const ranges = Store.computeStopRanges();
   const hotelRows = ranges.map((r) => {
     const place = PLACES.find((p) => p.id === r.placeId);
-    const lodging = state.bookings.find((b) => b.category === "lodging" && b.date < r.dateEnd && b.endDate > r.dateStart);
-    const status = lodging ? lodging.status : "missing";
-    const dateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "";
-    const detail = lodging ? esc(lodging.title) : '<span class="muted">No hotel chosen yet</span>';
-    return '<tr><td class="bs-item">' + esc(place ? place.label : r.placeId) +
-      '<span class="bs-sub muted">' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></td>' +
-      '<td class="bs-date">' + dateLabel + '</td>' +
-      '<td>' + detail + '</td>' +
-      '<td><span class="status-pill ' + status + '">' + status + '</span></td>' +
-      '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + (lodging ? lodging.id : "") + '">' + (lodging ? "edit" : "choose") + '</button></td></tr>';
+    // A stop can be split across more than one hotel -- show every lodging
+    // booking that overlaps this stop's range as its own row, not just the
+    // first one found.
+    const lodgings = state.bookings.filter((b) => b.category === "lodging" && b.date < r.dateEnd && b.endDate > r.dateStart);
+    if (!lodgings.length) {
+      const dateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "";
+      return '<tr><td class="bs-item">' + esc(place ? place.label : r.placeId) +
+        '<span class="bs-sub muted">' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></td>' +
+        '<td class="bs-date">' + dateLabel + '</td>' +
+        '<td><span class="muted">No hotel chosen yet</span></td>' +
+        '<td><span class="status-pill missing">missing</span></td>' +
+        '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="">choose</button></td></tr>';
+    }
+    return lodgings.map((lodging) => {
+      const nights = nightsBetween(lodging.date, lodging.endDate);
+      const dateLabel = esc(fmtDate(lodging.date)) + " &ndash; " + esc(fmtDate(lodging.endDate));
+      return '<tr><td class="bs-item">' + esc(place ? place.label : r.placeId) +
+        '<span class="bs-sub muted">' + nights + (nights === 1 ? " night" : " nights") + '</span></td>' +
+        '<td class="bs-date">' + dateLabel + '</td>' +
+        '<td>' + esc(lodging.title) + '</td>' +
+        '<td><span class="status-pill ' + lodging.status + '">' + lodging.status + '</span></td>' +
+        '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + lodging.id + '">edit</button></td></tr>';
+    }).join("");
   }).join("");
   const transportBookings = state.bookings.filter((b) => b.category !== "lodging").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   const transportRows = transportBookings.length ? transportBookings.map((t) => {
@@ -942,11 +980,12 @@ function attachPrepToggleHandlers(container) {
 
 // Add (or edit) a single to-do in the Prep checklist. Phase is free text with
 // autocomplete suggestions from whatever phases already exist, so a new item
-// either slots into an existing group or starts a new one.
-function openPrepItemModal(state, existing) {
+// either slots into an existing group or starts a new one. forcedPhase comes
+// from clicking "+ add to this section" on a specific phase block.
+function openPrepItemModal(state, existing, forcedPhase) {
   const phases = groupByPhase(state.prepChecklist || []).map((g) => g.phase);
   const datalistOpts = phases.map((p) => '<option value="' + esc(p) + '"></option>').join("");
-  const defaultPhase = existing ? existing.phase : (phases.length ? phases[phases.length - 1] : "");
+  const defaultPhase = existing ? existing.phase : (forcedPhase || (phases.length ? phases[phases.length - 1] : ""));
   const body =
     '<label class="field">To-do</label><textarea data-field="text">' + esc(existing ? existing.text : "") + '</textarea>' +
     '<label class="field">Phase / timing</label><input data-field="phase" list="prepPhaseOptions" value="' + esc(defaultPhase) + '">' +
@@ -965,24 +1004,32 @@ function openPrepItemModal(state, existing) {
 }
 
 // One merged Prep checklist: "Before you book" first, then the full phased
-// plan (Now / 3-4mo / 2-3mo / 1-2mo / 1-2wk), all in the same dark section.
+// plan (Now / 3-4mo / 2-3mo / 1-2mo / 1-2wk), then a catch-all "General"
+// section, all in the same dark section. Every section gets its own
+// "+ add to this section" control so a new to-do can go straight into
+// whichever timeframe it belongs to.
 function prepItemHtml(item) {
   return '<div class="prep-item-row"><label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>' +
     '<button class="prep-edit" data-prep-edit="' + item.id + '">edit</button></div>';
+}
+function prepPhaseBlock(phaseName, items) {
+  return '<div class="prep-phase"><h4>' + esc(phaseName) + '</h4>' + items.map(prepItemHtml).join("") +
+    '<button class="prep-add" data-prep-add-phase="' + esc(phaseName) + '">+ add to this section</button></div>';
 }
 
 function renderPrep(state) {
   const items = state.prepChecklist || [];
   const beforeItems = items.filter((it) => it.phase === "Before you book");
-  const restPhases = groupByPhase(items.filter((it) => it.phase !== "Before you book"));
+  const generalItems = items.filter((it) => it.phase === "General");
+  const restPhases = groupByPhase(items.filter((it) => it.phase !== "Before you book" && it.phase !== "General"));
   const container = document.getElementById("prepList");
-  const beforeHtml = beforeItems.length
-    ? '<div class="prep-phase"><h4>Before you book</h4>' + beforeItems.map(prepItemHtml).join("") + '</div>'
-    : "";
-  const restHtml = restPhases.map((g) =>
-    '<div class="prep-phase"><h4>' + esc(g.phase) + '</h4>' + g.items.map(prepItemHtml).join("") + '</div>').join("");
-  container.innerHTML = beforeHtml + restHtml;
+  const beforeHtml = prepPhaseBlock("Before you book", beforeItems);
+  const restHtml = restPhases.map((g) => prepPhaseBlock(g.phase, g.items)).join("");
+  const generalHtml = prepPhaseBlock("General", generalItems);
+  container.innerHTML = beforeHtml + restHtml + generalHtml;
   attachPrepToggleHandlers(container);
+  container.querySelectorAll("[data-prep-add-phase]").forEach((btn) => btn.addEventListener("click", () =>
+    openPrepItemModal(Store.getState(), null, btn.dataset.prepAddPhase)));
 }
 
 // ---- master render ----
@@ -1042,7 +1089,6 @@ function setupStaticBindings() {
     openModal("Add note", '<label class="field">Note</label><textarea data-field="text"></textarea>',
       (data) => Store.add("notesLog", { text: data.text, ts: new Date().toISOString() }, "n"));
   });
-  document.getElementById("addPrepBtn").addEventListener("click", () => openPrepItemModal(Store.getState(), null));
 }
 
 // ---- boot ----
