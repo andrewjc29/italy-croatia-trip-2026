@@ -46,7 +46,6 @@ function renderTransportLine(t) {
     '<button class="link" data-edit-booking="' + t.id + '">edit</button></span></div>';
 }
 
-let mapInstance = null;
 let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
 let hotelFilter = {}; // placeId -> "all" | "budget" | "splurge"
 let budgetCurrency = "USD"; // display-only toggle for the budget panel, not persisted
@@ -535,23 +534,27 @@ function renderBookingStatus(state) {
     const place = PLACES.find((p) => p.id === r.placeId);
     const lodging = state.bookings.find((b) => b.category === "lodging" && b.date < r.dateEnd && b.endDate > r.dateStart);
     const status = lodging ? lodging.status : "missing";
-    const detail = lodging ? esc(lodging.title) : "No hotel chosen yet";
-    return '<div class="bs-row"><span class="bs-title">' + esc(place ? place.label : r.placeId) +
-      '<span class="muted"> · ' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></span>' +
-      '<span class="bs-detail">' + detail + '</span>' +
-      '<span class="status-pill ' + status + '">' + status + '</span>' +
-      '<button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + (lodging ? lodging.id : "") + '">' + (lodging ? "edit" : "choose") + '</button></div>';
+    const dateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "";
+    const detail = lodging ? esc(lodging.title) : '<span class="muted">No hotel chosen yet</span>';
+    return '<tr><td class="bs-item">' + esc(place ? place.label : r.placeId) +
+      '<span class="bs-sub muted">' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></td>' +
+      '<td class="bs-date">' + dateLabel + '</td>' +
+      '<td>' + detail + '</td>' +
+      '<td><span class="status-pill ' + status + '">' + status + '</span></td>' +
+      '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + (lodging ? lodging.id : "") + '">' + (lodging ? "edit" : "choose") + '</button></td></tr>';
   }).join("");
   const transportBookings = state.bookings.filter((b) => b.category !== "lodging").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-  const transportRows = transportBookings.length ? transportBookings.map((t) =>
-    '<div class="bs-row"><span class="bs-title">' + esc(t.title) + '<span class="muted"> · ' + (t.date ? esc(fmtDate(t.date)) : "no date") + '</span></span>' +
-    '<span class="bs-detail">' + esc(t.category) + '</span>' +
-    '<span class="status-pill ' + t.status + '">' + t.status + '</span>' +
-    '<button class="link" data-bs-booking="' + t.id + '">edit</button></div>').join("")
-    : '<div class="muted" style="padding:.4rem 0">No transport between cities booked yet.</div>';
+  const transportRows = transportBookings.length ? transportBookings.map((t) => {
+    const dateLabel = t.date ? (t.endDate && t.endDate !== t.date ? esc(fmtDate(t.date)) + " &ndash; " + esc(fmtDate(t.endDate)) : esc(fmtDate(t.date))) : '<span class="muted">no date set</span>';
+    return '<tr><td class="bs-item">' + esc(t.title) + '</td>' +
+      '<td class="bs-date">' + dateLabel + '</td>' +
+      '<td>' + esc(t.category) + '</td>' +
+      '<td><span class="status-pill ' + t.status + '">' + t.status + '</span></td>' +
+      '<td class="actions"><button class="link" data-bs-booking="' + t.id + '">edit</button></td></tr>';
+  }).join("") : '<tr><td colspan="5" class="muted">No transport between cities booked yet.</td></tr>';
   el2.innerHTML =
-    '<div class="bs-group"><h4>Hotels</h4>' + hotelRows + '</div>' +
-    '<div class="bs-group"><h4>Transport between cities</h4>' + transportRows + '</div>';
+    '<div class="bs-group"><h4>Hotels</h4><div class="table-scroll"><table><thead><tr><th>Stop</th><th>Dates</th><th>Hotel</th><th>Status</th><th></th></tr></thead><tbody>' + hotelRows + '</tbody></table></div></div>' +
+    '<div class="bs-group"><h4>Transport between cities</h4><div class="table-scroll"><table><thead><tr><th>Leg</th><th>Date</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>' + transportRows + '</tbody></table></div></div>';
   el2.querySelectorAll("[data-bs-booking]").forEach((btn) => btn.addEventListener("click", () => {
     const id = btn.dataset.bsBooking;
     if (id) {
@@ -682,25 +685,6 @@ function openAddStopModal(state) {
   }, 0);
 }
 
-// ---- toolkit: map ----
-function renderMap() {
-  setTimeout(() => {
-    if (mapInstance) { mapInstance.remove(); mapInstance = null; }
-    mapInstance = L.map("map-canvas").setView([42.5, 16.5], 6);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap contributors" }).addTo(mapInstance);
-    const visitedIds = [];
-    Store.getItineraryDays().forEach((d) => { if (d.cityId && visitedIds[visitedIds.length - 1] !== d.cityId) visitedIds.push(d.cityId); });
-    const latlngs = [];
-    visitedIds.forEach((id) => {
-      const c = CITIES.find((x) => x.id === id);
-      if (!c) return;
-      L.marker([c.lat, c.lng]).addTo(mapInstance).bindPopup(c.name);
-      latlngs.push([c.lat, c.lng]);
-    });
-    if (latlngs.length > 1) L.polyline(latlngs, { color: "#1d6a8c" }).addTo(mapInstance);
-    if (latlngs.length) mapInstance.fitBounds(latlngs, { padding: [30, 30] });
-  }, 50);
-}
 
 // ---- toolkit: weather ----
 // A 7-10 day forecast is meaningless two months out, so this shows typical
@@ -859,10 +843,10 @@ async function renderBudget(state) {
     '<div class="budget-total">' +
     '<div class="bt-row"><div class="bt-amount">' + moneyFmt(perPerson) + ' <span style="font-size:1rem;color:var(--muted);font-family:\'Outfit\'">per person, booked so far</span></div>' +
     '<div class="currency-toggle"><button class="chip' + (budgetCurrency === "USD" ? " on" : "") + '" data-currency="USD">USD</button><button class="chip' + (budgetCurrency === "EUR" ? " on" : "") + '" data-currency="EUR">EUR</button></div></div>' +
-    '<div class="bt-sub">Target: ' + moneyFmt(low) + '–' + moneyFmt(high) + ' per person &middot; total for both of you: ' + moneyFmt(total) + '</div>' +
+    '<div class="bt-sub">Target: ' + moneyFmt(low) + '–' + moneyFmt(high) + ' per person &middot; total for both of you: ' + moneyFmt(total) +
+    ' <button class="link" id="editBudgetTargetBtn">edit target</button></div>' +
     '<div class="budget-bar"><div class="budget-bar-fill' + (over ? " over" : "") + '" style="width:' + pctOfHigh + '%"></div></div>' +
     '</div>' +
-    '<div class="muted" style="margin-top:.7rem;font-size:.78rem">Sourced from every flight/train/ferry/hotel booking and every itinerary item with a cost attached, whether idea, booked, or confirmed -- not from the hotel/restaurant shortlists. EUR converted at ~' + rate.toFixed(3) + ' USD.</div>' +
     '<details class="budget-detail"' + (wasOpen ? " open" : "") + '><summary>Show all ' + itemCount + ' items<span class="arw">+</span></summary>' +
     ["flight", "lodging", "transport", "activities", "other"].map((catKey) => {
       const items = grouped[catKey];
@@ -877,6 +861,19 @@ async function renderBudget(state) {
     budgetCurrency = btn.dataset.currency;
     renderBudget(Store.getState());
   }));
+  const editTargetBtn = container.querySelector("#editBudgetTargetBtn");
+  if (editTargetBtn) editTargetBtn.addEventListener("click", () => openBudgetTargetModal(Store.getState()));
+}
+
+function openBudgetTargetModal(state) {
+  const low = state.meta.budgetPerPersonLow || 0;
+  const high = state.meta.budgetPerPersonHigh || 0;
+  const body =
+    '<label class="field">Target, low end (per person, USD)</label><input data-field="low" type="number" value="' + low + '">' +
+    '<label class="field">Target, high end (per person, USD)</label><input data-field="high" type="number" value="' + high + '">';
+  openModal("Edit budget target", body, (data) => {
+    Store.updateMeta({ budgetPerPersonLow: parseFloat(data.low) || 0, budgetPerPersonHigh: parseFloat(data.high) || 0 });
+  }, "Save");
 }
 
 // ---- toolkit: documents ----
@@ -936,12 +933,42 @@ function attachPrepToggleHandlers(container) {
     state2.prepChecklist = state2.prepChecklist.map((it) => it.id === cb.dataset.prepToggle ? Object.assign({}, it, { done: e.target.checked }) : it);
     Store.persist();
   }));
+  container.querySelectorAll("[data-prep-edit]").forEach((btn) => btn.addEventListener("click", () => {
+    const state2 = Store.getState();
+    const item = state2.prepChecklist.find((it) => it.id === btn.dataset.prepEdit);
+    if (item) openPrepItemModal(state2, item);
+  }));
+}
+
+// Add (or edit) a single to-do in the Prep checklist. Phase is free text with
+// autocomplete suggestions from whatever phases already exist, so a new item
+// either slots into an existing group or starts a new one.
+function openPrepItemModal(state, existing) {
+  const phases = groupByPhase(state.prepChecklist || []).map((g) => g.phase);
+  const datalistOpts = phases.map((p) => '<option value="' + esc(p) + '"></option>').join("");
+  const defaultPhase = existing ? existing.phase : (phases.length ? phases[phases.length - 1] : "");
+  const body =
+    '<label class="field">To-do</label><textarea data-field="text">' + esc(existing ? existing.text : "") + '</textarea>' +
+    '<label class="field">Phase / timing</label><input data-field="phase" list="prepPhaseOptions" value="' + esc(defaultPhase) + '">' +
+    '<datalist id="prepPhaseOptions">' + datalistOpts + '</datalist>' +
+    (existing ? '<div style="margin-top:8px"><button class="link" id="deletePrepBtn">Remove this to-do</button></div>' : "");
+  openModal(existing ? "Edit to-do" : "Add a to-do", body, (data) => {
+    if (!data.text) return;
+    const payload = { phase: data.phase || "Other", text: data.text, done: existing ? existing.done : false };
+    if (existing) Store.update("prepChecklist", existing.id, payload);
+    else Store.add("prepChecklist", payload, "pc");
+  }, existing ? "Save" : "Add");
+  if (existing) setTimeout(() => {
+    const d = document.getElementById("deletePrepBtn");
+    if (d) d.addEventListener("click", () => { Store.remove("prepChecklist", existing.id); closeModal(); });
+  }, 0);
 }
 
 // One merged Prep checklist: "Before you book" first, then the full phased
 // plan (Now / 3-4mo / 2-3mo / 1-2mo / 1-2wk), all in the same dark section.
 function prepItemHtml(item) {
-  return '<label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>';
+  return '<div class="prep-item-row"><label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>' +
+    '<button class="prep-edit" data-prep-edit="' + item.id + '">edit</button></div>';
 }
 
 function renderPrep(state) {
@@ -974,7 +1001,6 @@ function renderAll(state, syncStatus) {
   renderWeather();
   renderBookingStatus(state);
   renderBudget(state);
-  renderMap();
 }
 
 // ---- scrollspy ----
@@ -1016,6 +1042,7 @@ function setupStaticBindings() {
     openModal("Add note", '<label class="field">Note</label><textarea data-field="text"></textarea>',
       (data) => Store.add("notesLog", { text: data.text, ts: new Date().toISOString() }, "n"));
   });
+  document.getElementById("addPrepBtn").addEventListener("click", () => openPrepItemModal(Store.getState(), null));
 }
 
 // ---- boot ----

@@ -4,7 +4,7 @@
 // endpoint, Google Maps) is left alone and goes straight to the network --
 // this only ever caches same-origin GET requests.
 
-const CACHE_NAME = "trip-cache-v2";
+const CACHE_NAME = "trip-cache-v3";
 const CORE_ASSETS = [
   "./",
   "index.html",
@@ -62,7 +62,12 @@ self.addEventListener("fetch", (event) => {
 
   if (isCodeAsset(url.pathname)) {
     event.respondWith(
-      fetch(req)
+      // cache: "no-store" is the important part -- GitHub Pages serves this
+      // repo's JS/CSS with `Cache-Control: max-age=600`, so a plain fetch()
+      // here can silently be satisfied from the browser's own HTTP cache
+      // instead of actually hitting the network, even though the intent of
+      // this whole code path is "always get the latest deploy."
+      fetch(req, { cache: "no-store" })
         .then((res) => {
           if (res && res.status === 200) {
             const copy = res.clone();

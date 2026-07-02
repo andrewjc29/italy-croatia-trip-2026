@@ -182,7 +182,6 @@ button{font-family:inherit}
 
 /* ---- toolkit (map / weather / documents / notes) ---- */
 .toolkit-block{margin:2.6rem 0}
-#map-canvas{height:400px;border-radius:var(--radius-card);width:100%;border:1px solid var(--line)}
 .weather-grid,.doc-grid,.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.2rem}
 .util-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:1.1rem 1.3rem;box-shadow:0 8px 24px var(--shadow)}
 .util-card h4{font-family:'Fraunces';font-size:1.15rem;color:var(--adriatic-deep);margin-bottom:.3rem}
@@ -199,13 +198,12 @@ button{font-family:inherit}
 .budget-bar-fill.over{background:var(--terracotta)}
 
 /* ---- booking status at a glance ---- */
-.bs-group{margin-bottom:1.2rem}
+.bs-group{margin-bottom:1.4rem}
 .bs-group:last-child{margin-bottom:0}
-.bs-group h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:.5rem}
-.bs-row{display:flex;align-items:center;gap:.8rem;padding:.55rem 0;border-bottom:1px solid var(--line);font-size:.88rem}
-.bs-row:last-child{border-bottom:none}
-.bs-title{flex:1;min-width:0}
-.bs-detail{color:var(--muted);font-size:.82rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bs-group h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:.6rem}
+.bs-item{font-family:'Fraunces';font-size:.95rem;color:var(--accent-deep,var(--adriatic-deep))}
+.bs-sub{display:block;font-family:'Outfit';font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;margin-top:.15rem}
+.bs-date{white-space:nowrap;color:var(--muted);font-size:.84rem}
 
 /* ---- trip countdown banner ---- */
 .countdown-banner{max-width:760px;margin:1.6rem auto 0;padding:0 2rem}
@@ -257,14 +255,19 @@ button{font-family:inherit}
 .prep h2{font-size:2.3rem;font-weight:300;margin-bottom:.4rem}
 .prep h2 em{font-style:italic;color:var(--seaglass-soft)}
 .prep .fp{opacity:.82;margin-bottom:2rem;max-width:560px}
+.prep .btn.secondary{background:none;color:#eaf2f1;border:1px solid rgba(255,255,255,.35)}
+.prep .btn.secondary:hover{border-color:var(--seaglass-soft);color:var(--seaglass-soft)}
 .prep-phase{margin-top:2rem}
 .prep-phase:first-child{margin-top:0}
 .prep-phase h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--seaglass-soft);font-weight:600;margin-bottom:.3rem;padding-top:1.2rem;border-top:1px solid rgba(255,255,255,.16)}
 .prep-phase:first-child h4{border-top:none;padding-top:0}
-.prep-item{display:flex;align-items:flex-start;gap:.8rem;padding:.7rem 0}
+.prep-item-row{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 0}
+.prep-item{display:flex;align-items:flex-start;gap:.8rem;flex:1;min-width:0}
 .prep-item input[type=checkbox]{margin-top:.3rem;width:16px;height:16px;accent-color:var(--seaglass-soft);flex-shrink:0}
 .prep-item span{font-size:.95rem}
 .prep-item.done span{opacity:.55;text-decoration:line-through}
+.prep-edit{background:none;border:none;color:#eaf2f1;opacity:.55;font-size:.74rem;cursor:pointer;text-decoration:underline;padding:.3rem 0;flex-shrink:0}
+.prep-edit:hover{opacity:.95;color:var(--seaglass-soft)}
 .foot-note{margin-top:2.4rem;font-size:.78rem;opacity:.6;letter-spacing:.02em}
 
 .totop{position:fixed;bottom:1.6rem;right:1.6rem;z-index:60;width:44px;height:44px;border-radius:50%;background:var(--adriatic-deep);color:#fff;border:none;cursor:pointer;font-size:1.2rem;box-shadow:0 6px 18px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .3s}

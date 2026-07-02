@@ -12,7 +12,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -66,9 +65,8 @@
 <main id="places"></main>
 
 <section class="wrap toolkit-block" id="toolkit">
-  <div class="sub-h"><h3>Toolkit</h3><span class="tag">Map · Weather · Booking status · Budget · Documents · Emergency · Notes</span><span class="rule"></span></div>
-  <div id="map-canvas"></div>
-  <div class="sub-h" style="margin-top:2.4rem"><h3>Weather</h3><span class="rule"></span></div>
+  <div class="sub-h"><h3>Toolkit</h3><span class="tag">Weather · Booking status · Budget · Documents · Emergency · Notes</span><span class="rule"></span></div>
+  <div class="sub-h" style="margin-top:0"><h3>Weather</h3><span class="rule"></span></div>
   <div class="weather-grid" id="weatherGrid"></div>
   <div class="sub-h" style="margin-top:2.4rem"><h3>Booking status</h3><span class="tag">hotels &amp; transport at a glance</span><span class="rule"></span></div>
   <div id="bookingStatusPanel"></div>
@@ -105,6 +103,7 @@
   <div class="prep-wrap">
     <h2>Trip <em>prep</em></h2>
     <p class="fp">Everything left to do, before you book and after, in order. Check items off as you go, it is saved automatically.</p>
+    <div style="margin-bottom:12px"><button class="btn secondary" id="addPrepBtn">+ Add a to-do</button></div>
     <div id="prepList"></div>
     <p class="foot-note">Currency is the euro throughout (Croatia adopted it in 2023). Location photos are from the original trip guide.</p>
   </div>
@@ -114,7 +113,6 @@
 
 <div id="modalRoot"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/store.js"></script>
