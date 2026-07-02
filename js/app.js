@@ -49,40 +49,75 @@ function renderActivityLine(a) {
   return '<div class="item-line item-line-clickable act-draggable" draggable="true" data-view-activity="' + a.id + '"><span class="drag-grip" aria-hidden="true">&#8942;&#8942;</span><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span></div>';
 }
 
-// Drag-and-drop reorder for activities inside a day box. Dropping persists a
-// sequential `order` field for every activity in that day, which then takes
-// precedence over time-of-day sorting (see buildDay in store.js).
+// Calendar-style drag-to-time. Every day box is an hour rail; dropping an
+// activity on an hour slot sets its time to that hour (and its date to that
+// day, so items can also be dragged between days). Dropping on the "anytime"
+// tray clears the time. Manual time edits in the form move the block the
+// same way, since the rail is rebuilt from activity times on every render.
 function wireActivityDrag(container) {
-  container.querySelectorAll(".day-acts").forEach((zone) => {
-    let dragged = null;
-    zone.querySelectorAll(".act-draggable").forEach((row) => {
-      row.addEventListener("dragstart", (e) => {
-        dragged = row;
-        row.classList.add("dragging");
-        e.dataTransfer.effectAllowed = "move";
-        try { e.dataTransfer.setData("text/plain", row.dataset.viewActivity); } catch (err) { /* IE quirk */ }
-      });
-      row.addEventListener("dragend", () => {
-        row.classList.remove("dragging");
-        if (!dragged) return;
-        dragged = null;
-        const ids = Array.from(zone.querySelectorAll(".act-draggable")).map((r) => r.dataset.viewActivity);
-        const state = Store.getState();
-        ids.forEach((id, i) => {
-          const a = state.activities.find((x) => x.id === id);
-          if (a && parseFloat(a.order) !== i) Store.update("activities", id, { order: i });
-        });
-      });
+  let dragged = null;
+  container.querySelectorAll(".act-draggable").forEach((row) => {
+    row.addEventListener("dragstart", (e) => {
+      dragged = row;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", row.dataset.viewActivity); } catch (err) { /* IE quirk */ }
     });
-    zone.addEventListener("dragover", (e) => {
-      if (!dragged) return;
-      e.preventDefault();
-      const rows = Array.from(zone.querySelectorAll(".act-draggable:not(.dragging)"));
-      const after = rows.find((r) => e.clientY < r.getBoundingClientRect().top + r.getBoundingClientRect().height / 2);
-      if (after) zone.insertBefore(dragged, after);
-      else zone.appendChild(dragged);
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+      dragged = null;
+      container.querySelectorAll(".drag-over").forEach((s) => s.classList.remove("drag-over"));
     });
   });
+  container.querySelectorAll(".hour-slot, .day-anytime").forEach((slot) => {
+    slot.addEventListener("dragover", (e) => {
+      if (!dragged) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      slot.classList.add("drag-over");
+    });
+    slot.addEventListener("dragleave", (e) => {
+      if (!slot.contains(e.relatedTarget)) slot.classList.remove("drag-over");
+    });
+    slot.addEventListener("drop", (e) => {
+      if (!dragged) return;
+      e.preventDefault();
+      slot.classList.remove("drag-over");
+      const id = dragged.dataset.viewActivity;
+      const patch = { time: slot.dataset.hour !== undefined ? String(slot.dataset.hour).padStart(2, "0") + ":00" : "" };
+      if (slot.dataset.date) patch.date = slot.dataset.date;
+      Store.update("activities", id, patch);
+    });
+  });
+}
+
+function hourLabel(h) {
+  return h === 0 ? "12 AM" : h < 12 ? h + " AM" : h === 12 ? "12 PM" : (h - 12) + " PM";
+}
+
+// One day rendered as an hour rail (8 AM - 10 PM by default, stretched to
+// fit any earlier/later activities) plus an "anytime" tray for untimed items.
+function renderDayTimeline(d) {
+  const timed = d.activities.filter((a) => a.time);
+  const untimed = d.activities.filter((a) => !a.time);
+  let minH = 8, maxH = 22;
+  timed.forEach((a) => {
+    const h = parseInt(a.time.slice(0, 2), 10);
+    if (h < minH) minH = h;
+    if (h > maxH) maxH = h;
+  });
+  const dateAttr = esc(d.date || "");
+  const anytime = untimed.length
+    ? '<div class="day-anytime" data-date="' + dateAttr + '"><span class="anytime-label">Anytime</span><div class="hour-items">' + untimed.map(renderActivityLine).join("") + '</div></div>'
+    : '<div class="day-anytime day-anytime-empty" data-date="' + dateAttr + '"><span class="anytime-label">Anytime · drop here to unschedule a time</span></div>';
+  const slots = [];
+  for (let h = minH; h <= maxH; h++) {
+    const items = timed.filter((a) => parseInt(a.time.slice(0, 2), 10) === h);
+    slots.push('<div class="hour-slot' + (items.length ? " has-items" : "") + '" data-hour="' + h + '" data-date="' + dateAttr + '">' +
+      '<span class="hour-label">' + hourLabel(h) + '</span>' +
+      '<div class="hour-items">' + items.map(renderActivityLine).join("") + '</div></div>');
+  }
+  return anytime + '<div class="hour-rail">' + slots.join("") + '</div>';
 }
 
 // Timezone-safe date shift (noon anchor avoids DST/UTC off-by-one).
@@ -226,16 +261,30 @@ function openItemDetailCard(kind, item, place) {
   }
   if (item.cost) rows.push(["Cost", fmtMoney(item.cost, item.currency)]);
   if (item.notes) rows.push(["Notes", item.notes]);
-  const statusHtml = item.status ? '<div class="idc-status"><span class="status-pill ' + item.status + '">' + item.status + '</span></div>' : "";
-  const body = statusHtml +
+  const accent = PLACE_ACCENT[place && place.id] || "#1d6a8c";
+  const kindLabel = isBooking ? (item.type || "Booking") : (item.type || "Activity");
+  const statusHtml = item.status ? ' <span class="pm-veg">' + esc(item.status) + '</span>' : "";
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = "";
+  const overlay = el('<div class="modal-overlay"><div class="modal place-modal">' +
+    '<div class="pm-head" style="background:' + accent + '">' +
+    '<button class="pm-x" id="pmClose" aria-label="Close">&times;</button>' +
+    '<div class="pm-kind">' + esc(kindLabel) + statusHtml + '</div>' +
+    '<h3>' + esc(item.title) + '</h3>' +
+    (place ? '<div class="pm-city">' + esc(place.label) + '</div>' : "") +
+    '</div>' +
+    '<div class="pm-body">' +
     '<div class="idc-rows">' + rows.map((r) => '<div class="idc-row"><span class="idc-label">' + esc(r[0]) + '</span><span class="idc-val">' + esc(r[1]) + '</span></div>').join("") + '</div>' +
-    (rows.length === 0 ? '<p class="muted">No extra details yet -- add some from Edit.</p>' : "") +
-    '<div class="idc-actions">' +
-    (mapsLink ? '<a class="btn" href="' + esc(mapsLink) + '" target="_blank" rel="noopener">Open in Maps</a>' : "") +
-    '<button class="btn secondary" id="idcEditBtn">Edit</button>' +
+    (rows.length === 0 ? '<p class="muted">No extra details yet -- add some from Edit below.</p>' : "") +
+    (mapsLink ? '<div class="pm-actions"><span></span><a class="site" href="' + esc(mapsLink) + '" target="_blank" rel="noopener">Map</a></div>' : "") +
+    '</div>' +
+    '<div class="pm-footer">' +
+    '<button class="link" id="idcEditBtn">Edit details</button>' +
     '<button class="link danger" id="idcRemoveBtn">Remove</button>' +
-    '</div>';
-  openViewModal(item.title, body);
+    '</div></div></div>');
+  root.appendChild(overlay);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) root.innerHTML = ""; });
+  document.getElementById("pmClose").addEventListener("click", () => { root.innerHTML = ""; });
   document.getElementById("idcEditBtn").addEventListener("click", () => {
     if (isBooking) openBookingForm(Store.getState(), item, place);
     else openActivityForm(Store.getState(), item.date, item, place);
@@ -312,7 +361,9 @@ function buildPlacesSkeleton() {
       '<div class="wishlist" id="wishlist-' + p.id + '" style="display:none"></div>' +
       '<div id="days-' + p.id + '"></div>' +
 
-      '<div class="sub-h"><h3>Where to stay</h3><span class="rule"></span></div>' +
+      '<details class="plan-collapse" data-collapse-key="stay-' + p.id + '" open>' +
+      '<summary><div class="sub-h"><h3>Where to stay</h3><span class="rule"></span><span class="arw">+</span></div></summary>' +
+      '<div class="plan-collapse-body">' +
       '<p class="sub-sub">Choose one to book</p>' +
       '<div class="filters" id="hotelfilters-' + p.id + '">' +
       '<button class="chip on" data-filter="all">All</button>' +
@@ -321,21 +372,41 @@ function buildPlacesSkeleton() {
       '</div>' +
       '<div id="hotels-' + p.id + '"></div>' +
       '<button class="link add-row-btn" data-add-hotel="' + p.id + '">+ add a hotel option</button>' +
+      '</div></details>' +
 
-      '<div class="sub-h"><h3>See &amp; do</h3><span class="rule"></span></div>' +
+      '<details class="plan-collapse" data-collapse-key="seedo-' + p.id + '" open>' +
+      '<summary><div class="sub-h"><h3>See &amp; do</h3><span class="rule"></span><span class="arw">+</span></div></summary>' +
+      '<div class="plan-collapse-body">' +
       '<div id="seedo-' + p.id + '" class="cards"></div>' +
+      '</div></details>' +
 
-      '<div class="sub-h"><h3>Where to eat</h3><span class="tag">vegetarian friendly noted</span><span class="rule"></span></div>' +
+      '<details class="plan-collapse" data-collapse-key="food-' + p.id + '" open>' +
+      '<summary><div class="sub-h"><h3>Where to eat</h3><span class="rule"></span><span class="arw">+</span></div></summary>' +
+      '<div class="plan-collapse-body">' +
+      '<p class="sub-sub">Vegetarian friendly noted</p>' +
       '<div class="filters" id="filters-' + p.id + '">' +
       '<button class="chip on" data-filter="all">All</button>' +
       '<button class="chip" data-filter="veg">Vegetarian</button>' +
       '<button class="chip" data-filter="nonveg">Omnivore</button>' +
       '</div>' +
       '<div id="foodcards-' + p.id + '" class="cards"></div>' +
+      '</div></details>' +
 
       (tips ? '<details class="tips"><summary>Good to know<span class="arw">+</span></summary><ul>' + tips + "</ul></details>" : "") +
       "</div></section>" + (i < PLACES.length - 1 ? '<div class="divider"></div>' : "");
   }).join("");
+
+  // Planning sections (stay / see&do / eat) collapse per city -- handy once a
+  // city is fully planned. Open/closed is remembered on this device.
+  let collapsed = {};
+  try { collapsed = JSON.parse(localStorage.getItem("planCollapse") || "{}"); } catch (err) { collapsed = {}; }
+  container.querySelectorAll(".plan-collapse").forEach((det) => {
+    if (collapsed[det.dataset.collapseKey]) det.removeAttribute("open");
+    det.addEventListener("toggle", () => {
+      collapsed[det.dataset.collapseKey] = !det.open;
+      try { localStorage.setItem("planCollapse", JSON.stringify(collapsed)); } catch (err) { /* private mode */ }
+    });
+  });
 
   document.getElementById("places").querySelectorAll('.filters[id^="filters-"]').forEach((box) => {
     box.addEventListener("click", (e) => {
@@ -392,7 +463,7 @@ function renderPlaceDays(placeId, state) {
   const el2 = document.getElementById("days-" + placeId);
   if (!days.length) { el2.innerHTML = '<div class="day-rows"><div class="day-row"><div class="day-body muted">Not currently in your itinerary. Add it back in the itinerary editor above.</div></div></div>'; return; }
   el2.innerHTML = '<div class="day-rows">' + days.map((d) => {
-    const lines = '<div class="day-acts" data-date="' + esc(d.date || "") + '">' + d.activities.map(renderActivityLine).join("") + '</div>';
+    const lines = renderDayTimeline(d);
     const transportLines = d.transport.map(renderTransportLine).join("");
     const hotelBar = renderDayHotelBar(d.lodging, d.date, placeId);
     return '<div class="day-row"><div class="day-dot">' + d.day + '</div><div class="day-body">' +
@@ -938,8 +1009,16 @@ function renderItineraryEditor(state) {
     const place = PLACES.find((p) => p.id === stop.placeId);
     const pct = (stop.nights / totalNights) * 100;
     const color = PLACE_ACCENT[stop.placeId] || "#7cc0c2";
-    return '<div class="ie-route-seg" style="width:' + pct + '%;background:' + color + '" title="' + esc(place ? place.label : stop.placeId) + ' · ' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '"></div>';
+    const lbl = stop.nights >= 2 && place ? '<span class="ie-seg-lbl">' + esc(place.label) + '</span>' : "";
+    return '<div class="ie-route-seg" style="width:' + pct + '%;background:' + color + '" title="' + esc(place ? place.label : stop.placeId) + ' · ' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '">' + lbl + '</div>';
   }).join("") + '</div>';
+
+  const tripRange = Store.getTripDateRange();
+  const summaryLine = tripRange.start
+    ? '<div class="ie-summary">' + esc(fmtDate(tripRange.start)) + ' &ndash; ' + esc(fmtDate(tripRange.end)) +
+      '<span class="ie-summary-sep">·</span>' + totalNights + ' nights' +
+      '<span class="ie-summary-sep">·</span>' + state.trip.stops.length + ' stops</div>'
+    : "";
 
   // View mode: just city + dates. Edit mode: full controls (nights,
   // reorder, remove, add a stop). Toggled by the Edit/Done button.
@@ -953,8 +1032,10 @@ function renderItineraryEditor(state) {
       '<div class="ie-thumb" style="' + thumbStyle + '"></div>' +
       '<div class="ie-simple-body">' +
       '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
-      '<div class="ie-stop-dates muted">' + esc(dateLabel) + (dateLabel ? " · " : "") + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</div>' +
-      '</div></div>';
+      '<div class="ie-stop-dates muted">' + esc(dateLabel) + '</div>' +
+      '</div>' +
+      '<span class="ie-nights-pill" style="background:' + accent + '">' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</span>' +
+      '</div>';
   }).join("") + '</div>';
 
   const timeline = '<div class="ie-timeline">' + state.trip.stops.map((stop, i) => {
@@ -984,7 +1065,7 @@ function renderItineraryEditor(state) {
   }).join("") + '</div>';
 
   container.innerHTML = state.trip.stops.length
-    ? (routeStrip + (itineraryEditMode ? timeline : simpleList))
+    ? (routeStrip + summaryLine + (itineraryEditMode ? timeline : simpleList))
     : '<div class="muted">No stops yet -- add one below.</div>';
 
   const toggle = document.getElementById("ieEditToggle");

@@ -248,12 +248,14 @@ const Store = (() => {
     const dayActivities = state.activities
       .filter((a) => a.date === dateStr)
       .sort((a, b) => {
-        // Manual drag order wins once set; items without one fall back to
-        // time-of-day sorting (and sink below manually ordered items).
+        // The day reads as an hourly timeline, so time-of-day is the primary
+        // sort; the manual order field only breaks ties between items at the
+        // same time (or both untimed).
+        const t = (x) => x.time || "99:99";
+        if (t(a) !== t(b)) return t(a) < t(b) ? -1 : 1;
         const ord = (x) => { const n = parseFloat(x.order); return isNaN(n) ? Infinity : n; };
         const ao = ord(a), bo = ord(b);
-        if (ao !== bo) return ao < bo ? -1 : 1;
-        return (a.time || "99:99").localeCompare(b.time || "99:99");
+        return ao === bo ? 0 : ao < bo ? -1 : 1;
       });
     return { day: dayNum, date: dateStr, placeId: range.placeId, cityId, lodging, transport, activities: dayActivities };
   }

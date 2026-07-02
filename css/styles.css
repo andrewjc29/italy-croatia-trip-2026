@@ -68,8 +68,11 @@ button{font-family:inherit}
 .ie-head{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin-bottom:.9rem;flex-wrap:wrap}
 .ie-head h3{font-family:'Fraunces';font-size:1.2rem;color:var(--adriatic-deep)}
 .ie-head .tag{font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--terracotta);font-weight:600}
-.ie-route-strip{display:flex;height:9px;border-radius:6px;overflow:hidden;margin-bottom:1.5rem;box-shadow:inset 0 0 0 1px var(--line)}
-.ie-route-seg{transition:width .35s ease;min-width:3%}
+.ie-route-strip{display:flex;height:20px;border-radius:10px;overflow:hidden;margin-bottom:.6rem;box-shadow:inset 0 0 0 1px var(--line)}
+.ie-route-seg{transition:width .35s ease;min-width:3%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ie-seg-lbl{font-family:'Outfit';font-size:.56rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.25);padding:0 .3rem}
+.ie-summary{font-family:'Outfit';font-size:.8rem;color:var(--muted);margin-bottom:1.4rem}
+.ie-summary-sep{margin:0 .45rem;color:var(--line)}
 .ie-timeline{position:relative;padding-left:3.5rem}
 .ie-timeline::before{content:"";position:absolute;left:1.6rem;top:.3rem;bottom:.3rem;width:2px;background:var(--line)}
 .ie-stop{position:relative;display:flex;gap:1rem;padding:.6rem 0}
@@ -125,6 +128,15 @@ button{font-family:inherit}
 .tk-collapse summary .arw{font-family:'Outfit';font-size:1.3rem;color:var(--terracotta);transition:transform .25s;flex-shrink:0}
 .tk-collapse[open] summary .arw{transform:rotate(45deg)}
 .tk-collapse-body{margin-top:1.3rem}
+
+/* ---- per-city collapsible planning sections (stay / see&do / eat) ---- */
+.plan-collapse summary{cursor:pointer;list-style:none}
+.plan-collapse summary::-webkit-details-marker{display:none}
+.plan-collapse summary .sub-h{margin-bottom:0}
+.plan-collapse summary .arw{font-family:'Outfit';font-size:1.3rem;color:var(--accent,var(--terracotta));transition:transform .25s;flex-shrink:0;align-self:center}
+.plan-collapse[open] summary .arw{transform:rotate(45deg)}
+.plan-collapse .plan-collapse-body{margin-top:1.1rem}
+.plan-collapse .sub-sub{margin-top:0}
 
 /* ---- filter chips ---- */
 .filters{display:flex;gap:.5rem;flex-wrap:wrap;margin:-.3rem 0 1.2rem}
@@ -248,10 +260,10 @@ button{font-family:inherit}
 /* ---- place detail modal (tap a card to open) ---- */
 .modal.place-modal{padding:0;overflow:hidden;overflow-y:auto}
 .modal.place-modal .pm-head{position:relative;padding:1.5rem 3rem 1.3rem 1.5rem;color:#fff}
-.pm-kind{font-family:'Outfit';font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--adriatic-deep);margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-.pm-veg{font-size:.6rem;letter-spacing:.05em;padding:.15rem .5rem;border-radius:var(--radius-pill);background:rgba(255,255,255,.35);color:var(--adriatic-deep);text-transform:uppercase}
+.pm-kind{font-family:'Outfit';font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.92);margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.pm-veg{font-size:.6rem;letter-spacing:.05em;padding:.15rem .5rem;border-radius:var(--radius-pill);background:rgba(255,255,255,.25);color:#fff;text-transform:uppercase}
 .modal.place-modal .pm-head h3{font-family:'Fraunces';font-size:1.45rem;color:#fff;margin:0;line-height:1.2}
-.pm-city{font-family:'Outfit';font-size:.8rem;color:var(--adriatic-deep);opacity:.9;margin-top:.3rem}
+.pm-city{font-family:'Outfit';font-size:.8rem;color:rgba(255,255,255,.88);margin-top:.3rem}
 .pm-body{padding:1.2rem 1.5rem 1.4rem}
 .pm-desc{font-size:.95rem;line-height:1.6;color:var(--ink);margin:0}
 .pm-actions{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:1.2rem}
@@ -282,7 +294,8 @@ button{font-family:inherit}
 
 /* ---- today view: unmissable while actually traveling ---- */
 .today-view{max-width:760px;margin:1.6rem auto 0;padding:0 2rem}
-.today-view + .intro{padding-top:1rem}
+.today-view + .intro{padding-top:.5rem}
+.today-view + .intro .itinerary-editor{margin-top:.8rem}
 .tv-head{background:var(--adriatic-deep);color:#fff;border-radius:14px 14px 0 0;padding:.7rem 1.3rem;display:flex;align-items:center;gap:.8rem}
 .tv-badge{font-family:'Outfit';font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;background:var(--terracotta);color:#fff;padding:.25rem .6rem;border-radius:var(--radius-pill)}
 .tv-date{font-family:'Fraunces';font-style:italic;font-size:1.1rem}
@@ -302,8 +315,10 @@ button{font-family:inherit}
 
 /* ---- itinerary editor: simple view mode ---- */
 .ie-stop.ie-simple{display:flex;align-items:center;gap:.9rem;padding:.4rem 0}
+.ie-simple-body{flex:1}
 .ie-simple-body .ie-stop-name{font-family:'Fraunces';font-size:1.05rem;color:var(--adriatic-deep)}
 .ie-simple .ie-stop-dates{font-size:.78rem}
+.ie-nights-pill{font-family:'Outfit';font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:#fff;padding:.25rem .65rem;border-radius:var(--radius-pill);white-space:nowrap;flex-shrink:0}
 .ie-edit-toggle{margin-left:auto;flex-shrink:0}
 
 /* ---- drag reorder inside a day ---- */
@@ -311,6 +326,20 @@ button{font-family:inherit}
 .drag-grip{color:transparent;font-size:.7rem;letter-spacing:-2px;margin-right:.35rem;cursor:grab;transition:color .15s;user-select:none}
 .act-draggable:hover .drag-grip{color:var(--muted)}
 .act-draggable.dragging{opacity:.45;background:#eef4f2}
+
+/* ---- hourly day timeline ---- */
+.hour-rail{margin:.5rem 0 .3rem}
+.hour-slot{display:flex;gap:.55rem;align-items:flex-start;min-height:15px;border-top:1px solid rgba(18,60,82,.07)}
+.hour-slot:last-child{border-bottom:1px solid rgba(18,60,82,.07)}
+.hour-label{font-family:'Outfit';font-size:.56rem;color:var(--muted);opacity:.6;width:2.9rem;flex-shrink:0;text-align:right;padding-top:2px;letter-spacing:.05em}
+.hour-items{flex:1;display:flex;flex-direction:column;gap:2px;min-height:13px}
+.hour-slot .item-line,.day-anytime .item-line{background:#fff;border:1px solid var(--line);border-radius:8px;padding:.25rem .55rem;margin:2px 0}
+.hour-slot.drag-over,.day-anytime.drag-over{background:#eaf3ef;box-shadow:inset 0 0 0 1px var(--seaglass,#7cc0c2)}
+.day-anytime{border:1px dashed var(--line);border-radius:9px;padding:.3rem .6rem;margin:.5rem 0 .2rem;display:flex;gap:.6rem;align-items:flex-start}
+.day-anytime .hour-items{padding:.1rem 0}
+.anytime-label{font-family:'Outfit';font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:.45rem;flex-shrink:0}
+.day-anytime-empty{padding:.15rem .6rem;opacity:.55}
+.day-anytime-empty .anytime-label{padding-top:.1rem}
 
 /* ---- per-city wishlist (unscheduled ideas) ---- */
 .wishlist{background:#fdf9f1;border:1px dashed var(--accent,var(--terracotta));border-radius:12px;padding:.8rem 1rem;margin-bottom:1.1rem}
