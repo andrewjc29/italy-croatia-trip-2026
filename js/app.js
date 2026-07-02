@@ -179,7 +179,7 @@ let budgetCurrency = "USD"; // display-only toggle for the budget panel, not per
 // falls relative to the booking's date/endDate. Colored to match that city's
 // accent (same palette as the itinerary editor's timeline dots/thumbnails),
 // so the bar visually ties back to which place you're in.
-function renderDayHotelBar(lodging, dateStr, placeId) {
+function renderDayHotelBar(lodging, dateStr, placeId, atTop) {
   if (!lodging) return "";
   const isCheckin = lodging.date === dateStr;
   const isCheckout = lodging.endDate === dateStr;
@@ -190,7 +190,7 @@ function renderDayHotelBar(lodging, dateStr, placeId) {
   else { label = "Staying at"; timeVal = ""; }
   const timeHtml = timeVal ? " · " + esc(fmtTime12(timeVal)) : "";
   const accent = PLACE_ACCENT[placeId] || "#1d6a8c";
-  return '<div class="day-hotel-bar item-line-clickable" data-view-booking="' + lodging.id + '" style="background:' + accent + '"><span class="dhb-label">' + esc(label) + timeHtml + '</span>' +
+  return '<div class="day-hotel-bar' + (atTop ? " at-top" : "") + ' item-line-clickable" data-view-booking="' + lodging.id + '" style="background:' + accent + '"><span class="dhb-label">' + esc(label) + timeHtml + '</span>' +
     '<span class="dhb-hotel">' + esc(lodging.title) + '</span></div>';
 }
 
@@ -203,6 +203,14 @@ function openModal(title, bodyHtml, onSubmit, submitLabel) {
     '<div class="modal-actions"><button class="btn secondary" id="modalCancel">Cancel</button>' +
     '<button class="btn" id="modalSubmit">' + esc(submitLabel || "Save") + "</button></div></div></div>");
   root.appendChild(overlay);
+  // step="900" asks pickers for 15-min increments, but not every browser's
+  // picker honors it -- snap whatever comes in to the nearest quarter hour.
+  overlay.querySelectorAll('input[type="time"]').forEach((inp) => inp.addEventListener("change", () => {
+    if (!inp.value) return;
+    const parts = inp.value.split(":").map(Number);
+    const total = (parts[0] * 60 + Math.round(parts[1] / 15) * 15) % 1440;
+    inp.value = String(Math.floor(total / 60)).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0");
+  }));
   overlay.addEventListener("click", (e) => { if (e.target === overlay) root.innerHTML = ""; });
   document.getElementById("modalCancel").addEventListener("click", () => { root.innerHTML = ""; });
   document.getElementById("modalSubmit").addEventListener("click", () => {
@@ -392,7 +400,7 @@ function buildPlacesSkeleton() {
       '<div id="days-' + p.id + '"></div>' +
 
       '<details class="plan-collapse" data-collapse-key="stay-' + p.id + '">' +
-      '<summary><div class="sub-h"><h3>Where to stay</h3><span class="rule"></span><span class="arw">&rsaquo;</span></div></summary>' +
+      '<summary><div class="sub-h"><h3>Where to stay</h3><span class="rule"></span><button class="sec-add" data-sec-add="stay:' + p.id + '" title="Add a hotel option" aria-label="Add a hotel option">+</button><span class="arw">&rsaquo;</span></div></summary>' +
       '<div class="plan-collapse-body">' +
       '<p class="sub-sub">Choose one to book</p>' +
       '<div class="filters" id="hotelfilters-' + p.id + '">' +
@@ -401,7 +409,6 @@ function buildPlacesSkeleton() {
       '<button class="chip" data-filter="splurge">Splurge picks</button>' +
       '</div>' +
       '<div id="hotels-' + p.id + '"></div>' +
-      '<button class="link add-row-btn" data-add-hotel="' + p.id + '">+ add a hotel option</button>' +
       '</div></details>' +
 
       '<details class="plan-collapse" data-collapse-key="seedo-' + p.id + '">' +
@@ -450,6 +457,7 @@ function buildPlacesSkeleton() {
     if (!place) return;
     if (parts[0] === "see") openSeeForm(Store.getState(), null, place);
     else if (parts[0] === "food") openRestForm(Store.getState(), null, place);
+    else if (parts[0] === "stay") openHotelForm(Store.getState(), null, place);
   }));
 
   document.getElementById("places").querySelectorAll('.filters[id^="filters-"]').forEach((box) => {
@@ -529,10 +537,19 @@ function renderPlaceDays(placeId, state) {
     const events = bookingEventsForDate(state, d.date);
     const lines = renderDayTimeline(d, events);
     const transportLines = d.transport.filter((t) => !t.time).map(renderTransportLine).join("");
-    const hotelBar = renderDayHotelBar(d.lodging, d.date, d.placeId);
-    let banner = "";
+    // Transition days read top-to-bottom like the day itself: wake up +
+    // check out of the old hotel (top bar, departing city's color), travel,
+    // then the travel banner + check-in at the new hotel (bottom, arriving
+    // city's color). Normal days just keep the "staying at" bar on the bottom.
+    let topBar = "", bottomBar = "", banner = "";
     if (entry.transition) {
       const t = entry.transition;
+      const departId = t.dir === "out" ? placeId : t.other.id;
+      const arriveId = t.dir === "out" ? t.other.id : placeId;
+      const hotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === d.date);
+      const hotelIn = (state.bookings || []).find((b) => b.category === "lodging" && b.date === d.date);
+      topBar = renderDayHotelBar(hotelOut, d.date, departId, true);
+      bottomBar = renderDayHotelBar(hotelIn, d.date, arriveId);
       const accent = PLACE_ACCENT[t.other.id] || "#1d6a8c";
       banner = '<div class="travel-banner" style="border-color:' + accent + ';color:' + accent + '">' +
         '<span class="tb-label" style="background:' + accent + '">Travel day</span>' +
@@ -540,14 +557,16 @@ function renderPlaceDays(placeId, state) {
           ? esc(t.from.label) + ' &rarr; ' + esc(t.other.label) + '<a class="tb-jump" href="#' + t.other.id + '">Continue in ' + esc(t.other.label) + ' &darr;</a>'
           : 'Arriving from ' + esc(t.other.label) + '<a class="tb-jump" href="#' + t.other.id + '">&uarr; Back to ' + esc(t.other.label) + '</a>') +
         '</div>';
+    } else {
+      bottomBar = renderDayHotelBar(d.lodging, d.date, d.placeId);
     }
     return '<div class="day-row' + (entry.transition ? " day-row-transition" : "") + '"><div class="day-dot"></div><div class="day-body">' +
       '<div class="day-date">' + (d.date ? fmtDate(d.date) : "Day " + d.day) + '</div>' +
-      banner + transportLines + lines +
+      topBar + transportLines + lines +
       '<div class="day-add-row">' +
       '<button class="add-line" data-add-act="' + esc(d.date || "") + '">+ add to this day</button>' +
       '<button class="add-line" data-add-booking="' + esc(d.date || "") + '">+ add a booking</button>' +
-      '</div>' + hotelBar + '</div></div>';
+      '</div>' + banner + bottomBar + '</div></div>';
   }).join("") + "</div>";
   wireActivityDrag(el2);
   el2.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, btn.dataset.addAct, null, place)));
@@ -954,8 +973,10 @@ function renderTodayView(state) {
       html: renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)
     }))
   ].sort((x, y) => x.time.localeCompare(y.time)).map((x) => x.html).join("");
-  // Travel-day banner when this date is a stop boundary.
-  let travelHtml = "";
+  // On stop-boundary dates the day reads top-to-bottom: check out of the
+  // old hotel (top), the day's schedule, then the travel banner + check-in
+  // at the new hotel (bottom). Other days keep the single bottom bar.
+  let topBar = "", bottomHtml = hotelHtml;
   const ranges = Store.computeStopRanges();
   const arrIdx = ranges.findIndex((r, i) => i > 0 && r.dateStart === today.date);
   if (arrIdx > 0) {
@@ -963,16 +984,20 @@ function renderTodayView(state) {
     const toP = PLACES.find((p) => p.id === ranges[arrIdx].placeId);
     if (fromP && toP) {
       const acc = PLACE_ACCENT[toP.id] || "#1d6a8c";
-      travelHtml = '<div class="travel-banner" style="border-color:' + acc + ';color:' + acc + '">' +
+      const hotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === today.date);
+      const hotelIn = (state.bookings || []).find((b) => b.category === "lodging" && b.date === today.date);
+      topBar = renderDayHotelBar(hotelOut, today.date, fromP.id, true);
+      bottomHtml = '<div class="travel-banner" style="border-color:' + acc + ';color:' + acc + '">' +
         '<span class="tb-label" style="background:' + acc + '">Travel day</span>' +
-        esc(fromP.label) + ' &rarr; ' + esc(toP.label) + '</div>';
+        esc(fromP.label) + ' &rarr; ' + esc(toP.label) + '</div>' +
+        renderDayHotelBar(hotelIn, today.date, toP.id);
     }
   }
   const contentEl = document.getElementById("todayContent");
   contentEl.innerHTML =
-    cityHtml + travelHtml + transportHtml +
+    cityHtml + topBar + transportHtml +
     (merged || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>') +
-    hotelHtml;
+    bottomHtml;
   contentEl.querySelectorAll("[data-view-booking]").forEach((row) => row.addEventListener("click", () => {
     const b = Store.getState().bookings.find((x) => x.id === row.dataset.viewBooking);
     if (b) openItemDetailCard("booking", b, place);
