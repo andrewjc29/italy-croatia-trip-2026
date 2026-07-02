@@ -139,8 +139,9 @@ function openViewModal(title, bodyHtml) {
   const root = document.getElementById("modalRoot");
   root.innerHTML = "";
   const overlay = el('<div class="modal-overlay"><div class="modal">' +
+    '<button class="pm-x dark" id="modalCancel" aria-label="Close">&times;</button>' +
     "<h3>" + esc(title) + "</h3><div class=\"modal-body\">" + bodyHtml + "</div>" +
-    '<div class="modal-actions"><button class="btn secondary" id="modalCancel">Close</button></div></div></div>');
+    '</div></div>');
   root.appendChild(overlay);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) root.innerHTML = ""; });
   document.getElementById("modalCancel").addEventListener("click", () => { root.innerHTML = ""; });
@@ -174,9 +175,9 @@ function openItemDetailCard(kind, item, place) {
     '<div class="idc-rows">' + rows.map((r) => '<div class="idc-row"><span class="idc-label">' + esc(r[0]) + '</span><span class="idc-val">' + esc(r[1]) + '</span></div>').join("") + '</div>' +
     (rows.length === 0 ? '<p class="muted">No extra details yet -- add some from Edit.</p>' : "") +
     '<div class="idc-actions">' +
-    (mapsLink ? '<a class="btn secondary" href="' + esc(mapsLink) + '" target="_blank" rel="noopener">Open in Maps</a>' : "") +
+    (mapsLink ? '<a class="btn" href="' + esc(mapsLink) + '" target="_blank" rel="noopener">Open in Maps</a>' : "") +
     '<button class="btn secondary" id="idcEditBtn">Edit</button>' +
-    '<button class="btn secondary" id="idcRemoveBtn">Remove</button>' +
+    '<button class="link danger" id="idcRemoveBtn">Remove</button>' +
     '</div>';
   openViewModal(item.title, body);
   document.getElementById("idcEditBtn").addEventListener("click", () => {
@@ -191,32 +192,51 @@ function openItemDetailCard(kind, item, place) {
   });
 }
 
-// Tapping a restaurant/thing-to-do card's title or "More" button opens this --
-// a bigger read-only view with the full description and a map link, plus
-// quick actions to add it to a day or jump to the edit form. type is
-// "restaurant" or "seedo" (things to do).
+// Tapping anywhere on a restaurant/thing-to-do card opens this -- a bigger,
+// more visual view with a city-accent header, the full description, and a
+// clear action hierarchy: primary "+ Add to a day", secondary "Open in Maps",
+// then quiet Edit / Remove links along the bottom. Close is the X in the
+// corner (or a tap on the backdrop). type is "restaurant" or "seedo".
 function openPlaceDetailCard(type, item, place) {
   const isRest = type === "restaurant";
-  const rows = [];
-  if (item.kind) rows.push(["Kind", item.kind]);
-  if (isRest) rows.push(["Diet", item.vegetarian ? "Vegetarian friendly" : "Omnivore"]);
-  const body =
-    '<div class="idc-rows">' + rows.map((r) => '<div class="idc-row"><span class="idc-label">' + esc(r[0]) + '</span><span class="idc-val">' + esc(r[1]) + '</span></div>').join("") + '</div>' +
-    (item.description ? '<p class="idc-desc">' + esc(item.description) + '</p>' : '<p class="muted">No notes yet -- add some from Edit.</p>') +
-    '<div class="idc-actions">' +
+  const accent = PLACE_ACCENT[place.id] || "#1d6a8c";
+  const vegHtml = isRest ? ' <span class="pm-veg">' + (item.vegetarian ? "vegetarian" : "omnivore") + '</span>' : "";
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = "";
+  const overlay = el('<div class="modal-overlay"><div class="modal place-modal">' +
+    '<div class="pm-head" style="background:' + accent + '">' +
+    '<button class="pm-x" id="pmClose" aria-label="Close">&times;</button>' +
+    '<div class="pm-kind">' + esc(item.kind || (isRest ? "Restaurant" : "Thing to do")) + vegHtml + '</div>' +
+    '<h3>' + esc(item.name) + '</h3>' +
+    '<div class="pm-city">' + esc(cityName(item.city)) + '</div>' +
+    '</div>' +
+    '<div class="pm-body">' +
+    (item.description ? '<p class="pm-desc">' + esc(item.description) + '</p>' : '<p class="muted">No notes yet -- add some from Edit below.</p>') +
+    '<div class="pm-actions">' +
+    '<button class="btn" id="pmAdd">+ Add to a day</button>' +
     (item.url ? '<a class="btn secondary" href="' + esc(item.url) + '" target="_blank" rel="noopener">Open in Maps</a>' : "") +
-    '<button class="btn secondary" id="idcAddBtn">+ Add to a day</button>' +
-    '<button class="btn secondary" id="idcEditBtn2">Edit</button>' +
-    '</div>';
-  openViewModal(item.name, body);
-  document.getElementById("idcAddBtn").addEventListener("click", () => {
+    '</div></div>' +
+    '<div class="pm-footer">' +
+    '<button class="link" id="pmEdit">Edit details</button>' +
+    '<button class="link danger" id="pmRemove">Remove</button>' +
+    '</div></div></div>');
+  root.appendChild(overlay);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) root.innerHTML = ""; });
+  document.getElementById("pmClose").addEventListener("click", () => { root.innerHTML = ""; });
+  document.getElementById("pmAdd").addEventListener("click", () => {
     closeModal();
     if (isRest) openAddToDayModal(item.name + " (" + item.kind + ")", item.city, item.description, "meal", place);
     else openAddToDayModal(item.name, item.city, item.description, "sight", place);
   });
-  document.getElementById("idcEditBtn2").addEventListener("click", () => {
+  document.getElementById("pmEdit").addEventListener("click", () => {
     if (isRest) openRestForm(Store.getState(), item, place);
     else openSeeForm(Store.getState(), item, place);
+  });
+  document.getElementById("pmRemove").addEventListener("click", () => {
+    if (confirm('Remove "' + item.name + '"?')) {
+      Store.remove(isRest ? "restaurants" : "thingsToDo", item.id);
+      closeModal();
+    }
   });
 }
 
@@ -436,22 +456,22 @@ function renderPlaceSee(placeId, state) {
   const list = (state.thingsToDo || []).filter((s) => s.placeId === placeId);
   const el2 = document.getElementById("seedo-" + placeId);
   el2.innerHTML = list.map((s) =>
-    '<div class="card"><div class="pic"></div><div class="body"><div class="kind">' + esc(s.kind) + '</div>' +
-    '<h4 class="card-title-clickable" data-view-see="' + s.id + '">' + esc(s.name) + '</h4>' +
+    '<div class="card card-clickable" data-view-see="' + s.id + '"><div class="pic"></div><div class="body"><div class="kind">' + esc(s.kind) + '</div>' +
+    '<h4>' + esc(s.name) + '</h4>' +
     '<div class="foot">' +
     '<button class="site" data-add-day-see="' + s.id + '">+ Add to a day</button>' +
     (s.url ? '<a class="site" href="' + esc(s.url) + '" target="_blank" rel="noopener">Map</a>' : "") +
-    '<button class="site" data-view-see="' + s.id + '">More</button></div>' +
-    '<div style="margin-top:.4rem"><button class="link" data-edit-see="' + s.id + '">edit</button></div></div></div>').join("") +
+    '</div></div></div>').join("") +
     '<div class="card" style="align-items:center;justify-content:center;min-height:150px"><button class="link" data-add-see="' + placeId + '">+ add a thing to do</button></div>';
-  el2.querySelectorAll("[data-edit-see]").forEach((btn) => btn.addEventListener("click", () => openSeeForm(state, state.thingsToDo.find((x) => x.id === btn.dataset.editSee), place)));
   el2.querySelectorAll("[data-add-see]").forEach((btn) => btn.addEventListener("click", () => openSeeForm(state, null, place)));
-  el2.querySelectorAll("[data-add-day-see]").forEach((btn) => btn.addEventListener("click", () => {
+  el2.querySelectorAll("[data-add-day-see]").forEach((btn) => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
     const s = state.thingsToDo.find((x) => x.id === btn.dataset.addDaySee);
     openAddToDayModal(s.name, s.city, s.description, "sight", place);
   }));
-  el2.querySelectorAll("[data-view-see]").forEach((el3) => el3.addEventListener("click", () => {
-    const s = state.thingsToDo.find((x) => x.id === el3.dataset.viewSee);
+  el2.querySelectorAll(".card[data-view-see]").forEach((card) => card.addEventListener("click", (e) => {
+    if (e.target.closest(".foot")) return;
+    const s = state.thingsToDo.find((x) => x.id === card.dataset.viewSee);
     if (s) openPlaceDetailCard("seedo", s, place);
   }));
 }
@@ -489,23 +509,23 @@ function renderPlaceFood(placeId, state) {
   if (filter === "nonveg") list = list.filter((r) => !r.vegetarian);
   const el2 = document.getElementById("foodcards-" + placeId);
   el2.innerHTML = list.map((r) =>
-    '<div class="card"><div class="pic"></div><div class="body">' +
-    '<h4 class="card-title-clickable" data-view-rest="' + r.id + '">' + esc(r.name) + '</h4>' +
+    '<div class="card card-clickable" data-view-rest="' + r.id + '"><div class="pic"></div><div class="body">' +
+    '<h4>' + esc(r.name) + '</h4>' +
     '<div class="kind">' + esc(r.kind) + ' <span class="veg ' + (r.vegetarian ? "yes" : "no") + '">' + (r.vegetarian ? "vegetarian" : "omnivore") + '</span></div>' +
     '<div class="foot">' +
     '<button class="site" data-add-day="' + r.id + '">+ Add to a day</button>' +
     (r.url ? '<a class="site" href="' + esc(r.url) + '" target="_blank" rel="noopener">Map</a>' : "") +
-    '<button class="site" data-view-rest="' + r.id + '">More</button></div>' +
-    '<div style="margin-top:.4rem"><button class="link" data-edit-rest="' + r.id + '">edit</button></div></div></div>').join("") +
+    '</div></div></div>').join("") +
     '<div class="card" style="align-items:center;justify-content:center;min-height:150px"><button class="link" data-add-rest="' + placeId + '">+ add restaurant</button></div>';
-  el2.querySelectorAll("[data-edit-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, state.restaurants.find((x) => x.id === btn.dataset.editRest), place)));
   el2.querySelectorAll("[data-add-rest]").forEach((btn) => btn.addEventListener("click", () => openRestForm(state, null, place)));
-  el2.querySelectorAll("[data-add-day]").forEach((btn) => btn.addEventListener("click", () => {
+  el2.querySelectorAll("[data-add-day]").forEach((btn) => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
     const r = state.restaurants.find((x) => x.id === btn.dataset.addDay);
     openAddToDayModal(r.name + " (" + r.kind + ")", r.city, r.description, "meal", place);
   }));
-  el2.querySelectorAll("[data-view-rest]").forEach((el3) => el3.addEventListener("click", () => {
-    const r = state.restaurants.find((x) => x.id === el3.dataset.viewRest);
+  el2.querySelectorAll(".card[data-view-rest]").forEach((card) => card.addEventListener("click", (e) => {
+    if (e.target.closest(".foot")) return;
+    const r = state.restaurants.find((x) => x.id === card.dataset.viewRest);
     if (r) openPlaceDetailCard("restaurant", r, place);
   }));
 }
@@ -632,9 +652,15 @@ function openRestForm(state, existing, place) {
 function renderTodayView(state) {
   const section = document.getElementById("todayView");
   if (!section) return;
-  const todayISO = new Date().toISOString().slice(0, 10);
+  // ?today=YYYY-MM-DD lets you preview any trip day before the trip starts
+  // (e.g. index.html?today=2026-09-18). During the trip it works off the
+  // real date automatically.
+  const previewDate = new URLSearchParams(location.search).get("today");
+  const todayISO = previewDate || new Date().toISOString().slice(0, 10);
   const today = Store.getItineraryDays().find((d) => d.date === todayISO);
   if (!today) { section.style.display = "none"; return; }
+  const badge = section.querySelector(".tv-badge");
+  if (badge) badge.textContent = previewDate ? "Today (preview)" : "Today";
   section.style.display = "";
   document.getElementById("todayDate").textContent = fmtDate(today.date);
   const place = PLACES.find((p) => p.id === today.placeId);
@@ -1186,10 +1212,29 @@ function renderPrep(state) {
     openPrepItemModal(Store.getState(), null, btn.dataset.prepAddPhase)));
 }
 
+// Compact sync-status icon in the nav: spinning arrows while syncing, a
+// check circle once synced, a crossed-out cloud when offline, and a phone
+// when running local-only. Hover (or long-press) shows the full label.
+function renderSyncStatus(syncStatus) {
+  const elx = document.getElementById("syncStatus");
+  if (!elx) return;
+  const labels = { "local-only": "Saved on this device only", connecting: "Syncing...", synced: "Synced across devices", offline: "Offline -- changes saved locally" };
+  const svgAttrs = 'viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  const icons = {
+    connecting: '<svg class="spin" ' + svgAttrs + '><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>',
+    synced: '<svg ' + svgAttrs + '><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5.5"/></svg>',
+    offline: '<svg ' + svgAttrs + '><path d="M17.5 19a4.5 4.5 0 0 0 .8-8.9 6 6 0 0 0-11.6 1A4.5 4.5 0 0 0 7.5 19h10"/><line x1="4" y1="4" x2="20" y2="20"/></svg>',
+    "local-only": '<svg ' + svgAttrs + '><rect x="7" y="3" width="10" height="18" rx="2"/><line x1="11" y1="17.5" x2="13" y2="17.5"/></svg>'
+  };
+  elx.className = "sync-pill sync-" + syncStatus;
+  elx.title = labels[syncStatus] || syncStatus;
+  elx.setAttribute("aria-label", labels[syncStatus] || syncStatus);
+  elx.innerHTML = icons[syncStatus] || icons["local-only"];
+}
+
 // ---- master render ----
 function renderAll(state, syncStatus) {
-  const labels = { "local-only": "saved on this device", connecting: "connecting...", synced: "synced across devices", offline: "offline, saved locally" };
-  document.getElementById("syncStatus").textContent = labels[syncStatus] || syncStatus;
+  renderSyncStatus(syncStatus);
   renderHero(state);
   renderCountdown(state);
   renderTodayView(state);
