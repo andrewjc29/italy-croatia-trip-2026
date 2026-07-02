@@ -220,6 +220,7 @@ button{font-family:inherit}
 
 /* ---- per-day hotel bar ---- */
 .day-hotel-bar{margin:.8rem -1.1rem -1rem;padding:.55rem 1.1rem;border-radius:0 0 var(--radius-card) var(--radius-card);background:var(--adriatic);color:#fff;display:flex;align-items:center;gap:.6rem;font-size:.82rem}
+/* background-color is set inline per render to match that stop's accent color (see PLACE_ACCENT in data.js); the rule above is just a fallback before JS renders */
 .day-hotel-bar .dhb-label{font-family:'Outfit';font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;opacity:.85;white-space:nowrap}
 .day-hotel-bar .dhb-hotel{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .day-hotel-bar .dhb-edit{background:none;border:none;color:#fff;opacity:.8;font-size:.74rem;cursor:pointer;text-decoration:underline;padding:0;flex-shrink:0}

@@ -53,8 +53,10 @@ let budgetCurrency = "USD"; // display-only toggle for the budget panel, not per
 
 // A day's lodging, rendered as a bar along the bottom of that day's box --
 // labeled Check-in / Check-out / Staying at, depending on where this date
-// falls relative to the booking's date/endDate.
-function renderDayHotelBar(lodging, dateStr) {
+// falls relative to the booking's date/endDate. Colored to match that city's
+// accent (same palette as the itinerary editor's timeline dots/thumbnails),
+// so the bar visually ties back to which place you're in.
+function renderDayHotelBar(lodging, dateStr, placeId) {
   if (!lodging) return "";
   const isCheckin = lodging.date === dateStr;
   const isCheckout = lodging.endDate === dateStr;
@@ -64,7 +66,8 @@ function renderDayHotelBar(lodging, dateStr) {
   else if (isCheckout) { label = "Check-out"; timeVal = lodging.checkoutTime; }
   else { label = "Staying at"; timeVal = ""; }
   const timeHtml = timeVal ? " · " + esc(fmtTime12(timeVal)) : "";
-  return '<div class="day-hotel-bar"><span class="dhb-label">' + esc(label) + timeHtml + '</span>' +
+  const accent = PLACE_ACCENT[placeId] || "#1d6a8c";
+  return '<div class="day-hotel-bar" style="background:' + accent + '"><span class="dhb-label">' + esc(label) + timeHtml + '</span>' +
     '<span class="dhb-hotel">' + esc(lodging.title) + '</span>' +
     '<button class="dhb-edit" data-edit-booking="' + lodging.id + '">edit</button></div>';
 }
@@ -180,7 +183,7 @@ function renderPlaceDays(placeId, state) {
       '<div class="item-line"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span>' +
       '<button class="link" data-edit-act="' + a.id + '">edit</button></div>').join("");
     const transportLines = d.transport.map(renderTransportLine).join("");
-    const hotelBar = renderDayHotelBar(d.lodging, d.date);
+    const hotelBar = renderDayHotelBar(d.lodging, d.date, placeId);
     return '<div class="day-row"><div class="day-dot">' + d.day + '</div><div class="day-body">' +
       '<div class="day-date">' + (d.date ? fmtDate(d.date) : "Day " + d.day) + '</div>' +
       transportLines + lines +
