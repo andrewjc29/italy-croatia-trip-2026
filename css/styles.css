@@ -134,6 +134,7 @@ button{font-family:inherit}
 .status-pill.idea{background:#f7e6d8;color:#8a4a1c}
 .status-pill.booked{background:#fff3c4;color:#7a5c00}
 .status-pill.confirmed{background:#e0efe4;color:#276149}
+.status-pill.missing{background:#fbdede;color:#9c2b2b}
 
 /* ---- day rows (itinerary within a place) ---- */
 .day-rows{position:relative;padding-left:2.7rem;margin-bottom:1.6rem}
@@ -189,11 +190,40 @@ button{font-family:inherit}
 
 /* ---- budget rollup ---- */
 .budget-total{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:1.3rem 1.5rem;box-shadow:0 8px 24px var(--shadow);margin-bottom:1.2rem}
+.budget-total .bt-row{display:flex;justify-content:space-between;align-items:flex-start;gap:.8rem;flex-wrap:wrap}
 .budget-total .bt-amount{font-family:'Fraunces';font-size:2.1rem;color:var(--adriatic-deep)}
 .budget-total .bt-sub{font-size:.86rem;color:var(--muted);margin-top:.2rem}
+.currency-toggle{display:flex;gap:.4rem;flex-shrink:0;margin-top:.2rem}
 .budget-bar{height:10px;border-radius:6px;background:#eef0ee;overflow:hidden;margin-top:.8rem}
 .budget-bar-fill{height:100%;background:var(--seaglass);border-radius:6px;transition:width .3s}
 .budget-bar-fill.over{background:var(--terracotta)}
+
+/* ---- booking status at a glance ---- */
+.bs-group{margin-bottom:1.2rem}
+.bs-group:last-child{margin-bottom:0}
+.bs-group h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:.5rem}
+.bs-row{display:flex;align-items:center;gap:.8rem;padding:.55rem 0;border-bottom:1px solid var(--line);font-size:.88rem}
+.bs-row:last-child{border-bottom:none}
+.bs-title{flex:1;min-width:0}
+.bs-detail{color:var(--muted);font-size:.82rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---- trip countdown banner ---- */
+.countdown-banner{max-width:760px;margin:1.6rem auto 0;padding:0 2rem}
+.countdown-banner .cd-card{display:flex;align-items:center;gap:1.2rem;background:var(--adriatic-deep);color:#fff;border-radius:14px;padding:1rem 1.5rem;box-shadow:0 10px 26px var(--shadow)}
+.countdown-banner .cd-num{font-family:'Fraunces';font-size:2.6rem;font-weight:600;line-height:1;color:var(--seaglass-soft);min-width:2.2ch;text-align:center}
+.countdown-banner .cd-label{font-family:'Outfit';font-size:.86rem}
+.countdown-banner .cd-sub{display:block;font-size:.68rem;opacity:.75;margin-top:.25rem;letter-spacing:.08em;text-transform:uppercase}
+.countdown-banner.cd-done .cd-card{background:var(--seaglass)}
+.countdown-banner.cd-done .cd-num{color:#fff;font-size:2.1rem}
+.countdown-banner.cd-live .cd-card{background:var(--terracotta)}
+.countdown-banner.cd-live .cd-num{color:#fff}
+
+/* ---- per-day hotel bar ---- */
+.day-hotel-bar{margin:.8rem -1.1rem -1rem;padding:.55rem 1.1rem;border-radius:0 0 var(--radius-card) var(--radius-card);background:var(--adriatic);color:#fff;display:flex;align-items:center;gap:.6rem;font-size:.82rem}
+.day-hotel-bar .dhb-label{font-family:'Outfit';font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;opacity:.85;white-space:nowrap}
+.day-hotel-bar .dhb-hotel{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.day-hotel-bar .dhb-edit{background:none;border:none;color:#fff;opacity:.8;font-size:.74rem;cursor:pointer;text-decoration:underline;padding:0;flex-shrink:0}
+.day-hotel-bar .dhb-edit:hover{opacity:1}
 .budget-detail{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:.2rem 1.3rem .9rem;margin-top:1.1rem}
 .budget-detail summary{cursor:pointer;list-style:none;padding:.9rem 0;font-family:'Fraunces';font-style:italic;font-size:1.08rem;color:var(--adriatic-deep);display:flex;align-items:center;justify-content:space-between}
 .budget-detail summary::-webkit-details-marker{display:none}

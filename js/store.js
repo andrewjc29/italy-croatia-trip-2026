@@ -236,6 +236,11 @@ const Store = (() => {
       (b) => b.category === "lodging" && b.date <= dateStr && dateStr < b.endDate
     ) || state.bookings.find(
       (b) => b.category === "lodging" && b.date === dateStr && b.date === b.endDate
+    ) || state.bookings.find(
+      // Covers the very last day of the whole trip: the final hotel's checkout
+      // date is otherwise never matched, since every other stay's checkout day
+      // is claimed by the *next* stop's check-in day instead.
+      (b) => b.category === "lodging" && b.endDate === dateStr
     );
     const transport = state.bookings.filter(
       (b) => b.category !== "lodging" && (dateStr === b.date || dateStr === b.endDate)

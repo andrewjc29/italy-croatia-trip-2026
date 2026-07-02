@@ -10,6 +10,13 @@ function fmtDate(iso) {
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
+function fmtTime12(hhmm) {
+  if (!hhmm) return "";
+  const parts = hhmm.split(":");
+  const d = new Date();
+  d.setHours(parseInt(parts[0], 10) || 0, parseInt(parts[1], 10) || 0, 0, 0);
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
 function esc(s) { return (s === undefined || s === null) ? "" : String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
 
@@ -42,6 +49,25 @@ function renderTransportLine(t) {
 let mapInstance = null;
 let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
 let hotelFilter = {}; // placeId -> "all" | "budget" | "splurge"
+let budgetCurrency = "USD"; // display-only toggle for the budget panel, not persisted
+
+// A day's lodging, rendered as a bar along the bottom of that day's box --
+// labeled Check-in / Check-out / Staying at, depending on where this date
+// falls relative to the booking's date/endDate.
+function renderDayHotelBar(lodging, dateStr) {
+  if (!lodging) return "";
+  const isCheckin = lodging.date === dateStr;
+  const isCheckout = lodging.endDate === dateStr;
+  let label, timeVal;
+  if (isCheckin && isCheckout) { label = "Check-in & check-out"; timeVal = lodging.checkinTime || lodging.checkoutTime; }
+  else if (isCheckin) { label = "Check-in"; timeVal = lodging.checkinTime; }
+  else if (isCheckout) { label = "Check-out"; timeVal = lodging.checkoutTime; }
+  else { label = "Staying at"; timeVal = ""; }
+  const timeHtml = timeVal ? " · " + esc(fmtTime12(timeVal)) : "";
+  return '<div class="day-hotel-bar"><span class="dhb-label">' + esc(label) + timeHtml + '</span>' +
+    '<span class="dhb-hotel">' + esc(lodging.title) + '</span>' +
+    '<button class="dhb-edit" data-edit-booking="' + lodging.id + '">edit</button></div>';
+}
 
 // ---- modal helper ----
 function openModal(title, bodyHtml, onSubmit, submitLabel) {
@@ -153,15 +179,15 @@ function renderPlaceDays(placeId, state) {
     const lines = d.activities.map((a) =>
       '<div class="item-line"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span>' +
       '<button class="link" data-edit-act="' + a.id + '">edit</button></div>').join("");
-    const lodgingLine = renderLodgingLine(d.lodging);
     const transportLines = d.transport.map(renderTransportLine).join("");
+    const hotelBar = renderDayHotelBar(d.lodging, d.date);
     return '<div class="day-row"><div class="day-dot">' + d.day + '</div><div class="day-body">' +
       '<div class="day-date">' + (d.date ? fmtDate(d.date) : "Day " + d.day) + '</div>' +
-      lodgingLine + transportLines + lines +
+      transportLines + lines +
       '<div class="day-add-row">' +
       '<button class="add-line" data-add-act="' + esc(d.date || "") + '">+ add to this day</button>' +
       '<button class="add-line" data-add-booking="' + esc(d.date || "") + '">+ add a booking</button>' +
-      '</div></div></div>';
+      '</div>' + hotelBar + '</div></div>';
   }).join("") + "</div>";
   el2.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, btn.dataset.addAct, null, place)));
   el2.querySelectorAll("[data-edit-act]").forEach((btn) => btn.addEventListener("click", () => {
@@ -214,12 +240,15 @@ function openHotelChooseConfirm(state, h, place, current) {
   const body =
     '<p>Confirm your stay at <strong>' + esc(h.name) + '</strong>. This sets the dates shown in the day-by-day itinerary.</p>' +
     '<label class="field">Check-in</label><input type="date" data-field="date" value="' + esc(defaultCheckin) + '">' +
-    '<label class="field">Check-out</label><input type="date" data-field="endDate" value="' + esc(defaultCheckout) + '">';
+    '<label class="field">Check-out</label><input type="date" data-field="endDate" value="' + esc(defaultCheckout) + '">' +
+    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Check-in time (optional)</label><input type="time" data-field="checkinTime" value="' + esc(current ? current.checkinTime : "") + '"></div>' +
+    '<div><label class="field">Check-out time (optional)</label><input type="time" data-field="checkoutTime" value="' + esc(current ? current.checkoutTime : "") + '"></div></div>';
   openModal("Confirm your stay", body, (data) => {
     const payload = {
       category: "lodging", title: h.name, city: h.placeId === "puglia" ? "bari" : place.cityIds[0],
       provider: h.area, cost: h.cost, currency: "USD", link: h.url, notes: h.pros,
-      date: data.date, endDate: data.endDate || data.date
+      date: data.date, endDate: data.endDate || data.date,
+      checkinTime: data.checkinTime || "", checkoutTime: data.checkoutTime || ""
     };
     if (current) Store.update("bookings", current.id, payload);
     else Store.add("bookings", Object.assign({ status: "idea", confirmation: "" }, payload), "bk");
@@ -377,6 +406,8 @@ function openBookingForm(state, existing, place, defaultDate) {
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Date (check-in / travel day)</label><input type="date" data-field="date" value="' + esc(startVal) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
     '<div><label class="field">End date (checkout day, if a stay)</label><input type="date" data-field="endDate" value="' + esc(existing ? existing.endDate : "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div></div>' +
     '<label class="field">Time (optional)</label><input type="time" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
+    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Check-in time (for a stay)</label><input type="time" data-field="checkinTime" value="' + esc(existing ? existing.checkinTime : "") + '"></div>' +
+    '<div><label class="field">Check-out time (for a stay)</label><input type="time" data-field="checkoutTime" value="' + esc(existing ? existing.checkoutTime : "") + '"></div></div>' +
     '<label class="field">Provider</label><input data-field="provider" value="' + esc(existing ? existing.provider : "") + '">' +
     '<label class="field">Confirmation #</label><input data-field="confirmation" value="' + esc(existing ? existing.confirmation : "") + '">' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person</label><input data-field="cost" type="number" value="' + (existing ? existing.cost : "") + '"></div>' +
@@ -455,6 +486,79 @@ function renderHero(state) {
   }
   document.getElementById("heroMeta").innerHTML =
     '<span>' + (state.trip ? state.trip.stops.length : PLACES.length) + " stops</span><span>" + totalDays + ' days</span><span><strong>' + countdown + '</strong></span>';
+}
+
+// A bigger, more prominent countdown banner (separate from the small hero
+// meta line above) -- shows days-to-go before the trip, which day you're on
+// while traveling, and a wrap-up message afterward.
+function renderCountdown(state) {
+  const el2 = document.getElementById("countdownBanner");
+  if (!el2) return;
+  const range = Store.getTripDateRange();
+  if (!range.start) { el2.style.display = "none"; return; }
+  const msPerDay = 86400000;
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayD = new Date(todayISO + "T00:00:00");
+  const startD = new Date(range.start + "T00:00:00");
+  const endD = range.end ? new Date(range.end + "T00:00:00") : null;
+  el2.style.display = "";
+  let cls = "countdown-banner", html;
+  if (todayD < startD) {
+    const days = Math.round((startD - todayD) / msPerDay);
+    cls += " cd-upcoming";
+    html = '<div class="cd-card"><div class="cd-num">' + days + '</div><div class="cd-label">' +
+      (days === 1 ? "day" : "days") + ' until departure<span class="cd-sub">' + esc(fmtDate(range.start)) + '</span></div></div>';
+  } else if (endD && todayD >= endD) {
+    cls += " cd-done";
+    html = '<div class="cd-card"><div class="cd-num">&#10003;</div><div class="cd-label">Trip complete<span class="cd-sub">Hope it was unforgettable</span></div></div>';
+  } else {
+    const dayNum = Math.round((todayD - startD) / msPerDay) + 1;
+    const totalDays = Store.getTotalDays();
+    cls += " cd-live";
+    html = '<div class="cd-card"><div class="cd-num">' + dayNum + '</div><div class="cd-label">of ' + totalDays +
+      " -- you're on the trip<span class=\"cd-sub\">Enjoy today</span></div></div>";
+  }
+  el2.className = cls;
+  el2.innerHTML = html;
+}
+
+// ---- booking status at a glance: hotels + inter-city transport only, the
+// two categories that actually need to get locked in before the trip ----
+function renderBookingStatus(state) {
+  const el2 = document.getElementById("bookingStatusPanel");
+  if (!el2) return;
+  const ranges = Store.computeStopRanges();
+  const hotelRows = ranges.map((r) => {
+    const place = PLACES.find((p) => p.id === r.placeId);
+    const lodging = state.bookings.find((b) => b.category === "lodging" && b.date < r.dateEnd && b.endDate > r.dateStart);
+    const status = lodging ? lodging.status : "missing";
+    const detail = lodging ? esc(lodging.title) : "No hotel chosen yet";
+    return '<div class="bs-row"><span class="bs-title">' + esc(place ? place.label : r.placeId) +
+      '<span class="muted"> · ' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></span>' +
+      '<span class="bs-detail">' + detail + '</span>' +
+      '<span class="status-pill ' + status + '">' + status + '</span>' +
+      '<button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + (lodging ? lodging.id : "") + '">' + (lodging ? "edit" : "choose") + '</button></div>';
+  }).join("");
+  const transportBookings = state.bookings.filter((b) => b.category !== "lodging").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+  const transportRows = transportBookings.length ? transportBookings.map((t) =>
+    '<div class="bs-row"><span class="bs-title">' + esc(t.title) + '<span class="muted"> · ' + (t.date ? esc(fmtDate(t.date)) : "no date") + '</span></span>' +
+    '<span class="bs-detail">' + esc(t.category) + '</span>' +
+    '<span class="status-pill ' + t.status + '">' + t.status + '</span>' +
+    '<button class="link" data-bs-booking="' + t.id + '">edit</button></div>').join("")
+    : '<div class="muted" style="padding:.4rem 0">No transport between cities booked yet.</div>';
+  el2.innerHTML =
+    '<div class="bs-group"><h4>Hotels</h4>' + hotelRows + '</div>' +
+    '<div class="bs-group"><h4>Transport between cities</h4>' + transportRows + '</div>';
+  el2.querySelectorAll("[data-bs-booking]").forEach((btn) => btn.addEventListener("click", () => {
+    const id = btn.dataset.bsBooking;
+    if (id) {
+      const b = state.bookings.find((x) => x.id === id);
+      if (b) openBookingForm(state, b, null);
+    } else if (btn.dataset.bsHotel) {
+      const target = document.getElementById(btn.dataset.bsHotel);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }));
 }
 
 // ---- itinerary editor: a vertical timeline of stops, reorder / resize / add-remove ----
@@ -699,10 +803,10 @@ function budgetItemMeta(b, entry) {
   parts.push(b.status);
   return parts.join(" · ");
 }
-function budgetItemLine(entry) {
+function budgetItemLine(entry, moneyFmt) {
   const b = entry.booking;
   return '<li><span class="bi-title">' + esc(b.title) + '</span>' +
-    '<span class="bi-amt">$' + Math.round(entry.amtUSD).toLocaleString() + '</span>' +
+    '<span class="bi-amt">' + moneyFmt(entry.amtUSD) + '</span>' +
     '<span class="bi-meta muted">' + budgetItemMeta(b, entry) + '</span></li>';
 }
 
@@ -737,6 +841,11 @@ async function renderBudget(state) {
   const pctOfHigh = high ? Math.min(100, Math.round((perPerson / high) * 100)) : 0;
   const over = high && perPerson > high;
 
+  function moneyFmt(usdAmt) {
+    if (budgetCurrency === "EUR") return "€" + Math.round(usdAmt / rate).toLocaleString();
+    return "$" + Math.round(usdAmt).toLocaleString();
+  }
+
   // The details panel would otherwise slam shut every time anything in the
   // app re-renders (which is constantly -- any edit anywhere calls renderAll).
   // Read its current open/closed state before replacing the DOM and restore it.
@@ -745,8 +854,9 @@ async function renderBudget(state) {
 
   container.innerHTML =
     '<div class="budget-total">' +
-    '<div class="bt-amount">$' + Math.round(perPerson).toLocaleString() + ' <span style="font-size:1rem;color:var(--muted);font-family:\'Outfit\'">per person, booked so far</span></div>' +
-    '<div class="bt-sub">Target: $' + low.toLocaleString() + '–$' + high.toLocaleString() + ' per person &middot; total for both of you: $' + Math.round(total).toLocaleString() + '</div>' +
+    '<div class="bt-row"><div class="bt-amount">' + moneyFmt(perPerson) + ' <span style="font-size:1rem;color:var(--muted);font-family:\'Outfit\'">per person, booked so far</span></div>' +
+    '<div class="currency-toggle"><button class="chip' + (budgetCurrency === "USD" ? " on" : "") + '" data-currency="USD">USD</button><button class="chip' + (budgetCurrency === "EUR" ? " on" : "") + '" data-currency="EUR">EUR</button></div></div>' +
+    '<div class="bt-sub">Target: ' + moneyFmt(low) + '–' + moneyFmt(high) + ' per person &middot; total for both of you: ' + moneyFmt(total) + '</div>' +
     '<div class="budget-bar"><div class="budget-bar-fill' + (over ? " over" : "") + '" style="width:' + pctOfHigh + '%"></div></div>' +
     '</div>' +
     '<div class="muted" style="margin-top:.7rem;font-size:.78rem">Sourced from every flight/train/ferry/hotel booking and every itinerary item with a cost attached, whether idea, booked, or confirmed -- not from the hotel/restaurant shortlists. EUR converted at ~' + rate.toFixed(3) + ' USD.</div>' +
@@ -755,10 +865,15 @@ async function renderBudget(state) {
       const items = grouped[catKey];
       if (!items.length) return "";
       return '<div class="budget-detail-group"><h4>' + BUDGET_CAT_LABELS[catKey] +
-        '<span>$' + Math.round(cats[catKey]).toLocaleString() + '</span></h4>' +
-        '<ul class="budget-item-list">' + items.map(budgetItemLine).join("") + '</ul></div>';
+        '<span>' + moneyFmt(cats[catKey]) + '</span></h4>' +
+        '<ul class="budget-item-list">' + items.map((it) => budgetItemLine(it, moneyFmt)).join("") + '</ul></div>';
     }).join("") +
     '</details>';
+
+  container.querySelectorAll("[data-currency]").forEach((btn) => btn.addEventListener("click", () => {
+    budgetCurrency = btn.dataset.currency;
+    renderBudget(Store.getState());
+  }));
 }
 
 // ---- toolkit: documents ----
@@ -845,6 +960,7 @@ function renderAll(state, syncStatus) {
   const labels = { "local-only": "saved on this device", connecting: "connecting...", synced: "synced across devices", offline: "offline, saved locally" };
   document.getElementById("syncStatus").textContent = labels[syncStatus] || syncStatus;
   renderHero(state);
+  renderCountdown(state);
   renderTodayView(state);
   renderItineraryEditor(state);
   renderPlaces(state);
@@ -853,6 +969,7 @@ function renderAll(state, syncStatus) {
   renderNotes(state);
   renderPrep(state);
   renderWeather();
+  renderBookingStatus(state);
   renderBudget(state);
   renderMap();
 }
