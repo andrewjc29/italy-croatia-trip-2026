@@ -46,11 +46,67 @@ function renderTransportLine(t) {
     '<span class="il-actions"><span class="status-pill ' + t.status + '">' + t.status + '</span></span></div>';
 }
 function renderActivityLine(a) {
-  return '<div class="item-line item-line-clickable" data-view-activity="' + a.id + '"><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span></div>';
+  return '<div class="item-line item-line-clickable act-draggable" draggable="true" data-view-activity="' + a.id + '"><span class="drag-grip" aria-hidden="true">&#8942;&#8942;</span><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span></div>';
+}
+
+// Drag-and-drop reorder for activities inside a day box. Dropping persists a
+// sequential `order` field for every activity in that day, which then takes
+// precedence over time-of-day sorting (see buildDay in store.js).
+function wireActivityDrag(container) {
+  container.querySelectorAll(".day-acts").forEach((zone) => {
+    let dragged = null;
+    zone.querySelectorAll(".act-draggable").forEach((row) => {
+      row.addEventListener("dragstart", (e) => {
+        dragged = row;
+        row.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", row.dataset.viewActivity); } catch (err) { /* IE quirk */ }
+      });
+      row.addEventListener("dragend", () => {
+        row.classList.remove("dragging");
+        if (!dragged) return;
+        dragged = null;
+        const ids = Array.from(zone.querySelectorAll(".act-draggable")).map((r) => r.dataset.viewActivity);
+        const state = Store.getState();
+        ids.forEach((id, i) => {
+          const a = state.activities.find((x) => x.id === id);
+          if (a && parseFloat(a.order) !== i) Store.update("activities", id, { order: i });
+        });
+      });
+    });
+    zone.addEventListener("dragover", (e) => {
+      if (!dragged) return;
+      e.preventDefault();
+      const rows = Array.from(zone.querySelectorAll(".act-draggable:not(.dragging)"));
+      const after = rows.find((r) => e.clientY < r.getBoundingClientRect().top + r.getBoundingClientRect().height / 2);
+      if (after) zone.insertBefore(dragged, after);
+      else zone.appendChild(dragged);
+    });
+  });
+}
+
+// Timezone-safe date shift (noon anchor avoids DST/UTC off-by-one).
+function isoAddDays(iso, n) {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  const p = (x) => String(x).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+
+// Activity row variant for the Today view: optional Now/Next pill and a
+// one-tap "→ tomorrow" reschedule button.
+function renderTodayActivityLine(a, nn, canMove) {
+  const pill = nn ? '<span class="nn-pill nn-' + nn + '">' + nn + '</span>' : "";
+  const moveBtn = canMove ? '<button class="move-tomorrow" data-move-tomorrow="' + a.id + '" title="Move to tomorrow">&rarr; tomorrow</button>' : "";
+  return '<div class="item-line item-line-clickable' + (nn === "now" ? " is-now" : "") + '" data-view-activity="' + a.id + '">' +
+    '<span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + pill + '</span>' +
+    '<span class="il-actions">' + moveBtn + '</span></div>';
 }
 
 let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
 let hotelFilter = {}; // placeId -> "all" | "budget" | "splurge"
+let todayViewOffset = 0; // Today view day-paging offset (0 = actual today)
+let itineraryEditMode = false; // itinerary editor: view (false) vs edit controls (true)
 let budgetCurrency = "USD"; // display-only toggle for the budget panel, not persisted
 
 // A day's lodging, rendered as a bar along the bottom of that day's box --
@@ -214,7 +270,7 @@ function openPlaceDetailCard(type, item, place) {
     (item.description ? '<p class="pm-desc">' + esc(item.description) + '</p>' : '<p class="muted">No notes yet -- add some from Edit below.</p>') +
     '<div class="pm-actions">' +
     '<button class="btn" id="pmAdd">+ Add to a day</button>' +
-    (item.url ? '<a class="btn secondary" href="' + esc(item.url) + '" target="_blank" rel="noopener">Open in Maps</a>' : "") +
+    (item.url ? '<a class="site" href="' + esc(item.url) + '" target="_blank" rel="noopener">Map</a>' : "") +
     '</div></div>' +
     '<div class="pm-footer">' +
     '<button class="link" id="pmEdit">Edit details</button>' +
@@ -253,6 +309,7 @@ function buildPlacesSkeleton() {
       '<div class="nights" id="nights-' + p.id + '"></div></div></div>' +
       '<div class="wrap">' +
       '<div class="sub-h"><h3>Day by day</h3><span class="rule"></span></div>' +
+      '<div class="wishlist" id="wishlist-' + p.id + '" style="display:none"></div>' +
       '<div id="days-' + p.id + '"></div>' +
 
       '<div class="sub-h"><h3>Where to stay</h3><span class="rule"></span></div>' +
@@ -335,7 +392,7 @@ function renderPlaceDays(placeId, state) {
   const el2 = document.getElementById("days-" + placeId);
   if (!days.length) { el2.innerHTML = '<div class="day-rows"><div class="day-row"><div class="day-body muted">Not currently in your itinerary. Add it back in the itinerary editor above.</div></div></div>'; return; }
   el2.innerHTML = '<div class="day-rows">' + days.map((d) => {
-    const lines = d.activities.map(renderActivityLine).join("");
+    const lines = '<div class="day-acts" data-date="' + esc(d.date || "") + '">' + d.activities.map(renderActivityLine).join("") + '</div>';
     const transportLines = d.transport.map(renderTransportLine).join("");
     const hotelBar = renderDayHotelBar(d.lodging, d.date, placeId);
     return '<div class="day-row"><div class="day-dot">' + d.day + '</div><div class="day-body">' +
@@ -346,6 +403,7 @@ function renderPlaceDays(placeId, state) {
       '<button class="add-line" data-add-booking="' + esc(d.date || "") + '">+ add a booking</button>' +
       '</div>' + hotelBar + '</div></div>';
   }).join("") + "</div>";
+  wireActivityDrag(el2);
   el2.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, btn.dataset.addAct, null, place)));
   el2.querySelectorAll("[data-add-booking]").forEach((btn) => btn.addEventListener("click", () => openBookingForm(state, null, place, btn.dataset.addBooking)));
   el2.querySelectorAll("[data-view-activity]").forEach((row) => row.addEventListener("click", () => {
@@ -541,16 +599,56 @@ function openAddToDayModal(title, cityId, notes, type, place) {
   const body =
     '<label class="field">Date</label><input type="date" data-field="date" value="' + esc(defaultDate) +
     '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
+    '<p class="wl-hint">Not sure which day? Clear the date to park it on the <strong>wishlist</strong> and pick a day later.</p>' +
     '<label class="field">Time (optional)</label><input type="time" data-field="time">' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person (optional)</label><input data-field="cost" type="number"></div>' +
     '<div><label class="field">Currency</label><select data-field="currency"><option value="USD">USD</option><option value="EUR">EUR</option></select></div></div>';
   openModal('Add "' + title + '" to your itinerary', body, (data) => {
-    Store.add("activities", { date: data.date, time: data.time || "", city: cityId, title: title, type: type, notes: notes, status: "idea", cost: parseFloat(data.cost) || 0, currency: data.currency || "USD" }, "a");
+    Store.add("activities", { date: data.date || "", time: data.time || "", city: cityId, title: title, type: type, notes: notes, status: "idea", cost: parseFloat(data.cost) || 0, currency: data.currency || "USD", placeId: place ? place.id : "" }, "a");
   }, "Add to itinerary");
 }
 
+// Wishlist: activities saved without a date. Grouped under the place whose
+// cities they belong to (falls back to the stored placeId for cities shared
+// across stops).
+function getWishlist(state, place) {
+  return (state.activities || []).filter((a) => !a.date &&
+    (a.placeId === place.id || place.cityIds.includes(a.city)));
+}
+
+function renderPlaceWishlist(placeId, state) {
+  const place = PLACES.find((p) => p.id === placeId);
+  const host = document.getElementById("wishlist-" + placeId);
+  if (!host) return;
+  const items = getWishlist(state, place);
+  if (!items.length) { host.innerHTML = ""; host.style.display = "none"; return; }
+  host.style.display = "";
+  host.innerHTML =
+    '<div class="wl-title">Wishlist <span class="wl-count">' + items.length + ' unscheduled</span></div>' +
+    items.map((a) =>
+      '<div class="wl-item"><span>' + esc(a.title) + '</span>' +
+      '<span class="wl-actions"><button class="move-tomorrow" data-wl-schedule="' + a.id + '">pick a day</button>' +
+      '<button class="link danger" data-wl-remove="' + a.id + '">&times;</button></span></div>').join("");
+  host.querySelectorAll("[data-wl-schedule]").forEach((btn) => btn.addEventListener("click", () => {
+    const a = state.activities.find((x) => x.id === btn.dataset.wlSchedule);
+    if (!a) return;
+    const range = Store.getStopRangeForPlace(placeId);
+    const tripRange = Store.getTripDateRange();
+    const body = '<label class="field">Date</label><input type="date" data-field="date" value="' +
+      esc((range && range.dateStart) || tripRange.start || "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
+      '<label class="field">Time (optional)</label><input type="time" data-field="time" value="' + esc(a.time || "") + '">';
+    openModal('Schedule "' + a.title + '"', body, (data) => {
+      if (data.date) Store.update("activities", a.id, { date: data.date, time: data.time || "" });
+    }, "Schedule");
+  }));
+  host.querySelectorAll("[data-wl-remove]").forEach((btn) => btn.addEventListener("click", () => {
+    const a = state.activities.find((x) => x.id === btn.dataset.wlRemove);
+    if (a && confirm('Remove "' + a.title + '" from the wishlist?')) Store.remove("activities", a.id);
+  }));
+}
+
 function renderPlaces(state) {
-  PLACES.forEach((p) => { renderPlaceNights(p.id, state); renderPlaceDays(p.id, state); renderPlaceHotels(p.id, state); renderPlaceSee(p.id, state); renderPlaceFood(p.id, state); });
+  PLACES.forEach((p) => { renderPlaceNights(p.id, state); renderPlaceWishlist(p.id, state); renderPlaceDays(p.id, state); renderPlaceHotels(p.id, state); renderPlaceSee(p.id, state); renderPlaceFood(p.id, state); });
 }
 
 // ---- forms ----
@@ -654,23 +752,62 @@ function renderTodayView(state) {
   if (!section) return;
   // ?today=YYYY-MM-DD lets you preview any trip day before the trip starts
   // (e.g. index.html?today=2026-09-18). During the trip it works off the
-  // real date automatically.
+  // real date automatically. The ‹ › arrows page through nearby days.
   const previewDate = new URLSearchParams(location.search).get("today");
-  const todayISO = previewDate || new Date().toISOString().slice(0, 10);
-  const today = Store.getItineraryDays().find((d) => d.date === todayISO);
+  const baseISO = previewDate || new Date().toISOString().slice(0, 10);
+  const days = Store.getItineraryDays();
+  const viewISO = isoAddDays(baseISO, todayViewOffset);
+  let today = days.find((d) => d.date === viewISO);
+  if (!today && todayViewOffset !== 0) { todayViewOffset = 0; today = days.find((d) => d.date === baseISO); }
   if (!today) { section.style.display = "none"; return; }
-  const badge = section.querySelector(".tv-badge");
-  if (badge) badge.textContent = previewDate ? "Today (preview)" : "Today";
   section.style.display = "";
+  const rel = todayViewOffset;
+  const badge = section.querySelector(".tv-badge");
+  if (badge) {
+    badge.textContent = rel === 0 ? (previewDate ? "Today (preview)" : "Today")
+      : rel === 1 ? "Tomorrow" : rel === -1 ? "Yesterday"
+      : new Date(today.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" });
+    badge.title = rel === 0 ? "" : "Tap to jump back to today";
+    badge.onclick = rel === 0 ? null : () => { todayViewOffset = 0; renderTodayView(Store.getState()); };
+    badge.style.cursor = rel === 0 ? "" : "pointer";
+  }
   document.getElementById("todayDate").textContent = fmtDate(today.date);
+  const prevBtn = document.getElementById("tvPrev");
+  const nextBtn = document.getElementById("tvNext");
+  if (prevBtn && nextBtn) {
+    prevBtn.disabled = !days.find((d) => d.date === isoAddDays(viewISO, -1));
+    nextBtn.disabled = !days.find((d) => d.date === isoAddDays(viewISO, 1));
+    prevBtn.onclick = () => { todayViewOffset--; renderTodayView(Store.getState()); };
+    nextBtn.onclick = () => { todayViewOffset++; renderTodayView(Store.getState()); };
+  }
   const place = PLACES.find((p) => p.id === today.placeId);
-  const lodgingHtml = renderLodgingLine(today.lodging);
+  const dayNum = days.indexOf(today) + 1;
+  const accent = PLACE_ACCENT[today.placeId] || "#1d6a8c";
+  // Now/Next markers only make sense on the actual current day.
+  let nowId = null, nextId = null;
+  if (rel === 0 && !previewDate) {
+    const nowHM = new Date().toTimeString().slice(0, 5);
+    const timed = today.activities.filter((a) => a.time);
+    const past = timed.filter((a) => a.time <= nowHM);
+    if (past.length) nowId = past[past.length - 1].id;
+    const upcoming = timed.find((a) => a.time > nowHM);
+    if (upcoming) nextId = upcoming.id;
+  }
+  const tripEnd = days.length ? days[days.length - 1].date : null;
+  const canMove = tripEnd && today.date < tripEnd;
+  const cityHtml = place
+    ? '<div class="tv-city" style="color:' + accent + '">' + esc(place.label) +
+      '<span class="tv-daynum">Day ' + dayNum + " of " + days.length + '</span></div>'
+    : "";
+  const hotelHtml = renderDayHotelBar(today.lodging, today.date, today.placeId);
   const transportHtml = today.transport.map(renderTransportLine).join("");
-  const actsHtml = today.activities.map(renderActivityLine).join("");
+  const actsHtml = today.activities.map((a) =>
+    renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)).join("");
   const contentEl = document.getElementById("todayContent");
   contentEl.innerHTML =
-    (place ? '<div class="tv-place">' + esc(place.label) + '</div>' : "") +
-    lodgingHtml + transportHtml + (actsHtml || '<div class="muted">Nothing scheduled yet for today.</div>');
+    cityHtml + transportHtml +
+    (actsHtml || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>') +
+    hotelHtml;
   contentEl.querySelectorAll("[data-view-booking]").forEach((row) => row.addEventListener("click", () => {
     const b = Store.getState().bookings.find((x) => x.id === row.dataset.viewBooking);
     if (b) openItemDetailCard("booking", b, place);
@@ -678,6 +815,11 @@ function renderTodayView(state) {
   contentEl.querySelectorAll("[data-view-activity]").forEach((row) => row.addEventListener("click", () => {
     const a = Store.getState().activities.find((x) => x.id === row.dataset.viewActivity);
     if (a) openItemDetailCard("activity", a, place);
+  }));
+  contentEl.querySelectorAll("[data-move-tomorrow]").forEach((btn) => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const a = Store.getState().activities.find((x) => x.id === btn.dataset.moveTomorrow);
+    if (a) Store.update("activities", a.id, { date: isoAddDays(a.date, 1) });
   }));
 }
 
@@ -799,6 +941,22 @@ function renderItineraryEditor(state) {
     return '<div class="ie-route-seg" style="width:' + pct + '%;background:' + color + '" title="' + esc(place ? place.label : stop.placeId) + ' · ' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '"></div>';
   }).join("") + '</div>';
 
+  // View mode: just city + dates. Edit mode: full controls (nights,
+  // reorder, remove, add a stop). Toggled by the Edit/Done button.
+  const simpleList = '<div class="ie-timeline">' + state.trip.stops.map((stop, i) => {
+    const place = PLACES.find((p) => p.id === stop.placeId);
+    const range = ranges[i];
+    const dateLabel = range && range.dateStart ? fmtDate(range.dateStart) + " – " + fmtDate(range.dateEnd) : "";
+    const accent = PLACE_ACCENT[stop.placeId] || "#7cc0c2";
+    const thumbStyle = "color:" + accent + (place ? ";background-image:url('" + place.image + "')" : ";background:" + accent);
+    return '<div class="ie-stop ie-simple">' +
+      '<div class="ie-thumb" style="' + thumbStyle + '"></div>' +
+      '<div class="ie-simple-body">' +
+      '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
+      '<div class="ie-stop-dates muted">' + esc(dateLabel) + (dateLabel ? " · " : "") + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</div>' +
+      '</div></div>';
+  }).join("") + '</div>';
+
   const timeline = '<div class="ie-timeline">' + state.trip.stops.map((stop, i) => {
     const place = PLACES.find((p) => p.id === stop.placeId);
     const range = ranges[i];
@@ -825,7 +983,19 @@ function renderItineraryEditor(state) {
       '</div></div></div>';
   }).join("") + '</div>';
 
-  container.innerHTML = state.trip.stops.length ? (routeStrip + timeline) : '<div class="muted">No stops yet -- add one below.</div>';
+  container.innerHTML = state.trip.stops.length
+    ? (routeStrip + (itineraryEditMode ? timeline : simpleList))
+    : '<div class="muted">No stops yet -- add one below.</div>';
+
+  const toggle = document.getElementById("ieEditToggle");
+  if (toggle) {
+    toggle.textContent = itineraryEditMode ? "Done" : "Edit";
+    toggle.onclick = () => { itineraryEditMode = !itineraryEditMode; renderItineraryEditor(Store.getState()); };
+  }
+  const headTag = document.getElementById("ieHeadTag");
+  if (headTag) headTag.textContent = itineraryEditMode ? "reorder, adjust nights, add or remove stops" : "";
+  const ieAdd = document.querySelector(".ie-add");
+  if (ieAdd) ieAdd.style.display = itineraryEditMode ? "" : "none";
 
   function bump(i) {
     const span = container.querySelector('[data-nights-val="' + i + '"]');

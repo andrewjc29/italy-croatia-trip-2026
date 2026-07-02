@@ -247,7 +247,14 @@ const Store = (() => {
     );
     const dayActivities = state.activities
       .filter((a) => a.date === dateStr)
-      .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+      .sort((a, b) => {
+        // Manual drag order wins once set; items without one fall back to
+        // time-of-day sorting (and sink below manually ordered items).
+        const ord = (x) => { const n = parseFloat(x.order); return isNaN(n) ? Infinity : n; };
+        const ao = ord(a), bo = ord(b);
+        if (ao !== bo) return ao < bo ? -1 : 1;
+        return (a.time || "99:99").localeCompare(b.time || "99:99");
+      });
     return { day: dayNum, date: dateStr, placeId: range.placeId, cityId, lodging, transport, activities: dayActivities };
   }
 
