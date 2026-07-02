@@ -56,12 +56,14 @@ function renderActivityLine(a) {
 // same way, since the rail is rebuilt from activity times on every render.
 function wireActivityDrag(container) {
   let dragged = null;
-  container.querySelectorAll(".act-draggable").forEach((row) => {
+  container.querySelectorAll(".act-draggable, .ev-draggable").forEach((row) => {
     row.addEventListener("dragstart", (e) => {
       dragged = row;
       row.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-      try { e.dataTransfer.setData("text/plain", row.dataset.viewActivity); } catch (err) { /* IE quirk */ }
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", row.dataset.viewActivity || row.dataset.evBooking || ""); } catch (err) { /* IE quirk */ }
+      }
     });
     row.addEventListener("dragend", () => {
       row.classList.remove("dragging");
@@ -72,8 +74,10 @@ function wireActivityDrag(container) {
   container.querySelectorAll(".hour-slot, .day-anytime").forEach((slot) => {
     slot.addEventListener("dragover", (e) => {
       if (!dragged) return;
+      // Booking events stay on their own day; don't offer other days' slots.
+      if (dragged.dataset.evBooking && slot.dataset.date !== dragged.dataset.evDate) return;
       e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
       slot.classList.add("drag-over");
     });
     slot.addEventListener("dragleave", (e) => {
@@ -83,10 +87,20 @@ function wireActivityDrag(container) {
       if (!dragged) return;
       e.preventDefault();
       slot.classList.remove("drag-over");
-      const id = dragged.dataset.viewActivity;
-      const patch = { time: slot.dataset.hour !== undefined ? String(slot.dataset.hour).padStart(2, "0") + ":00" : "" };
+      const newTime = slot.dataset.hour !== undefined ? String(slot.dataset.hour).padStart(2, "0") + ":00" : "";
+      if (dragged.dataset.evBooking) {
+        // Booking event: write the new hour back to the booking itself so
+        // everything that shows this time (rail, Today view, detail card,
+        // edit form) updates together.
+        if (slot.dataset.date !== dragged.dataset.evDate) return;
+        const patch = {};
+        patch[dragged.dataset.evField] = newTime;
+        Store.update("bookings", dragged.dataset.evBooking, patch);
+        return;
+      }
+      const patch = { time: newTime };
       if (slot.dataset.date) patch.date = slot.dataset.date;
-      Store.update("activities", id, patch);
+      Store.update("activities", dragged.dataset.viewActivity, patch);
     });
   });
 }
@@ -103,17 +117,23 @@ function bookingEventsForDate(state, dateStr) {
   const evs = [];
   (state.bookings || []).forEach((b) => {
     if (b.category === "lodging") {
-      if (b.date === dateStr && b.checkinTime) evs.push({ time: b.checkinTime, label: "Check-in", booking: b });
-      if (b.endDate === dateStr && b.checkoutTime) evs.push({ time: b.checkoutTime, label: "Check-out", booking: b });
+      if (b.date === dateStr && b.checkinTime) evs.push({ time: b.checkinTime, label: "Check-in", booking: b, field: "checkinTime", date: dateStr });
+      if (b.endDate === dateStr && b.checkoutTime) evs.push({ time: b.checkoutTime, label: "Check-out", booking: b, field: "checkoutTime", date: dateStr });
     } else if (b.time && (b.date === dateStr || b.endDate === dateStr)) {
-      evs.push({ time: b.time, label: b.type || "Transport", booking: b });
+      evs.push({ time: b.time, label: b.type || "Transport", booking: b, field: "time", date: dateStr });
     }
   });
   return evs.sort((a, b2) => a.time.localeCompare(b2.time));
 }
 
+// Booking events are draggable like activities, but the drop writes back to
+// the booking's own time field (checkinTime / checkoutTime / time), so the
+// schedule and the booking stay in sync. They can only move within their
+// own day -- moving a checkout to a different date is a booking-dates edit.
 function renderRailEvent(ev) {
-  return '<div class="item-line item-line-clickable rail-event" data-view-booking="' + ev.booking.id + '">' +
+  return '<div class="item-line item-line-clickable rail-event ev-draggable" draggable="true" data-view-booking="' + ev.booking.id + '"' +
+    ' data-ev-booking="' + ev.booking.id + '" data-ev-field="' + ev.field + '" data-ev-date="' + esc(ev.date) + '">' +
+    '<span class="drag-grip" aria-hidden="true">&#8942;&#8942;</span>' +
     '<span><span class="time">' + esc(ev.time) + '</span><span class="rail-event-label">' + esc(ev.label) + '</span> ' + esc(ev.booking.title) + '</span>' +
     '<span class="il-actions"><span class="status-pill ' + esc(ev.booking.status || "idea") + '">' + esc(ev.booking.status || "idea") + '</span></span></div>';
 }
@@ -541,32 +561,44 @@ function renderPlaceDays(placeId, state) {
     // check out of the old hotel (top bar, departing city's color), travel,
     // then the travel banner + check-in at the new hotel (bottom, arriving
     // city's color). Normal days just keep the "staying at" bar on the bottom.
-    let topBar = "", bottomBar = "", banner = "";
+    let topBar = "", bottomBar = "", bannerTop = "", bannerBottom = "";
+    const hotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === d.date);
+    const hotelIn = (state.bookings || []).find((b) => b.category === "lodging" && b.date === d.date);
+    const twoHotels = hotelOut && hotelIn && hotelOut.id !== hotelIn.id;
     if (entry.transition) {
       const t = entry.transition;
       const departId = t.dir === "out" ? placeId : t.other.id;
       const arriveId = t.dir === "out" ? t.other.id : placeId;
-      const hotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === d.date);
-      const hotelIn = (state.bookings || []).find((b) => b.category === "lodging" && b.date === d.date);
       topBar = renderDayHotelBar(hotelOut, d.date, departId, true);
       bottomBar = renderDayHotelBar(hotelIn, d.date, arriveId);
       const accent = PLACE_ACCENT[t.other.id] || "#1d6a8c";
-      banner = '<div class="travel-banner" style="border-color:' + accent + ';color:' + accent + '">' +
+      const banner = '<div class="travel-banner" style="border-color:' + accent + ';color:' + accent + '">' +
         '<span class="tb-label" style="background:' + accent + '">Travel day</span>' +
         (t.dir === "out"
           ? esc(t.from.label) + ' &rarr; ' + esc(t.other.label) + '<a class="tb-jump" href="#' + t.other.id + '">Continue in ' + esc(t.other.label) + ' &darr;</a>'
           : 'Arriving from ' + esc(t.other.label) + '<a class="tb-jump" href="#' + t.other.id + '">&uarr; Back to ' + esc(t.other.label) + '</a>') +
         '</div>';
+      // Leaving: the banner points forward, so it sits at the bottom of the
+      // day. Arriving: it points back to the previous city, so it sits at
+      // the top, right under the date.
+      if (t.dir === "out") bannerBottom = banner;
+      else bannerTop = banner;
+    } else if (twoHotels) {
+      // Hotel hop within the same stop (e.g. two different Puglia hotels):
+      // wake-up/checkout hotel on top, the night's check-in hotel on the
+      // bottom -- same reading order as a travel day, no toggle needed.
+      topBar = renderDayHotelBar(hotelOut, d.date, d.placeId, true);
+      bottomBar = renderDayHotelBar(hotelIn, d.date, d.placeId);
     } else {
       bottomBar = renderDayHotelBar(d.lodging, d.date, d.placeId);
     }
     return '<div class="day-row' + (entry.transition ? " day-row-transition" : "") + '"><div class="day-dot"></div><div class="day-body">' +
       '<div class="day-date">' + (d.date ? fmtDate(d.date) : "Day " + d.day) + '</div>' +
-      topBar + transportLines + lines +
+      bannerTop + topBar + transportLines + lines +
       '<div class="day-add-row">' +
       '<button class="add-line" data-add-act="' + esc(d.date || "") + '">+ add to this day</button>' +
       '<button class="add-line" data-add-booking="' + esc(d.date || "") + '">+ add a booking</button>' +
-      '</div>' + banner + bottomBar + '</div></div>';
+      '</div>' + bannerBottom + bottomBar + '</div></div>';
   }).join("") + "</div>";
   wireActivityDrag(el2);
   el2.querySelectorAll("[data-add-act]").forEach((btn) => btn.addEventListener("click", () => openActivityForm(state, btn.dataset.addAct, null, place)));
@@ -979,19 +1011,23 @@ function renderTodayView(state) {
   let topBar = "", bottomHtml = hotelHtml;
   const ranges = Store.computeStopRanges();
   const arrIdx = ranges.findIndex((r, i) => i > 0 && r.dateStart === today.date);
+  const tHotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === today.date);
+  const tHotelIn = (state.bookings || []).find((b) => b.category === "lodging" && b.date === today.date);
   if (arrIdx > 0) {
     const fromP = PLACES.find((p) => p.id === ranges[arrIdx - 1].placeId);
     const toP = PLACES.find((p) => p.id === ranges[arrIdx].placeId);
     if (fromP && toP) {
       const acc = PLACE_ACCENT[toP.id] || "#1d6a8c";
-      const hotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === today.date);
-      const hotelIn = (state.bookings || []).find((b) => b.category === "lodging" && b.date === today.date);
-      topBar = renderDayHotelBar(hotelOut, today.date, fromP.id, true);
+      topBar = renderDayHotelBar(tHotelOut, today.date, fromP.id, true);
       bottomHtml = '<div class="travel-banner" style="border-color:' + acc + ';color:' + acc + '">' +
         '<span class="tb-label" style="background:' + acc + '">Travel day</span>' +
         esc(fromP.label) + ' &rarr; ' + esc(toP.label) + '</div>' +
-        renderDayHotelBar(hotelIn, today.date, toP.id);
+        renderDayHotelBar(tHotelIn, today.date, toP.id);
     }
+  } else if (tHotelOut && tHotelIn && tHotelOut.id !== tHotelIn.id) {
+    // Hotel hop within the same city: wake-up hotel top, tonight's bottom.
+    topBar = renderDayHotelBar(tHotelOut, today.date, today.placeId, true);
+    bottomHtml = renderDayHotelBar(tHotelIn, today.date, today.placeId);
   }
   const contentEl = document.getElementById("todayContent");
   contentEl.innerHTML =
