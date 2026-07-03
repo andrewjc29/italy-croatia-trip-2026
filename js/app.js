@@ -1273,32 +1273,20 @@ function renderItineraryEditor(state) {
   const container = document.getElementById("itineraryStopsList");
   if (!container) return;
   const ranges = Store.computeStopRanges();
-  const totalNights = state.trip.stops.reduce((sum, s) => sum + s.nights, 0) || 1;
 
-  const routeStrip = '<div class="ie-route-strip">' + state.trip.stops.map((stop) => {
-    const place = PLACES.find((p) => p.id === stop.placeId);
-    const pct = (stop.nights / totalNights) * 100;
-    const color = PLACE_ACCENT[stop.placeId] || "#7cc0c2";
-    const lbl = stop.nights >= 2 && place ? '<span class="ie-seg-lbl">' + esc(place.label) + '</span>' : "";
-    return '<div class="ie-route-seg" style="width:' + pct + '%;background:' + color + '" title="' + esc(place ? place.label : stop.placeId) + ' · ' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '">' + lbl + '</div>';
-  }).join("") + '</div>';
-
-  const tripRange = Store.getTripDateRange();
-  const summaryLine = tripRange.start
-    ? '<div class="ie-summary">' + esc(fmtDate(tripRange.start)) + ' &ndash; ' + esc(fmtDate(tripRange.end)) +
-      '<span class="ie-summary-sep">·</span>' + totalNights + ' nights' +
-      '<span class="ie-summary-sep">·</span>' + state.trip.stops.length + ' stops</div>'
-    : "";
-
-  // View mode: just city + dates. Edit mode: full controls (nights,
-  // reorder, remove, add a stop). Toggled by the Edit/Done button.
+  // View mode: just city + dates, each stop tappable to jump straight to
+  // that city's section further down the page. Edit mode: full controls
+  // (nights, reorder, remove, add a stop). Toggled by the Manage trip/Done
+  // button. (The colored route-strip bar and the date-range/nights/stops
+  // summary line that used to sit above this were removed -- redundant with
+  // what's already visible in the hero and in this list itself.)
   const simpleList = '<div class="ie-timeline">' + state.trip.stops.map((stop, i) => {
     const place = PLACES.find((p) => p.id === stop.placeId);
     const range = ranges[i];
     const dateLabel = range && range.dateStart ? fmtDate(range.dateStart) + " – " + fmtDate(range.dateEnd) : "";
     const accent = PLACE_ACCENT[stop.placeId] || "#7cc0c2";
     const thumbStyle = "color:" + accent + (place ? ";background-image:url('" + place.image + "')" : ";background:" + accent);
-    return '<div class="ie-stop ie-simple">' +
+    return '<div class="ie-stop ie-simple ie-jump" data-jump="' + esc(stop.placeId) + '" role="button" tabindex="0">' +
       '<div class="ie-thumb" style="' + thumbStyle + '"></div>' +
       '<div class="ie-simple-body">' +
       '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
@@ -1335,12 +1323,27 @@ function renderItineraryEditor(state) {
   }).join("") + '</div>';
 
   container.innerHTML = state.trip.stops.length
-    ? (routeStrip + summaryLine + (itineraryEditMode ? timeline : simpleList))
+    ? (itineraryEditMode ? timeline : simpleList)
     : '<div class="muted">No stops yet -- add one below.</div>';
+
+  // View-mode stops jump to that city's section on tap/click (and Enter/
+  // Space, since they're keyboard-focusable) -- not wired in edit mode,
+  // where a tap on the card is more likely aiming at the reorder/nights
+  // controls inside it.
+  if (!itineraryEditMode) {
+    container.querySelectorAll(".ie-jump").forEach((el3) => {
+      const jump = () => {
+        const target = document.getElementById(el3.dataset.jump);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+      el3.addEventListener("click", jump);
+      el3.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); jump(); } });
+    });
+  }
 
   const toggle = document.getElementById("ieEditToggle");
   if (toggle) {
-    toggle.textContent = itineraryEditMode ? "Done" : "Edit";
+    toggle.textContent = itineraryEditMode ? "Done" : "Manage trip";
     toggle.onclick = () => { itineraryEditMode = !itineraryEditMode; renderItineraryEditor(Store.getState()); };
   }
   const headTag = document.getElementById("ieHeadTag");

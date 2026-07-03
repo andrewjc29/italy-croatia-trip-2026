@@ -76,11 +76,6 @@ button{font-family:inherit}
 .ie-head{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin-bottom:.9rem;flex-wrap:wrap}
 .ie-head h3{font-family:'Fraunces';font-size:1.2rem;color:var(--adriatic-deep)}
 .ie-head .tag{font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--terracotta);font-weight:600}
-.ie-route-strip{display:flex;height:20px;border-radius:10px;overflow:hidden;margin-bottom:.6rem;box-shadow:inset 0 0 0 1px var(--line)}
-.ie-route-seg{transition:width .35s ease;min-width:3%;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.ie-seg-lbl{font-family:'Outfit';font-size:.56rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.25);padding:0 .3rem}
-.ie-summary{font-family:'Outfit';font-size:.8rem;color:var(--muted);margin-bottom:1.4rem}
-.ie-summary-sep{margin:0 .45rem;color:var(--line)}
 .ie-timeline{position:relative;padding-left:3.5rem}
 .ie-timeline::before{content:"";position:absolute;left:1.6rem;top:.3rem;bottom:.3rem;width:2px;background:var(--line)}
 .ie-stop{position:relative;display:flex;gap:1rem;padding:.6rem 0}
@@ -346,6 +341,9 @@ button{font-family:inherit}
 .ie-simple-body{flex:1}
 .ie-simple-body .ie-stop-name{font-family:'Fraunces';font-size:1.05rem;color:var(--adriatic-deep)}
 .ie-simple .ie-stop-dates{font-size:.78rem}
+.ie-stop.ie-jump{cursor:pointer;border-radius:12px;padding-left:.4rem;padding-right:.4rem;margin:0 -.4rem;transition:background .15s}
+.ie-stop.ie-jump:hover,.ie-stop.ie-jump:focus-visible{background:#f5f2ea}
+.ie-stop.ie-jump:focus-visible{outline:2px solid var(--adriatic);outline-offset:1px}
 .ie-nights-pill{font-family:'Outfit';font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:#fff;padding:.25rem .65rem;border-radius:var(--radius-pill);white-space:nowrap;flex-shrink:0}
 .ie-edit-toggle{margin-left:auto;flex-shrink:0}
 
