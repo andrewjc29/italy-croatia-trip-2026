@@ -39,7 +39,6 @@ button{font-family:inherit}
 .tl:hover{background:#eae3d4}
 .tl .dot{width:9px;height:9px;border-radius:50%;background:var(--line);border:2px solid var(--seaglass-soft);transition:all .25s}
 .tl .lbl{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.tl .num{font-size:.6rem;color:var(--seaglass)}
 .tl.active .dot{background:var(--terracotta);box-shadow:0 0 0 4px rgba(207,125,84,.18)}
 .tl.active .lbl{color:var(--adriatic-deep);font-weight:600}
 .sync-pill{display:flex;align-items:center;color:var(--muted);padding-left:.8rem;border-left:1px solid var(--line);flex-shrink:0}
@@ -470,11 +469,9 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .nav-inner{gap:.6rem;padding:.55rem .8rem}
   /* City names in the top nav are too wide for a proportional row of segments
      on a narrow screen, so on mobile this becomes a compact horizontally-
-     scrollable chip strip instead: dot + short label only (no nights count),
-     snap-scrolling, and a fade on the trailing edge to hint there's more. */
+     scrollable chip strip instead: dot + short label only, snap-scrolling. */
   .timeline{position:relative;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
   .tl{flex-direction:row;gap:.4rem;padding:.4rem .7rem;scroll-snap-align:start;flex-shrink:0}
-  .tl .num{display:none}
   .tl .dot{width:7px;height:7px}
   .tl .lbl{font-size:.68rem}
   .stay-card{flex-direction:column;align-items:flex-start}
