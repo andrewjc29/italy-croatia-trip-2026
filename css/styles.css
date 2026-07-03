@@ -400,6 +400,13 @@ button{font-family:inherit}
 .totop{position:fixed;bottom:1.6rem;right:1.6rem;z-index:60;width:44px;height:44px;border-radius:50%;background:var(--adriatic-deep);color:#fff;border:none;cursor:pointer;font-size:1.2rem;box-shadow:0 6px 18px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .3s}
 .totop.show{opacity:1;pointer-events:auto}
 
+/* ---- mobile bottom tab bar: thumb-reach shortcuts to the 4 sections you
+   actually return to on a live trip (no Map tab -- Maps live inline on the
+   items themselves now via the travel-utility actions). Hidden on desktop;
+   the top nav already covers that case there. Sized/positioned in the
+   shared mobile media query below, alongside the other <600px overrides. ---- */
+.bottom-nav{display:none}
+
 /* ---- shared design-system base classes (consolidation pass, see audit) ----
    New components should use these instead of inventing another one-off
    button/badge/icon-button style. Existing one-offs get migrated to these
@@ -469,6 +476,17 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .stay-card{flex-direction:column;align-items:flex-start}
   .sub-h{gap:.3rem .7rem}
   .sub-h .rule{flex-basis:100%;order:3}
+  .bottom-nav{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:55;
+    background:rgba(247,244,237,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+    padding:.35rem .4rem calc(.35rem + env(safe-area-inset-bottom));
+  }
+  .bn-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:.3rem 0;border:none;background:none;cursor:pointer;color:var(--muted);font-family:'Outfit'}
+  .bn-tab span{font-size:.62rem;letter-spacing:.04em}
+  .bn-tab.active{color:var(--terracotta)}
+  .bn-tab.active svg{stroke:var(--terracotta)}
+  .totop{bottom:calc(4.4rem + env(safe-area-inset-bottom))}
+  body{padding-bottom:calc(3.6rem + env(safe-area-inset-bottom))}
 }
 
 /* ---- where to stay: hotel shortlist table ---- */

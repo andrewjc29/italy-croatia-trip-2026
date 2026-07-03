@@ -1751,8 +1751,15 @@ function renderAll(state, syncStatus) {
 }
 
 // ---- scrollspy ----
+// Drives both the top nav chips (.tl) and the mobile bottom tab bar
+// (.bn-tab) off the same click-to-jump + IntersectionObserver highlighting
+// -- they share the data-target convention, so a section just needs an id
+// to be reachable from either. The bottom nav's targets (itineraryTop,
+// bookingStatus, prep, toolkit) are a coarser set than the top nav's
+// per-city stops, so a couple of ids exist purely for the bottom nav to
+// jump to (see index.html).
 function setupScrollspy() {
-  const links = Array.from(document.querySelectorAll(".tl"));
+  const links = Array.from(document.querySelectorAll(".tl, .bn-tab"));
   const sections = links.map((l) => document.getElementById(l.dataset.target)).filter(Boolean);
   links.forEach((l) => l.addEventListener("click", () => {
     const target = document.getElementById(l.dataset.target);
