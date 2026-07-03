@@ -20,9 +20,9 @@
   <div class="nav-inner">
     <div class="brand">Italy &amp; Croatia '26</div>
     <div class="timeline" id="timeline">
-      <button class="tl" data-target="todayView"><span class="dot"></span><span class="lbl">Today</span></button>
       <button class="tl" data-target="itineraryTop"><span class="dot"></span><span class="lbl">Itinerary</span></button>
       <button class="tl" data-target="bookings"><span class="dot"></span><span class="lbl">Bookings</span></button>
+      <button class="tl tl-today" data-target="todayView"><span class="dot"></span><span class="lbl">Today</span></button>
       <button class="tl" data-target="toolkit"><span class="dot"></span><span class="lbl">Toolkit</span></button>
       <button class="tl" data-target="prep"><span class="dot"></span><span class="lbl">Prep</span></button>
     </div>
@@ -127,10 +127,6 @@
 <button class="totop" id="totop" aria-label="Back to top">&uarr;</button>
 
 <nav class="bottom-nav" id="bottomNav">
-  <button class="bn-tab" data-target="todayView" aria-label="Today">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.6" y1="5.6" x2="7.3" y2="7.3"/><line x1="16.7" y1="16.7" x2="18.4" y2="18.4"/><line x1="18.4" y1="5.6" x2="16.7" y2="7.3"/><line x1="7.3" y1="16.7" x2="5.6" y2="18.4"/></svg>
-    <span>Today</span>
-  </button>
   <button class="bn-tab" data-target="itineraryTop" aria-label="Itinerary">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>
     <span>Itinerary</span>
@@ -138,6 +134,10 @@
   <button class="bn-tab" data-target="bookings" aria-label="Bookings">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><line x1="12" y1="6" x2="12" y2="18" stroke-dasharray="1.5 2.2"/></svg>
     <span>Bookings</span>
+  </button>
+  <button class="bn-tab bn-today" data-target="todayView" aria-label="Today">
+    <span class="bn-today-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.6" y1="5.6" x2="7.3" y2="7.3"/><line x1="16.7" y1="16.7" x2="18.4" y2="18.4"/><line x1="18.4" y1="5.6" x2="16.7" y2="7.3"/><line x1="7.3" y1="16.7" x2="5.6" y2="18.4"/></svg></span>
+    <span>Today</span>
   </button>
   <button class="bn-tab" data-target="toolkit" aria-label="Toolkit">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2-2z"/></svg>

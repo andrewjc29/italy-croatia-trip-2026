@@ -39,6 +39,9 @@ section[id]{scroll-margin-top:84px}
 .timeline::-webkit-scrollbar{display:none}
 .tl{display:flex;flex-direction:row;align-items:center;gap:.45rem;padding:.45rem .95rem;border-radius:var(--radius-pill);cursor:pointer;white-space:nowrap;border:none;background:none;font-family:'Outfit';transition:background .2s}
 .tl.active{background:rgba(207,125,84,.1)}
+.tl-today{background:rgba(207,125,84,.12)}
+.tl-today .dot{background:var(--terracotta);border-color:rgba(207,125,84,.4)}
+.tl-today .lbl{color:var(--adriatic-deep);font-weight:600}
 .tl:hover{background:#eae3d4}
 .tl .dot{width:9px;height:9px;border-radius:50%;background:var(--line);border:2px solid var(--seaglass-soft);transition:all .25s}
 .tl .lbl{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -488,17 +491,24 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
      two-up grid overlaps them on narrow screens. Stack modal field pairs. */
   .grid2{grid-template-columns:1fr!important}
   .bottom-nav{
-    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:55;
+    display:flex;align-items:flex-end;position:fixed;left:0;right:0;bottom:0;z-index:55;
     background:rgba(247,244,237,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);
-    padding:.35rem .4rem calc(.35rem + env(safe-area-inset-bottom));
+    padding:.5rem .4rem calc(1rem + env(safe-area-inset-bottom));
   }
-  .bn-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:.3rem .1rem;border:none;background:none;cursor:pointer;color:var(--muted);font-family:'Outfit'}
+  .bn-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.2rem .1rem;border:none;background:none;cursor:pointer;color:var(--muted);font-family:'Outfit'}
   .bn-tab span{font-size:.6rem;letter-spacing:.02em;white-space:nowrap}
   .bn-tab svg{width:19px;height:19px}
   .bn-tab.active{color:var(--terracotta)}
   .bn-tab.active svg{stroke:var(--terracotta)}
-  .totop{bottom:calc(4.4rem + env(safe-area-inset-bottom))}
-  body{padding-bottom:calc(3.6rem + env(safe-area-inset-bottom))}
+  /* Emphasized center Today tab -- raised filled accent circle. */
+  .bn-today-ico{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:var(--terracotta);margin-top:-22px;margin-bottom:1px;box-shadow:0 4px 12px rgba(207,125,84,.4)}
+  .bn-today .bn-today-ico svg{width:23px;height:23px;stroke:#fff}
+  .bn-today span{color:var(--terracotta);font-weight:600}
+  .totop{bottom:calc(5.2rem + env(safe-area-inset-bottom))}
+  body{padding-bottom:calc(4.6rem + env(safe-area-inset-bottom))}
+  /* Right-justify the + and collapse arrow in the per-city planning
+     section headers on mobile (the divider rule wraps to its own line). */
+  .plan-collapse summary .sec-add{margin-left:auto}
 }
 
 /* ---- where to stay: hotel shortlist table ---- */

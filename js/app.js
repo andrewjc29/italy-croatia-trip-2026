@@ -1911,6 +1911,10 @@ function setupScrollspy() {
   links.forEach((l) => l.addEventListener("click", () => {
     const target = document.getElementById(l.dataset.target);
     if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Highlight immediately on tap. The IntersectionObserver's active band
+    // sits mid-viewport, so short sections near the top of the page (Today)
+    // never enter it when scrolled to -- the click is the source of truth.
+    links.forEach((x) => x.classList.toggle("active", x.dataset.target === l.dataset.target));
   }));
   const io = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
