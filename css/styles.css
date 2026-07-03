@@ -463,6 +463,15 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
 
 @media(max-width:600px){
   body{font-size:16px}
+  /* The hero was sized for desktop (88vh + a 520px floor), which on a phone
+     eats almost the entire first screen before any real content shows.
+     Mobile gets a much shorter banner plus tighter internal spacing so the
+     itinerary is visible without scrolling past a wall of photo first. */
+  .hero{height:58vh;min-height:380px}
+  .hero-inner{padding-bottom:4.5vh}
+  .eyebrow{margin-bottom:.7rem}
+  .hero .meta{margin-top:.9rem;gap:1rem}
+  .hero-overview{margin-top:.8rem}
   .hero-inner,.place-head .ph-inner{padding-left:6vw;padding-right:6vw}
   .wrap{padding:0 1.3rem}
   .brand{display:none}
