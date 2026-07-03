@@ -1207,42 +1207,68 @@ function renderBookingStatus(state) {
   // conflict warning + are visually marked, and every row gets a one-click
   // remove so cleaning up a stray old pick doesn't require opening the full
   // edit form just to find the delete link at the bottom.
+  // Walked night-by-night instead of booking-by-booking: for every calendar
+  // night of a stay, find whichever lodging booking(s) actually cover it,
+  // then collapse consecutive nights with identical coverage into one row.
+  // A single hotel booked for the whole stay still reads as one clean row
+  // (same as before), but a gap in coverage now shows its own "no hotel"
+  // row instead of silently vanishing, and this is driven entirely by the
+  // stop's own date range, so a differently-tagged booking (e.g. a
+  // Bari-tagged hotel with drifted Rome-window dates) can never bleed in --
+  // it's excluded by the city-membership filter before dates even matter.
   const hotelRows = ranges.map((r) => {
     const place = PLACES.find((p) => p.id === r.placeId);
     const placeLabel = esc(place ? place.label : r.placeId);
     const headerRow = '<tr class="bs-place-row"><td colspan="4">' + placeLabel +
       '<span class="bs-place-nights muted">' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></td></tr>';
-    // Matching used to be pure date-overlap, which let a booking that's
-    // actually for a different place (e.g. the Puglia/Bari hotel) bleed
-    // into another place's group (e.g. Rome) whenever its dates happened to
-    // overlap that place's stay -- usually because the booking's dates
-    // drifted out of sync with the stop after nights got adjusted. Requiring
-    // the booking's city to actually belong to this place closes that gap.
-    const lodgings = state.bookings.filter((b) =>
-      b.category === "lodging" && (!place || place.cityIds.includes(b.city)) && b.date < r.dateEnd && b.endDate > r.dateStart);
-    if (!lodgings.length) {
-      const dateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "";
-      return headerRow + '<tr><td class="bs-date">' + dateLabel + '</td>' +
-        '<td><span class="muted">No hotel chosen yet</span></td>' +
-        '<td>' + statusCell("missing") + '</td>' +
-        '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="">choose</button></td></tr>';
+    if (!r.dateStart || !r.nights) {
+      return headerRow + '<tr><td colspan="4" class="muted">Set trip dates to track by night.</td></tr>';
     }
-    const hasConflict = lodgings.some((a, i) => lodgings.some((b, j) => i !== j && a.date < b.endDate && b.date < a.endDate));
-    const conflictRow = hasConflict
-      ? '<tr class="bs-conflict-row"><td colspan="4">Overlapping dates below -- looks like an earlier hotel pick was never removed. Keep the one you want, remove the rest.</td></tr>'
-      : "";
-    const rows = lodgings.map((lodging) => {
-      const nights = nightsBetween(lodging.date, lodging.endDate);
-      const dateLabel = esc(fmtDate(lodging.date)) + " &ndash; " + esc(fmtDate(lodging.endDate));
-      return '<tr' + (hasConflict ? ' class="bs-conflict"' : '') + '><td class="bs-date">' + dateLabel +
-        '<span class="bs-sub muted">' + nights + (nights === 1 ? " night" : " nights") + '</span></td>' +
-        '<td>' + esc(lodging.title) + '</td>' +
-        '<td>' + statusCell(lodging.status) + '</td>' +
+    const lodgings = state.bookings.filter((b) => b.category === "lodging" && (!place || place.cityIds.includes(b.city)));
+    const nightList = [];
+    for (let i = 0; i < r.nights; i++) {
+      const date = isoAddDays(r.dateStart, i);
+      nightList.push({ date, covering: lodgings.filter((b) => b.date <= date && b.endDate > date) });
+    }
+    const runs = [];
+    nightList.forEach((n) => {
+      const key = n.covering.map((b) => b.id).sort().join(",");
+      const last = runs[runs.length - 1];
+      if (last && last.key === key) last.endDate = isoAddDays(n.date, 1);
+      else runs.push({ key, startDate: n.date, endDate: isoAddDays(n.date, 1), covering: n.covering });
+    });
+    const rows = runs.map((run) => {
+      const nRun = nightsBetween(run.startDate, run.endDate);
+      const dateLabel = esc(fmtDate(run.startDate)) + " &ndash; " + esc(fmtDate(run.endDate));
+      const nightsLabel = '<span class="bs-sub muted">' + nRun + (nRun === 1 ? " night" : " nights") + '</span>';
+      if (!run.covering.length) {
+        return '<tr><td class="bs-date">' + dateLabel + nightsLabel + '</td>' +
+          '<td><span class="muted">No hotel chosen yet</span></td>' +
+          '<td>' + statusCell("missing") + '</td>' +
+          '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="">choose</button></td></tr>';
+      }
+      if (run.covering.length > 1) {
+        const conflictRow = '<tr class="bs-conflict-row"><td colspan="4">Overlapping dates below for ' + dateLabel +
+          ' -- looks like an earlier hotel pick was never removed. Keep the one you want, remove the rest.</td></tr>';
+        const subRows = run.covering.map((b) =>
+          '<tr class="bs-conflict"><td class="bs-date">' + esc(fmtDate(b.date)) + " &ndash; " + esc(fmtDate(b.endDate)) + '</td>' +
+          '<td>' + esc(b.title) + '</td>' +
+          '<td>' + statusCell(b.status) + '</td>' +
+          '<td class="actions">' +
+          '<button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + b.id + '">edit</button>' +
+          ' <button class="link danger" data-bs-remove="' + b.id + '">remove</button></td></tr>'
+        ).join("");
+        return conflictRow + subRows;
+      }
+      const b = run.covering[0];
+      return '<tr><td class="bs-date">' + dateLabel + nightsLabel + '</td>' +
+        '<td>' + esc(b.title) + '</td>' +
+        '<td>' + statusCell(b.status) + '</td>' +
         '<td class="actions">' +
-        '<button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + lodging.id + '">edit</button>' +
-        ' <button class="link danger" data-bs-remove="' + lodging.id + '">remove</button></td></tr>';
+        '<button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + b.id + '">edit</button>' +
+        ' <button class="link danger" data-bs-remove="' + b.id + '">remove</button></td></tr>';
     }).join("");
-    return headerRow + conflictRow + rows;
+    return headerRow + rows;
   }).join("");
   const transportBookings = state.bookings.filter((b) => b.category !== "lodging").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   const transportRowHtml = (t) => {
@@ -1254,25 +1280,45 @@ function renderBookingStatus(state) {
       '<button class="link" data-bs-booking="' + t.id + '">edit</button>' +
       ' <button class="link danger" data-bs-remove="' + t.id + '">remove</button></td></tr>';
   };
-  // Grouped by leg (the transition between consecutive stops) so it's
-  // obvious at a glance whether every hop between cities actually has
-  // transport booked, the same way the Hotels group makes a missing hotel
-  // obvious. A leg's transition date is stop i's checkout day, which always
-  // equals stop i+1's check-in day, so it's a single unambiguous date to
-  // match against (unlike stays, legs are point-in-time, so they never
-  // overlap each other). Anything that doesn't land on a leg date -- a
-  // flight from home to the first city, a day-trip ferry, any transport not
-  // tied to a city change -- still shows, as its own row. Everything (leg
-  // groups and standalone rows alike) is laid out in one chronological
-  // sequence rather than "all legs, then everything else at the bottom", so
-  // e.g. an SFO -> Rome flight naturally lands before the Rome -> Puglia leg.
-  const matchedIds = new Set();
-  const legBlocks = ranges.slice(0, -1).map((fromR, i) => {
+  // Grouped by leg (the transition between consecutive stops, plus the two
+  // "leg" that bookend the whole trip: home airport out to the first city,
+  // and the last city back home) so it's obvious at a glance whether every
+  // hop -- including the international flights -- actually has transport
+  // booked, the same way the Hotels group makes a missing hotel obvious. A
+  // stop-to-stop leg's transition date is stop i's checkout day, which
+  // always equals stop i+1's check-in day, so it's a single unambiguous
+  // date to match against (unlike stays, legs are point-in-time, so they
+  // never overlap each other); the home legs use the trip's own start/end
+  // date the same way. This whole list is derived fresh from the current
+  // stops + home airport on every render, so adding, removing, or
+  // reordering a stop updates which legs exist automatically. Anything that
+  // doesn't land on a leg date -- a day-trip ferry, any transport not tied
+  // to a city change -- still shows, as its own row. Everything (leg groups
+  // and standalone rows alike) is laid out in one chronological sequence
+  // rather than "all legs, then everything else at the bottom", so e.g. the
+  // SFO -> Rome flight naturally lands before the Rome -> Puglia leg.
+  const homeAirport = (state.meta && state.meta.homeAirport) || "Home";
+  const legDefs = [];
+  if (ranges.length) {
+    const firstR = ranges[0];
+    const firstPlace = PLACES.find((p) => p.id === firstR.placeId);
+    legDefs.push({ fromLabel: homeAirport, toLabel: firstPlace ? firstPlace.label : firstR.placeId, legDate: firstR.dateStart, contextPlaceId: firstR.placeId });
+  }
+  ranges.slice(0, -1).forEach((fromR, i) => {
     const toR = ranges[i + 1];
     const fromPlace = PLACES.find((p) => p.id === fromR.placeId);
     const toPlace = PLACES.find((p) => p.id === toR.placeId);
-    const legLabel = esc(fromPlace ? fromPlace.label : fromR.placeId) + ' &rarr; ' + esc(toPlace ? toPlace.label : toR.placeId);
-    const legDate = fromR.dateEnd;
+    legDefs.push({ fromLabel: fromPlace ? fromPlace.label : fromR.placeId, toLabel: toPlace ? toPlace.label : toR.placeId, legDate: fromR.dateEnd, contextPlaceId: fromR.placeId });
+  });
+  if (ranges.length) {
+    const lastR = ranges[ranges.length - 1];
+    const lastPlace = PLACES.find((p) => p.id === lastR.placeId);
+    legDefs.push({ fromLabel: lastPlace ? lastPlace.label : lastR.placeId, toLabel: homeAirport, legDate: lastR.dateEnd, contextPlaceId: lastR.placeId });
+  }
+  const matchedIds = new Set();
+  const legBlocks = legDefs.map((leg) => {
+    const legLabel = esc(leg.fromLabel) + ' &rarr; ' + esc(leg.toLabel);
+    const legDate = leg.legDate;
     const headerRow = '<tr class="bs-place-row"><td colspan="4">' + legLabel +
       '<span class="bs-place-nights muted">' + (legDate ? esc(fmtDate(legDate)) : "date not set") + '</span></td></tr>';
     const matches = legDate ? transportBookings.filter((t) => t.date && t.date <= legDate && (t.endDate || t.date) >= legDate) : [];
@@ -1281,14 +1327,14 @@ function renderBookingStatus(state) {
       ? headerRow + '<tr><td class="bs-date">' + (legDate ? esc(fmtDate(legDate)) : "") + '</td>' +
         '<td><span class="muted">No transport booked yet</span></td>' +
         '<td>' + statusCell("missing") + '</td>' +
-        '<td class="actions"><button class="link" data-bs-add-leg="' + esc(legDate || "") + '" data-bs-leg-place="' + esc(fromR.placeId) + '">add</button></td></tr>'
+        '<td class="actions"><button class="link" data-bs-add-leg="' + esc(legDate || "") + '" data-bs-leg-place="' + esc(leg.contextPlaceId) + '">add</button></td></tr>'
       : headerRow + matches.map(transportRowHtml).join("");
     return { sortKey: legDate || "9999-99-99", html };
   });
   const standaloneBlocks = transportBookings.filter((t) => !matchedIds.has(t.id)).map((t) => ({ sortKey: t.date || "9999-99-99", html: transportRowHtml(t) }));
   const transportRows = legBlocks.concat(standaloneBlocks)
     .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-    .map((b) => b.html).join("") || '<tr><td colspan="4" class="muted">Add at least two stops to track transport between them.</td></tr>';
+    .map((b) => b.html).join("") || '<tr><td colspan="4" class="muted">Add a stop to start tracking transport.</td></tr>';
   el2.innerHTML =
     '<div class="bs-group"><h4>Hotels</h4><div class="table-scroll"><table><thead><tr><th>Dates</th><th>Hotel</th><th>Status</th><th></th></tr></thead><tbody>' + hotelRows + '</tbody></table></div></div>' +
     '<div class="bs-group"><h4>Transportation</h4><div class="table-scroll"><table><thead><tr><th>Date</th><th>Transport</th><th>Status</th><th></th></tr></thead><tbody>' + transportRows + '</tbody></table></div></div>';
