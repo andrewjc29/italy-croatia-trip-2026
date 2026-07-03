@@ -1026,28 +1026,57 @@ function renderTodayView(state) {
   const baseISO = previewDate || new Date().toISOString().slice(0, 10);
   const days = Store.getItineraryDays();
   const viewISO = isoAddDays(baseISO, todayViewOffset);
-  let today = days.find((d) => d.date === viewISO);
-  if (!today && todayViewOffset !== 0) { todayViewOffset = 0; today = days.find((d) => d.date === baseISO); }
-  if (!today) { section.style.display = "none"; return; }
+  const today = days.find((d) => d.date === viewISO);
+  // The widget itself always shows -- even long before the trip starts, long
+  // after it ends, or before any itinerary exists at all -- so the ‹ › page
+  // controls are always there to browse forward into the real trip days.
+  // Only the content underneath changes based on whether this particular
+  // date has an itinerary day.
   section.style.display = "";
   const rel = todayViewOffset;
   const badge = section.querySelector(".tv-badge");
   if (badge) {
     badge.textContent = rel === 0 ? (previewDate ? "Today (preview)" : "Today")
       : rel === 1 ? "Tomorrow" : rel === -1 ? "Yesterday"
-      : new Date(today.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" });
+      : new Date(viewISO + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" });
     badge.title = rel === 0 ? "" : "Tap to jump back to today";
     badge.onclick = rel === 0 ? null : () => { todayViewOffset = 0; renderTodayView(Store.getState()); };
     badge.style.cursor = rel === 0 ? "" : "pointer";
   }
-  document.getElementById("todayDate").textContent = fmtDate(today.date);
+  document.getElementById("todayDate").textContent = fmtDate(viewISO);
   const prevBtn = document.getElementById("tvPrev");
   const nextBtn = document.getElementById("tvNext");
   if (prevBtn && nextBtn) {
-    prevBtn.disabled = !days.find((d) => d.date === isoAddDays(viewISO, -1));
-    nextBtn.disabled = !days.find((d) => d.date === isoAddDays(viewISO, 1));
+    prevBtn.disabled = false;
+    nextBtn.disabled = false;
     prevBtn.onclick = () => { todayViewOffset--; renderTodayView(Store.getState()); };
     nextBtn.onclick = () => { todayViewOffset++; renderTodayView(Store.getState()); };
+  }
+  const contentEl = document.getElementById("todayContent");
+  if (!today) {
+    // No itinerary day for this date -- explain why instead of hiding the
+    // whole widget, so it's still obvious how far off the trip is (or that
+    // it's over) without needing the countdown banner above.
+    const range = Store.getTripDateRange();
+    const msPerDay = 86400000;
+    let msg;
+    if (!range.start) {
+      msg = "Add stops to your itinerary to see day-by-day plans here.";
+    } else {
+      const viewD = new Date(viewISO + "T00:00:00");
+      const startD = new Date(range.start + "T00:00:00");
+      const endD = range.end ? new Date(range.end + "T00:00:00") : null;
+      if (viewD < startD) {
+        const n = Math.round((startD - viewD) / msPerDay);
+        msg = "No itinerary yet for " + fmtDate(viewISO) + " -- trip starts in " + n + (n === 1 ? " day" : " days") + " (" + fmtDate(range.start) + ").";
+      } else if (endD && viewD >= endD) {
+        msg = "Trip's done as of " + fmtDate(range.end) + " -- hope it was unforgettable.";
+      } else {
+        msg = "No itinerary set for " + fmtDate(viewISO) + " yet.";
+      }
+    }
+    contentEl.innerHTML = '<div class="muted" style="padding:.6rem 0">' + esc(msg) + '</div>';
+    return;
   }
   const place = PLACES.find((p) => p.id === today.placeId);
   const dayNum = days.indexOf(today) + 1;
@@ -1103,7 +1132,6 @@ function renderTodayView(state) {
     topBar = renderDayHotelBar(tHotelOut, today.date, today.placeId, true);
     bottomHtml = renderDayHotelBar(tHotelIn, today.date, today.placeId);
   }
-  const contentEl = document.getElementById("todayContent");
   contentEl.innerHTML =
     cityHtml + topBar + transportHtml +
     (merged || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>') +
