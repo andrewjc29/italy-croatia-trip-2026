@@ -72,14 +72,18 @@ section[id]{scroll-margin-top:84px}
 
 /* ---- intro / trip controls ---- */
 .intro{max-width:760px;margin:0 auto;padding:3rem 2rem 1rem}
-.itinerary-editor{max-width:720px;margin:2.2rem auto 0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:1.4rem 1.6rem 1.6rem;box-shadow:0 8px 24px var(--shadow);text-align:left}
+.itinerary-editor{max-width:720px;margin:2.2rem auto 0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);overflow:hidden;box-shadow:0 8px 24px var(--shadow);text-align:left}
 .itinerary-editor .field-block{display:flex;flex-direction:column;gap:.3rem}
 .itinerary-editor label{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--seaglass);font-weight:600}
-.ie-head{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin-bottom:.9rem;flex-wrap:wrap}
-.ie-head h3{font-family:'Fraunces';font-size:1.2rem;color:var(--adriatic-deep)}
-.ie-head .tag{font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--terracotta);font-weight:600}
+/* Header band, styled like the Today block's tv-head. */
+.ie-head{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;background:var(--adriatic-deep);color:#fff;padding:.75rem 1.3rem}
+.ie-head-title{font-family:'Fraunces';font-style:italic;font-size:1.1rem;color:#fff}
+.ie-head .tag{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.75);font-weight:600}
+.ie-head .ie-edit-toggle{margin-left:auto;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35)}
+.ie-head .ie-edit-toggle:hover{background:rgba(255,255,255,.22)}
+.ie-body{padding:1.4rem 1.6rem 1.6rem}
 .ie-timeline{position:relative;padding-left:3.5rem}
-.ie-timeline::before{content:"";position:absolute;left:1.6rem;top:.3rem;bottom:.3rem;width:2px;background:var(--line)}
+.ie-timeline::before{content:"";position:absolute;left:21px;top:.3rem;bottom:.3rem;width:2px;background:var(--line)}
 .ie-stop{position:relative;display:flex;gap:1rem;padding:.6rem 0}
 .ie-thumb{position:absolute;left:-3.5rem;top:.25rem;width:44px;height:44px;border-radius:50%;background-size:cover;background-position:center;border:3px solid var(--card);box-shadow:0 0 0 2px currentColor,0 6px 14px var(--shadow);flex-shrink:0;transition:transform .2s}
 .ie-stop:hover .ie-thumb{transform:scale(1.08)}

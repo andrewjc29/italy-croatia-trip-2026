@@ -1453,9 +1453,8 @@ function renderItineraryEditor(state) {
       '<div class="ie-thumb" style="' + thumbStyle + '"></div>' +
       '<div class="ie-simple-body">' +
       '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
-      '<div class="ie-stop-dates muted">' + esc(dateLabel) + '</div>' +
+      '<div class="ie-stop-dates muted">' + esc(dateLabel) + (dateLabel ? " &middot; " : "") + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</div>' +
       '</div>' +
-      '<span class="ie-nights-pill" style="background:' + accent + '">' + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</span>' +
       '</div>';
   }).join("") + '</div>';
 
