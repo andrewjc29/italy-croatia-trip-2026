@@ -1245,17 +1245,56 @@ function renderBookingStatus(state) {
     return headerRow + conflictRow + rows;
   }).join("");
   const transportBookings = state.bookings.filter((b) => b.category !== "lodging").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-  const transportRows = transportBookings.length ? transportBookings.map((t) => {
+  const transportRowHtml = (t) => {
     const dateLabel = t.date ? (t.endDate && t.endDate !== t.date ? esc(fmtDate(t.date)) + " &ndash; " + esc(fmtDate(t.endDate)) : esc(fmtDate(t.date))) : '<span class="muted">no date set</span>';
-    return '<tr><td class="bs-item">' + esc(t.title) + '</td>' +
-      '<td class="bs-date">' + dateLabel + '</td>' +
-      '<td>' + esc(t.category) + '</td>' +
+    return '<tr><td class="bs-date">' + dateLabel + '<span class="bs-sub muted">' + esc(t.category) + '</span></td>' +
+      '<td>' + esc(t.title) + '</td>' +
       '<td>' + statusCell(t.status) + '</td>' +
-      '<td class="actions"><button class="link" data-bs-booking="' + t.id + '">edit</button></td></tr>';
-  }).join("") : '<tr><td colspan="5" class="muted">No transport between cities booked yet.</td></tr>';
+      '<td class="actions">' +
+      '<button class="link" data-bs-booking="' + t.id + '">edit</button>' +
+      ' <button class="link danger" data-bs-remove="' + t.id + '">remove</button></td></tr>';
+  };
+  // Grouped by leg (the transition between consecutive stops) rather than a
+  // flat date-sorted list -- the point is to make it obvious at a glance
+  // whether every hop between cities actually has transport booked, the
+  // same way the Hotels group makes a missing hotel obvious. A leg's
+  // transition date is stop i's checkout day, which always equals stop
+  // i+1's check-in day, so it's a single unambiguous date to match against
+  // (unlike stays, legs are point-in-time, so they never overlap each
+  // other). Anything that doesn't land on a leg date (day trips, one-off
+  // transport not tied to a city change) still shows, under "Other".
+  const matchedIds = new Set();
+  const legRows = ranges.slice(0, -1).map((fromR, i) => {
+    const toR = ranges[i + 1];
+    const fromPlace = PLACES.find((p) => p.id === fromR.placeId);
+    const toPlace = PLACES.find((p) => p.id === toR.placeId);
+    const legLabel = esc(fromPlace ? fromPlace.label : fromR.placeId) + ' &rarr; ' + esc(toPlace ? toPlace.label : toR.placeId);
+    const legDate = fromR.dateEnd;
+    const headerRow = '<tr class="bs-place-row"><td colspan="4">' + legLabel +
+      '<span class="bs-place-nights muted">' + (legDate ? esc(fmtDate(legDate)) : "date not set") + '</span></td></tr>';
+    const matches = legDate ? transportBookings.filter((t) => t.date && t.date <= legDate && (t.endDate || t.date) >= legDate) : [];
+    matches.forEach((t) => matchedIds.add(t.id));
+    if (!matches.length) {
+      return headerRow + '<tr><td class="bs-date">' + (legDate ? esc(fmtDate(legDate)) : "") + '</td>' +
+        '<td><span class="muted">No transport booked yet</span></td>' +
+        '<td>' + statusCell("missing") + '</td>' +
+        '<td class="actions"><button class="link" data-bs-add-leg="' + esc(legDate || "") + '" data-bs-leg-place="' + esc(fromR.placeId) + '">add</button></td></tr>';
+    }
+    return headerRow + matches.map(transportRowHtml).join("");
+  }).join("");
+  const otherTransport = transportBookings.filter((t) => !matchedIds.has(t.id));
+  const otherRows = otherTransport.length
+    ? '<tr class="bs-place-row"><td colspan="4">Other transport<span class="bs-place-nights muted">not tied to a specific leg</span></td></tr>' +
+      otherTransport.map(transportRowHtml).join("")
+    : "";
+  const transportRows = (legRows + otherRows) || '<tr><td colspan="4" class="muted">Add at least two stops to track transport between them.</td></tr>';
   el2.innerHTML =
     '<div class="bs-group"><h4>Hotels</h4><div class="table-scroll"><table><thead><tr><th>Dates</th><th>Hotel</th><th>Status</th><th></th></tr></thead><tbody>' + hotelRows + '</tbody></table></div></div>' +
-    '<div class="bs-group"><h4>Transport between cities</h4><div class="table-scroll"><table><thead><tr><th>Leg</th><th>Date</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>' + transportRows + '</tbody></table></div></div>';
+    '<div class="bs-group"><h4>Transport between cities</h4><div class="table-scroll"><table><thead><tr><th>Date</th><th>Transport</th><th>Status</th><th></th></tr></thead><tbody>' + transportRows + '</tbody></table></div></div>';
+  el2.querySelectorAll("[data-bs-add-leg]").forEach((btn) => btn.addEventListener("click", () => {
+    const fromPlace = PLACES.find((p) => p.id === btn.dataset.bsLegPlace) || null;
+    openBookingForm(state, null, fromPlace, btn.dataset.bsAddLeg || undefined);
+  }));
   el2.querySelectorAll("[data-bs-booking]").forEach((btn) => btn.addEventListener("click", () => {
     const id = btn.dataset.bsBooking;
     if (id) {
