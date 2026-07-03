@@ -1170,6 +1170,20 @@ function renderBookingStatus(state) {
   const el2 = document.getElementById("bookingStatusPanel");
   if (!el2) return;
   const ranges = Store.computeStopRanges();
+  // Small at-a-glance icon next to each status pill on the booking dashboard
+  // (missing/idea/booked/confirmed) -- same info as the pill's color, but
+  // scannable from a quick glance down the column, not just by reading text.
+  const statusIcon = (status) => {
+    const attrs = 'viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
+    const icons = {
+      confirmed: '<svg ' + attrs + ' stroke="var(--good)"><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6 4.8-5.8"/></svg>',
+      booked: '<svg ' + attrs + ' stroke="#7a5c00"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v4.8l3.2 1.8"/></svg>',
+      idea: '<svg ' + attrs + ' stroke="#8a4a1c"><circle cx="12" cy="12" r="9" stroke-dasharray="2.4 3"/></svg>',
+      missing: '<svg ' + attrs + ' stroke="var(--danger)"><path d="M12 3.5l9.5 16.5h-19z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="17" r=".35" fill="var(--danger)" stroke="none"/></svg>'
+    };
+    return icons[status] || icons.idea;
+  };
+  const statusCell = (status) => '<span class="bs-status">' + statusIcon(status) + '<span class="status-pill ' + esc(status) + '">' + esc(status) + '</span></span>';
   const hotelRows = ranges.map((r) => {
     const place = PLACES.find((p) => p.id === r.placeId);
     // A stop can be split across more than one hotel -- show every lodging
@@ -1182,7 +1196,7 @@ function renderBookingStatus(state) {
         '<span class="bs-sub muted">' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></td>' +
         '<td class="bs-date">' + dateLabel + '</td>' +
         '<td><span class="muted">No hotel chosen yet</span></td>' +
-        '<td><span class="status-pill missing">missing</span></td>' +
+        '<td>' + statusCell("missing") + '</td>' +
         '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="">choose</button></td></tr>';
     }
     return lodgings.map((lodging) => {
@@ -1192,7 +1206,7 @@ function renderBookingStatus(state) {
         '<span class="bs-sub muted">' + nights + (nights === 1 ? " night" : " nights") + '</span></td>' +
         '<td class="bs-date">' + dateLabel + '</td>' +
         '<td>' + esc(lodging.title) + '</td>' +
-        '<td><span class="status-pill ' + lodging.status + '">' + lodging.status + '</span></td>' +
+        '<td>' + statusCell(lodging.status) + '</td>' +
         '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + lodging.id + '">edit</button></td></tr>';
     }).join("");
   }).join("");
@@ -1202,7 +1216,7 @@ function renderBookingStatus(state) {
     return '<tr><td class="bs-item">' + esc(t.title) + '</td>' +
       '<td class="bs-date">' + dateLabel + '</td>' +
       '<td>' + esc(t.category) + '</td>' +
-      '<td><span class="status-pill ' + t.status + '">' + t.status + '</span></td>' +
+      '<td>' + statusCell(t.status) + '</td>' +
       '<td class="actions"><button class="link" data-bs-booking="' + t.id + '">edit</button></td></tr>';
   }).join("") : '<tr><td colspan="5" class="muted">No transport between cities booked yet.</td></tr>';
   el2.innerHTML =

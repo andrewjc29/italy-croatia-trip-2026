@@ -157,6 +157,8 @@ button{font-family:inherit}
 .status-pill.booked{background:#fff3c4;color:#7a5c00}
 .status-pill.confirmed{background:#e0efe4;color:#276149}
 .status-pill.missing{background:#fbdede;color:#9c2b2b}
+.bs-status{display:inline-flex;align-items:center;gap:.35rem}
+.bs-status svg{flex-shrink:0}
 
 /* ---- day rows (itinerary within a place) ---- */
 .day-rows{position:relative;padding-left:2.7rem;margin-bottom:1.6rem}
