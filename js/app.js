@@ -242,6 +242,56 @@ function openModal(title, bodyHtml, onSubmit, submitLabel) {
 }
 function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
 
+// Copies text to the clipboard and gives the clicked button a brief
+// "Copied" confirmation state. Falls back to a hidden-textarea copy for
+// browsers/contexts without navigator.clipboard (e.g. non-HTTPS local use).
+function copyToClipboard(text, btnEl) {
+  const flash = () => {
+    if (!btnEl) return;
+    if (!btnEl.dataset.origLabel) btnEl.dataset.origLabel = btnEl.textContent;
+    btnEl.textContent = "Copied";
+    btnEl.classList.add("copied");
+    clearTimeout(btnEl._copyTimer);
+    btnEl._copyTimer = setTimeout(() => {
+      btnEl.textContent = btnEl.dataset.origLabel;
+      btnEl.classList.remove("copied");
+    }, 1400);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(flash).catch(flash);
+  } else {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) { /* no-op */ }
+    document.body.removeChild(ta);
+    flash();
+  }
+}
+
+// Wires every [data-copy] button found under root (defaults to the whole
+// document) to copy its decoded text via copyToClipboard. Call this once
+// after appending any markup that used mapActionsRow() or a copy button.
+function wireCopyButtons(root) {
+  (root || document).querySelectorAll("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", () => copyToClipboard(decodeURIComponent(btn.dataset.copy), btn));
+  });
+}
+
+// Shared "Google Maps / Apple Maps / Copy address" action row -- used
+// everywhere a Map link already exists (restaurant + thing-to-do detail
+// cards, day-by-day activity/booking detail cards, hotel table) so those
+// surfaces gain the same set of travel-utility actions instead of each
+// growing its own one-off link. Any argument can be falsy/empty to omit it.
+function mapActionsRow(googleUrl, appleUrl, copyText, copyLabel) {
+  if (!googleUrl && !appleUrl && !copyText) return "";
+  const parts = [];
+  if (googleUrl) parts.push('<a class="btn-outline" href="' + esc(googleUrl) + '" target="_blank" rel="noopener">Google Maps</a>');
+  if (appleUrl) parts.push('<a class="btn-outline" href="' + esc(appleUrl) + '" target="_blank" rel="noopener">Apple Maps</a>');
+  if (copyText) parts.push('<button type="button" class="btn-outline" data-copy="' + encodeURIComponent(copyText) + '">' + esc(copyLabel || "Copy address") + '</button>');
+  return '<div class="map-actions-row">' + parts.join("") + '</div>';
+}
+
 // Wires the "Auto-fill from Google" button used by the restaurant and
 // thing-to-do forms: reads the Name + City fields, looks up the place via
 // PlacesLookup (js/places.js), and fills in Kind / Notes / a precise map
@@ -303,7 +353,13 @@ function openViewModal(title, bodyHtml) {
 // something. kind is "activity" or "booking".
 function openItemDetailCard(kind, item, place) {
   const isBooking = kind === "booking";
-  const mapsLink = isBooking ? item.link : mapsUrlForCity(item.title, item.city);
+  const googleUrl = mapsUrlForCity(item.title, item.city);
+  const appleUrl = appleMapsUrlForCity(item.title, item.city);
+  const copyText = locationLabel(item.title, item.city);
+  // A booking's own "Link" field is free text (an airline/booking-site URL,
+  // not necessarily a map link) -- only surface it separately when it's not
+  // just the same Google Maps link we're already showing below.
+  const providerLink = isBooking && item.link && item.link !== googleUrl ? item.link : "";
   const rows = [];
   if (isBooking) {
     if (item.provider) rows.push(["Provider", item.provider]);
@@ -332,15 +388,22 @@ function openItemDetailCard(kind, item, place) {
     (place ? '<div class="pm-city">' + esc(place.label) + '</div>' : "") +
     '</div>' +
     '<div class="pm-body">' +
-    '<div class="idc-rows">' + rows.map((r) => '<div class="idc-row"><span class="idc-label">' + esc(r[0]) + '</span><span class="idc-val">' + esc(r[1]) + '</span></div>').join("") + '</div>' +
+    '<div class="idc-rows">' + rows.map((r) => {
+      const val = r[0] === "Confirmation #"
+        ? esc(r[1]) + ' <button type="button" class="link-copy" data-copy="' + encodeURIComponent(r[1]) + '" title="Copy confirmation number" aria-label="Copy confirmation number">copy</button>'
+        : esc(r[1]);
+      return '<div class="idc-row"><span class="idc-label">' + esc(r[0]) + '</span><span class="idc-val">' + val + '</span></div>';
+    }).join("") + '</div>' +
     (rows.length === 0 ? '<p class="muted">No extra details yet -- add some from Edit below.</p>' : "") +
-    (mapsLink ? '<div class="pm-actions"><span></span><a class="site" href="' + esc(mapsLink) + '" target="_blank" rel="noopener">Map</a></div>' : "") +
+    (providerLink ? '<div class="pm-actions"><span></span><a class="site" href="' + esc(providerLink) + '" target="_blank" rel="noopener">Provider link</a></div>' : "") +
+    mapActionsRow(googleUrl, appleUrl, copyText) +
     '</div>' +
     '<div class="pm-footer">' +
     '<button class="link" id="idcEditBtn">Edit details</button>' +
     '<button class="link danger" id="idcRemoveBtn">Remove</button>' +
     '</div></div></div>');
   root.appendChild(overlay);
+  wireCopyButtons(overlay);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) root.innerHTML = ""; });
   document.getElementById("pmClose").addEventListener("click", () => { root.innerHTML = ""; });
   document.getElementById("idcEditBtn").addEventListener("click", () => {
@@ -377,13 +440,15 @@ function openPlaceDetailCard(type, item, place) {
     (item.description ? '<p class="pm-desc">' + esc(item.description) + '</p>' : '<p class="muted">No notes yet -- add some from Edit below.</p>') +
     '<div class="pm-actions">' +
     '<button class="btn" id="pmAdd">+ Add to a day</button>' +
-    (item.url ? '<a class="site" href="' + esc(item.url) + '" target="_blank" rel="noopener">Map</a>' : "") +
-    '</div></div>' +
+    '</div>' +
+    mapActionsRow(item.url, appleMapsUrlForCity(item.name, item.city), locationLabel(item.name, item.city)) +
+    '</div>' +
     '<div class="pm-footer">' +
     '<button class="link" id="pmEdit">Edit details</button>' +
     '<button class="link danger" id="pmRemove">Remove</button>' +
     '</div></div></div>');
   root.appendChild(overlay);
+  wireCopyButtons(overlay);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) root.innerHTML = ""; });
   document.getElementById("pmClose").addEventListener("click", () => { root.innerHTML = ""; });
   document.getElementById("pmAdd").addEventListener("click", () => {
@@ -633,12 +698,14 @@ function renderPlaceHotels(placeId, state) {
         '<td class="cost">' + esc(h.costLabel || fmtMoney(h.cost, "USD")) + '</td>' +
         '<td>' + esc(h.pros || "") + '</td><td>' + esc(h.cons || "") + '</td>' +
         '<td class="actions">' +
-        (h.url ? '<a href="' + esc(h.url) + '" target="_blank" rel="noopener">Visit site</a><br>' : "") +
+        (h.url ? '<a href="' + esc(h.url) + '" target="_blank" rel="noopener">Google Maps</a> &middot; <a href="' + esc(appleMapsUrlForPlace(h.name, h.area, h.placeId)) + '" target="_blank" rel="noopener">Apple</a><br>' : "") +
+        '<button type="button" class="link" data-copy="' + encodeURIComponent(locationLabelForPlace(h.name, h.area, h.placeId)) + '">copy address</button><br>' +
         '<button class="site-link" data-choose-hotel="' + h.id + '">' + (existingForHotel ? "Chosen -- edit dates" : "Choose this") + '</button><br>' +
         '<button class="link" data-edit-hotel="' + h.id + '">edit</button></td></tr>';
     }).join("") + "</tbody></table></div>" +
     (placeLodgings.length > 1 ? '<div class="muted" style="font-size:.82rem;margin-top:.4rem">Split stay: ' +
       placeLodgings.map((b) => esc(b.title) + " (" + esc(fmtDate(b.date)) + "–" + esc(fmtDate(b.endDate)) + ")").join(", ") + '</div>' : "");
+  wireCopyButtons(el2);
   el2.querySelectorAll("[data-choose-hotel]").forEach((btn) => btn.addEventListener("click", () => {
     const h = state.hotels.find((x) => x.id === btn.dataset.chooseHotel);
     const existingForHotel = placeLodgings.find((b) => b.title === h.name);

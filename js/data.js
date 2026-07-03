@@ -27,14 +27,34 @@ const PLACE_LABEL_MAP = {
   rome: "Rome, Italy", puglia: "Bari, Italy", dubrovnik: "Dubrovnik, Croatia",
   hvar: "Hvar, Croatia", split: "Split, Croatia"
 };
+// Plain-text (not URL-encoded) versions of the same query used to build the
+// map links below -- this is what "copy address" copies to the clipboard.
+// There's no real street-address data for most saved places, so this
+// name + city/place string is the closest reliable stand-in and it always
+// matches whatever the map links point at.
+function locationLabel(name, cityId) {
+  return [name, CITY_LABEL_MAP[cityId] || ""].filter(Boolean).join(", ");
+}
+function locationLabelForPlace(name, extra, placeId) {
+  return [name, extra, PLACE_LABEL_MAP[placeId] || ""].filter(Boolean).join(", ");
+}
 function mapsUrl(query) {
   return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
 }
 function mapsUrlForCity(name, cityId) {
-  return mapsUrl([name, CITY_LABEL_MAP[cityId] || ""].filter(Boolean).join(", "));
+  return mapsUrl(locationLabel(name, cityId));
 }
 function mapsUrlForPlace(name, extra, placeId) {
-  return mapsUrl([name, extra, PLACE_LABEL_MAP[placeId] || ""].filter(Boolean).join(", "));
+  return mapsUrl(locationLabelForPlace(name, extra, placeId));
+}
+function appleMapsUrl(query) {
+  return "https://maps.apple.com/?q=" + encodeURIComponent(query);
+}
+function appleMapsUrlForCity(name, cityId) {
+  return appleMapsUrl(locationLabel(name, cityId));
+}
+function appleMapsUrlForPlace(name, extra, placeId) {
+  return appleMapsUrl(locationLabelForPlace(name, extra, placeId));
 }
 
 // Mirrors the per-city accent colors in css/styles.css (#rome, #puglia, ...).
