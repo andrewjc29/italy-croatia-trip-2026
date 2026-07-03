@@ -1210,18 +1210,26 @@ function renderBookingStatus(state) {
   const hotelRows = ranges.map((r) => {
     const place = PLACES.find((p) => p.id === r.placeId);
     const placeLabel = esc(place ? place.label : r.placeId);
-    const headerRow = '<tr class="bs-place-row"><td colspan="3">' + placeLabel +
+    const headerRow = '<tr class="bs-place-row"><td colspan="4">' + placeLabel +
       '<span class="bs-place-nights muted">' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></td></tr>';
-    const lodgings = state.bookings.filter((b) => b.category === "lodging" && b.date < r.dateEnd && b.endDate > r.dateStart);
+    // Matching used to be pure date-overlap, which let a booking that's
+    // actually for a different place (e.g. the Puglia/Bari hotel) bleed
+    // into another place's group (e.g. Rome) whenever its dates happened to
+    // overlap that place's stay -- usually because the booking's dates
+    // drifted out of sync with the stop after nights got adjusted. Requiring
+    // the booking's city to actually belong to this place closes that gap.
+    const lodgings = state.bookings.filter((b) =>
+      b.category === "lodging" && (!place || place.cityIds.includes(b.city)) && b.date < r.dateEnd && b.endDate > r.dateStart);
     if (!lodgings.length) {
       const dateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "";
       return headerRow + '<tr><td class="bs-date">' + dateLabel + '</td>' +
         '<td><span class="muted">No hotel chosen yet</span></td>' +
-        '<td class="actions">' + statusCell("missing") + ' <button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="">choose</button></td></tr>';
+        '<td>' + statusCell("missing") + '</td>' +
+        '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="">choose</button></td></tr>';
     }
     const hasConflict = lodgings.some((a, i) => lodgings.some((b, j) => i !== j && a.date < b.endDate && b.date < a.endDate));
     const conflictRow = hasConflict
-      ? '<tr class="bs-conflict-row"><td colspan="3">Overlapping dates below -- looks like an earlier hotel pick was never removed. Keep the one you want, remove the rest.</td></tr>'
+      ? '<tr class="bs-conflict-row"><td colspan="4">Overlapping dates below -- looks like an earlier hotel pick was never removed. Keep the one you want, remove the rest.</td></tr>'
       : "";
     const rows = lodgings.map((lodging) => {
       const nights = nightsBetween(lodging.date, lodging.endDate);
@@ -1229,8 +1237,9 @@ function renderBookingStatus(state) {
       return '<tr' + (hasConflict ? ' class="bs-conflict"' : '') + '><td class="bs-date">' + dateLabel +
         '<span class="bs-sub muted">' + nights + (nights === 1 ? " night" : " nights") + '</span></td>' +
         '<td>' + esc(lodging.title) + '</td>' +
-        '<td class="actions">' + statusCell(lodging.status) +
-        ' <button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + lodging.id + '">edit</button>' +
+        '<td>' + statusCell(lodging.status) + '</td>' +
+        '<td class="actions">' +
+        '<button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + lodging.id + '">edit</button>' +
         ' <button class="link danger" data-bs-remove="' + lodging.id + '">remove</button></td></tr>';
     }).join("");
     return headerRow + conflictRow + rows;
@@ -1245,7 +1254,7 @@ function renderBookingStatus(state) {
       '<td class="actions"><button class="link" data-bs-booking="' + t.id + '">edit</button></td></tr>';
   }).join("") : '<tr><td colspan="5" class="muted">No transport between cities booked yet.</td></tr>';
   el2.innerHTML =
-    '<div class="bs-group"><h4>Hotels</h4><div class="table-scroll"><table><thead><tr><th>Dates</th><th>Hotel</th><th></th></tr></thead><tbody>' + hotelRows + '</tbody></table></div></div>' +
+    '<div class="bs-group"><h4>Hotels</h4><div class="table-scroll"><table><thead><tr><th>Dates</th><th>Hotel</th><th>Status</th><th></th></tr></thead><tbody>' + hotelRows + '</tbody></table></div></div>' +
     '<div class="bs-group"><h4>Transport between cities</h4><div class="table-scroll"><table><thead><tr><th>Leg</th><th>Date</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>' + transportRows + '</tbody></table></div></div>';
   el2.querySelectorAll("[data-bs-booking]").forEach((btn) => btn.addEventListener("click", () => {
     const id = btn.dataset.bsBooking;

@@ -244,6 +244,7 @@ button{font-family:inherit}
 .bs-conflict-row td{background:#fbdede;color:#8a2626;font-size:.78rem;padding-top:.5rem;padding-bottom:.5rem;border-top:none}
 .bs-conflict{background:#fdf0f0}
 .bs-conflict:hover{background:#fbe4e4}
+#bookingStatusPanel td.actions{text-align:right;white-space:nowrap}
 
 /* ---- trip countdown banner ---- */
 .countdown-banner{max-width:760px;margin:1.6rem auto 0;padding:0 2rem}
