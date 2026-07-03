@@ -39,9 +39,6 @@ section[id]{scroll-margin-top:84px}
 .timeline::-webkit-scrollbar{display:none}
 .tl{display:flex;flex-direction:row;align-items:center;gap:.45rem;padding:.45rem .95rem;border-radius:var(--radius-pill);cursor:pointer;white-space:nowrap;border:none;background:none;font-family:'Outfit';transition:background .2s}
 .tl.active{background:rgba(207,125,84,.1)}
-.tl-today{background:rgba(207,125,84,.12)}
-.tl-today .dot{background:var(--terracotta);border-color:rgba(207,125,84,.4)}
-.tl-today .lbl{color:var(--adriatic-deep);font-weight:600}
 .tl:hover{background:#eae3d4}
 .tl .dot{width:9px;height:9px;border-radius:50%;background:var(--line);border:2px solid var(--seaglass-soft);transition:all .25s}
 .tl .lbl{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
