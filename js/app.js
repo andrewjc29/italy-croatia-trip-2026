@@ -1763,6 +1763,12 @@ function setupScrollspy() {
       if (entry.isIntersecting) {
         const id = entry.target.id;
         links.forEach((l) => l.classList.toggle("active", l.dataset.target === id));
+        // Keep the current stop's chip visible in the horizontally-scrolling
+        // nav strip as you scroll the page -- otherwise on mobile, once
+        // you're a few cities in, the active chip can be scrolled off-screen
+        // in the nav itself with no obvious way to tell you're "on" it.
+        const activeLink = links.find((l) => l.dataset.target === id);
+        if (activeLink) activeLink.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
       }
     });
   }, { rootMargin: "-40% 0px -55% 0px" });
