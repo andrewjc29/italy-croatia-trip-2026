@@ -1219,8 +1219,9 @@ function renderBookingStatus(state) {
   const hotelRows = ranges.map((r) => {
     const place = PLACES.find((p) => p.id === r.placeId);
     const placeLabel = esc(place ? place.label : r.placeId);
+    const placeDateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "dates not set";
     const headerRow = '<tr class="bs-place-row"><td colspan="4">' + placeLabel +
-      '<span class="bs-place-nights muted">' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></td></tr>';
+      '<span class="bs-place-nights muted">' + placeDateLabel + '</span></td></tr>';
     if (!r.dateStart || !r.nights) {
       return headerRow + '<tr><td colspan="4" class="muted">Set trip dates to track by night.</td></tr>';
     }
