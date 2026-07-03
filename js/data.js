@@ -101,7 +101,12 @@ const SEED_DATA = {
   activities: [],
   restaurants: [],
   documents: [],
-  notesLog: []
+  notesLog: [],
+  // User-created destinations only. Built-in cities stay authored in code
+  // (PLACES / PLACE_ACCENT / PLACE_TIPS) so catalog improvements and new
+  // cities always show; the effective catalog is PLACES + state.places,
+  // merged by getPlaces() in app.js. Empty until you add a place from the site.
+  places: []
 };
 
 // -- Bookings: lodging + transport legs, day = day index (1-based) --

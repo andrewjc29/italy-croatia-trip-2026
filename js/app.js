@@ -1,5 +1,34 @@
 // App shell: scrollspy nav, per-place rendering, shared helpers, modal system.
 
+// ---- destination catalog accessor ----
+// The effective catalog is the built-in library (PLACES, authored in code)
+// merged with any user-created destinations in state.places. Built-ins stay
+// in code so catalog fixes and new cities always show; state only carries
+// user additions. Everything in the app reads places through these three
+// helpers instead of the raw PLACES constant, so a place added from the
+// site behaves exactly like a built-in one.
+function getPlaces() {
+  const st = (typeof Store !== "undefined" && Store.getState) ? Store.getState() : null;
+  const userPlaces = (st && Array.isArray(st.places)) ? st.places : [];
+  if (!userPlaces.length) return PLACES;
+  const extra = userPlaces.filter((up) => up && up.id && !PLACES.some((p) => p.id === up.id));
+  return PLACES.concat(extra);
+}
+function getPlace(id) { return getPlaces().find((p) => p.id === id); }
+function getAccent(id) {
+  if (PLACE_ACCENT[id]) return PLACE_ACCENT[id];
+  const p = getPlace(id);
+  return (p && p.accent) || "#1d6a8c";
+}
+// Deeper shade of a place's accent, for section theming. Built-ins read the
+// value baked into css (#rome{--accent-deep:...}); user places carry their
+// own accentDeep, falling back to a darkened accent.
+function getAccentDeep(id) {
+  const p = getPlace(id);
+  if (p && p.accentDeep) return p.accentDeep;
+  return getAccent(id);
+}
+
 function cityName(id) {
   const c = CITIES.find((x) => x.id === id);
   return c ? c.name : (id || "");
@@ -216,7 +245,7 @@ function renderDayHotelBar(lodging, dateStr, placeId, atTop) {
   else if (isCheckout) { label = "Check-out"; timeVal = lodging.checkoutTime; }
   else { label = "Staying at"; timeVal = ""; }
   const timeHtml = timeVal ? " · " + esc(fmtTime12(timeVal)) : "";
-  const accent = PLACE_ACCENT[placeId] || "#1d6a8c";
+  const accent = getAccent(placeId) || "#1d6a8c";
   return '<div class="day-hotel-bar' + (atTop ? " at-top" : "") + ' item-line-clickable" data-view-booking="' + lodging.id + '" style="background:' + accent + '"><span class="dhb-label">' + esc(label) + timeHtml + '</span>' +
     '<span class="dhb-hotel">' + esc(lodging.title) + '</span></div>';
 }
@@ -382,7 +411,7 @@ function openItemDetailCard(kind, item, place) {
   }
   if (item.cost) rows.push(["Cost", fmtMoney(item.cost, item.currency)]);
   if (item.notes) rows.push(["Notes", item.notes]);
-  const accent = PLACE_ACCENT[place && place.id] || "#1d6a8c";
+  const accent = getAccent(place && place.id) || "#1d6a8c";
   const kindLabel = isBooking ? (item.type || "Booking") : (item.type || "Activity");
   const statusHtml = item.status ? ' <span class="pm-veg">' + esc(item.status) + '</span>' : "";
   const root = document.getElementById("modalRoot");
@@ -432,7 +461,7 @@ function openItemDetailCard(kind, item, place) {
 // corner (or a tap on the backdrop). type is "restaurant" or "seedo".
 function openPlaceDetailCard(type, item, place) {
   const isRest = type === "restaurant";
-  const accent = PLACE_ACCENT[place.id] || "#1d6a8c";
+  const accent = getAccent(place.id) || "#1d6a8c";
   const vegHtml = isRest ? ' <span class="pm-veg">' + (item.vegetarian ? "vegetarian" : "omnivore") + '</span>' : "";
   const root = document.getElementById("modalRoot");
   root.innerHTML = "";
@@ -478,12 +507,16 @@ function openPlaceDetailCard(type, item, place) {
 // ---- build the static per-place shells once, then re-render their dynamic parts ----
 function buildPlacesSkeleton() {
   const container = document.getElementById("places");
-  container.innerHTML = PLACES.map((p, i) => {
+  container.innerHTML = getPlaces().map((p, i) => {
     const num = String(i + 1).padStart(2, "0");
-    const tips = (PLACE_TIPS[p.id] || []).map((t) => "<li>" + esc(t) + "</li>").join("");
-    return '<section id="' + p.id + '">' +
+    const tips = (PLACE_TIPS[p.id] || p.tips || []).map((t) => "<li>" + esc(t) + "</li>").join("");
+    // Built-in cities are themed by their #id css rule; user-created places
+    // have no such rule, so theme them inline from their record's accent.
+    const builtin = PLACES.some((x) => x.id === p.id);
+    const themeStyle = builtin ? "" : ' style="--accent:' + getAccent(p.id) + ';--accent-deep:' + getAccentDeep(p.id) + '"';
+    return '<section id="' + p.id + '"' + themeStyle + '>' +
       '<div class="place-head"><div class="bg" style="background-image:url(\'' + p.image + '\')"></div>' +
-      '<div class="ph-inner"><div class="place-num">' + num + " / " + PLACES.length + '</div>' +
+      '<div class="ph-inner"><div class="place-num">' + num + " / " + getPlaces().length + '</div>' +
       "<h2>" + esc(p.title) + " <em>" + esc(p.titleEm) + "</em></h2>" +
       '<div class="nights" id="nights-' + p.id + '"></div></div></div>' +
       '<div class="wrap">' +
@@ -522,7 +555,7 @@ function buildPlacesSkeleton() {
       '</div></details>' +
 
       (tips ? '<details class="tips"><summary>Good to know<span class="arw">+</span></summary><ul>' + tips + "</ul></details>" : "") +
-      "</div></section>" + (i < PLACES.length - 1 ? '<div class="divider"></div>' : "");
+      "</div></section>" + (i < getPlaces().length - 1 ? '<div class="divider"></div>' : "");
   }).join("");
 
   // Planning sections (stay / see&do / eat) collapse per city, and start
@@ -545,7 +578,7 @@ function buildPlacesSkeleton() {
     e.preventDefault();
     e.stopPropagation();
     const parts = btn.dataset.secAdd.split(":");
-    const place = PLACES.find((p) => p.id === parts[1]);
+    const place = getPlace(parts[1]);
     if (!place) return;
     if (parts[0] === "see") openSeeForm(Store.getState(), null, place);
     else if (parts[0] === "food") openRestForm(Store.getState(), null, place);
@@ -573,10 +606,10 @@ function buildPlacesSkeleton() {
     });
   });
   document.getElementById("places").querySelectorAll("[data-add-hotel]").forEach((btn) =>
-    btn.addEventListener("click", () => openHotelForm(Store.getState(), null, PLACES.find((p) => p.id === btn.dataset.addHotel))));
+    btn.addEventListener("click", () => openHotelForm(Store.getState(), null, getPlace(btn.dataset.addHotel))));
 }
 
-function placeForCity(cityId) { return PLACES.find((p) => p.cityIds.indexOf(cityId) !== -1); }
+function placeForCity(cityId) { return getPlaces().find((p) => p.cityIds.indexOf(cityId) !== -1); }
 
 // A place can have more than one lodging booking -- e.g. 2 nights at one
 // hotel then 3 at another within the same stop. Anything that needs "the"
@@ -602,7 +635,7 @@ function renderPlaceNights(placeId, state) {
 }
 
 function renderPlaceDays(placeId, state) {
-  const place = PLACES.find((p) => p.id === placeId);
+  const place = getPlace(placeId);
   const allDays = Store.getItineraryDays();
   const ranges = Store.computeStopRanges();
   const myIdx = ranges.findIndex((r) => r.placeId === placeId);
@@ -616,11 +649,11 @@ function renderPlaceDays(placeId, state) {
   // banner. Same date, same data, edits show up in both.
   if (myIdx >= 0 && myIdx < ranges.length - 1 && ranges[myIdx].dateEnd) {
     const outDay = allDays.find((d) => d.date === ranges[myIdx].dateEnd);
-    const nextPlace = PLACES.find((p) => p.id === ranges[myIdx + 1].placeId);
+    const nextPlace = getPlace(ranges[myIdx + 1].placeId);
     if (outDay && nextPlace) days.push({ d: outDay, transition: { dir: "out", other: nextPlace, from: place } });
   }
   if (myIdx > 0 && ranges[myIdx].dateStart && ranges[myIdx].dateStart === ranges[myIdx - 1].dateEnd) {
-    const prevPlace = PLACES.find((p) => p.id === ranges[myIdx - 1].placeId);
+    const prevPlace = getPlace(ranges[myIdx - 1].placeId);
     if (prevPlace && days.length) days[0].transition = { dir: "in", other: prevPlace, from: prevPlace };
   }
 
@@ -643,7 +676,7 @@ function renderPlaceDays(placeId, state) {
       const arriveId = t.dir === "out" ? t.other.id : placeId;
       topBar = renderDayHotelBar(hotelOut, d.date, departId, true);
       bottomBar = renderDayHotelBar(hotelIn, d.date, arriveId);
-      const accent = PLACE_ACCENT[t.other.id] || "#1d6a8c";
+      const accent = getAccent(t.other.id) || "#1d6a8c";
       const banner = '<div class="travel-banner" style="border-color:' + accent + ';color:' + accent + '">' +
         '<span class="tb-label" style="background:' + accent + '">Travel day</span>' +
         (t.dir === "out"
@@ -687,7 +720,7 @@ function renderPlaceDays(placeId, state) {
 
 // ---- Where to stay (hotels shortlist -> "Choose this" writes/updates the lodging booking) ----
 function renderPlaceHotels(placeId, state) {
-  const place = PLACES.find((p) => p.id === placeId);
+  const place = getPlace(placeId);
   const placeLodgings = lodgingBookingsForPlace(state, place);
   let list = (state.hotels || []).filter((h) => h.placeId === placeId);
   const filter = hotelFilter[placeId] || "all";
@@ -781,7 +814,7 @@ function openHotelForm(state, existing, place) {
 
 // ---- See & do ----
 function renderPlaceSee(placeId, state) {
-  const place = PLACES.find((p) => p.id === placeId);
+  const place = getPlace(placeId);
   const list = (state.thingsToDo || []).filter((s) => s.placeId === placeId);
   const el2 = document.getElementById("seedo-" + placeId);
   el2.innerHTML = list.map((s) =>
@@ -830,7 +863,7 @@ function openSeeForm(state, existing, place) {
 
 // ---- Where to eat ----
 function renderPlaceFood(placeId, state) {
-  const place = PLACES.find((p) => p.id === placeId);
+  const place = getPlace(placeId);
   let list = state.restaurants.filter((r) => r.placeId === placeId);
   const filter = foodFilter[placeId] || "all";
   if (filter === "veg") list = list.filter((r) => r.vegetarian);
@@ -886,7 +919,7 @@ function getWishlist(state, place) {
 }
 
 function renderPlaceWishlist(placeId, state) {
-  const place = PLACES.find((p) => p.id === placeId);
+  const place = getPlace(placeId);
   const host = document.getElementById("wishlist-" + placeId);
   if (!host) return;
   const items = getWishlist(state, place);
@@ -917,7 +950,13 @@ function renderPlaceWishlist(placeId, state) {
 }
 
 function renderPlaces(state) {
-  PLACES.forEach((p) => { renderPlaceNights(p.id, state); renderPlaceWishlist(p.id, state); renderPlaceDays(p.id, state); renderPlaceHotels(p.id, state); renderPlaceSee(p.id, state); renderPlaceFood(p.id, state); });
+  getPlaces().forEach((p) => {
+    // Skip places whose section skeleton isn't in the DOM yet (e.g. a place
+    // just added to the catalog before buildPlacesSkeleton has rebuilt).
+    // The add flow rebuilds the skeleton, then this renders the dynamic parts.
+    if (!document.getElementById("days-" + p.id)) return;
+    renderPlaceNights(p.id, state); renderPlaceWishlist(p.id, state); renderPlaceDays(p.id, state); renderPlaceHotels(p.id, state); renderPlaceSee(p.id, state); renderPlaceFood(p.id, state);
+  });
 }
 
 // ---- forms ----
@@ -1078,9 +1117,9 @@ function renderTodayView(state) {
     contentEl.innerHTML = '<div class="muted" style="padding:.6rem 0">' + esc(msg) + '</div>';
     return;
   }
-  const place = PLACES.find((p) => p.id === today.placeId);
+  const place = getPlace(today.placeId);
   const dayNum = days.indexOf(today) + 1;
-  const accent = PLACE_ACCENT[today.placeId] || "#1d6a8c";
+  const accent = getAccent(today.placeId) || "#1d6a8c";
   // Now/Next markers only make sense on the actual current day.
   let nowId = null, nextId = null;
   if (rel === 0 && !previewDate) {
@@ -1117,10 +1156,10 @@ function renderTodayView(state) {
   const tHotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === today.date);
   const tHotelIn = (state.bookings || []).find((b) => b.category === "lodging" && b.date === today.date);
   if (arrIdx > 0) {
-    const fromP = PLACES.find((p) => p.id === ranges[arrIdx - 1].placeId);
-    const toP = PLACES.find((p) => p.id === ranges[arrIdx].placeId);
+    const fromP = getPlace(ranges[arrIdx - 1].placeId);
+    const toP = getPlace(ranges[arrIdx].placeId);
     if (fromP && toP) {
-      const acc = PLACE_ACCENT[toP.id] || "#1d6a8c";
+      const acc = getAccent(toP.id) || "#1d6a8c";
       topBar = renderDayHotelBar(tHotelOut, today.date, fromP.id, true);
       bottomHtml = '<div class="travel-banner" style="border-color:' + acc + ';color:' + acc + '">' +
         '<span class="tb-label" style="background:' + acc + '">Travel day</span>' +
@@ -1160,7 +1199,7 @@ function renderTodayView(state) {
 // it -- no need to maintain the same route text in two places.
 function renderHero(state) {
   const totalDays = Store.getTotalDays();
-  const stopCount = state.trip ? state.trip.stops.length : PLACES.length;
+  const stopCount = state.trip ? state.trip.stops.length : getPlaces().length;
   const range = Store.getTripDateRange();
   const dateLabel = range.start
     ? fmtDateShort(range.start) + (range.end && range.end !== range.start ? " – " + fmtDateShort(range.end) : "")
@@ -1245,7 +1284,7 @@ function renderBookingStatus(state) {
   // Bari-tagged hotel with drifted Rome-window dates) can never bleed in --
   // it's excluded by the city-membership filter before dates even matter.
   const hotelRows = ranges.map((r) => {
-    const place = PLACES.find((p) => p.id === r.placeId);
+    const place = getPlace(r.placeId);
     const placeLabel = esc(place ? place.label : r.placeId);
     const placeDateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "dates not set";
     const headerRow = '<tr class="bs-place-row"><td colspan="4">' + placeLabel +
@@ -1330,18 +1369,18 @@ function renderBookingStatus(state) {
   const legDefs = [];
   if (ranges.length) {
     const firstR = ranges[0];
-    const firstPlace = PLACES.find((p) => p.id === firstR.placeId);
+    const firstPlace = getPlace(firstR.placeId);
     legDefs.push({ fromLabel: homeAirport, toLabel: firstPlace ? firstPlace.label : firstR.placeId, legDate: firstR.dateStart, contextPlaceId: firstR.placeId });
   }
   ranges.slice(0, -1).forEach((fromR, i) => {
     const toR = ranges[i + 1];
-    const fromPlace = PLACES.find((p) => p.id === fromR.placeId);
-    const toPlace = PLACES.find((p) => p.id === toR.placeId);
+    const fromPlace = getPlace(fromR.placeId);
+    const toPlace = getPlace(toR.placeId);
     legDefs.push({ fromLabel: fromPlace ? fromPlace.label : fromR.placeId, toLabel: toPlace ? toPlace.label : toR.placeId, legDate: fromR.dateEnd, contextPlaceId: fromR.placeId });
   });
   if (ranges.length) {
     const lastR = ranges[ranges.length - 1];
-    const lastPlace = PLACES.find((p) => p.id === lastR.placeId);
+    const lastPlace = getPlace(lastR.placeId);
     legDefs.push({ fromLabel: lastPlace ? lastPlace.label : lastR.placeId, toLabel: homeAirport, legDate: lastR.dateEnd, contextPlaceId: lastR.placeId });
   }
   const matchedIds = new Set();
@@ -1368,7 +1407,7 @@ function renderBookingStatus(state) {
     '<div class="bs-group"><h4>Hotels</h4><div class="table-scroll"><table><thead><tr><th>Dates</th><th>Hotel</th><th>Status</th><th></th></tr></thead><tbody>' + hotelRows + '</tbody></table></div></div>' +
     '<div class="bs-group"><h4>Transportation</h4><div class="table-scroll"><table><thead><tr><th>Date</th><th>Transport</th><th>Status</th><th></th></tr></thead><tbody>' + transportRows + '</tbody></table></div></div>';
   el2.querySelectorAll("[data-bs-add-leg]").forEach((btn) => btn.addEventListener("click", () => {
-    const fromPlace = PLACES.find((p) => p.id === btn.dataset.bsLegPlace) || null;
+    const fromPlace = getPlace(btn.dataset.bsLegPlace) || null;
     openBookingForm(state, null, fromPlace, btn.dataset.bsAddLeg || undefined);
   }));
   el2.querySelectorAll("[data-bs-booking]").forEach((btn) => btn.addEventListener("click", () => {
@@ -1405,10 +1444,10 @@ function renderItineraryEditor(state) {
   // summary line that used to sit above this were removed -- redundant with
   // what's already visible in the hero and in this list itself.)
   const simpleList = '<div class="ie-timeline">' + state.trip.stops.map((stop, i) => {
-    const place = PLACES.find((p) => p.id === stop.placeId);
+    const place = getPlace(stop.placeId);
     const range = ranges[i];
     const dateLabel = range && range.dateStart ? fmtDate(range.dateStart) + " – " + fmtDate(range.dateEnd) : "";
-    const accent = PLACE_ACCENT[stop.placeId] || "#7cc0c2";
+    const accent = getAccent(stop.placeId) || "#7cc0c2";
     const thumbStyle = "color:" + accent + (place ? ";background-image:url('" + place.image + "')" : ";background:" + accent);
     return '<div class="ie-stop ie-simple ie-jump" data-jump="' + esc(stop.placeId) + '" role="button" tabindex="0">' +
       '<div class="ie-thumb" style="' + thumbStyle + '"></div>' +
@@ -1421,10 +1460,10 @@ function renderItineraryEditor(state) {
   }).join("") + '</div>';
 
   const timeline = '<div class="ie-timeline">' + state.trip.stops.map((stop, i) => {
-    const place = PLACES.find((p) => p.id === stop.placeId);
+    const place = getPlace(stop.placeId);
     const range = ranges[i];
     const dateLabel = range && range.dateStart ? fmtDate(range.dateStart) + " – " + fmtDate(range.dateEnd) : "";
-    const accent = PLACE_ACCENT[stop.placeId] || "#7cc0c2";
+    const accent = getAccent(stop.placeId) || "#7cc0c2";
     const thumbStyle = "color:" + accent + (place ? ";background-image:url('" + place.image + "')" : ";background:" + accent);
     return '<div class="ie-stop">' +
       '<div class="ie-thumb" style="' + thumbStyle + '"></div>' +
@@ -1505,14 +1544,14 @@ function renderItineraryEditor(state) {
 // and how many nights, with a live preview of the resulting date range.
 function openAddStopModal(state) {
   const usedIds = state.trip.stops.map((s) => s.placeId);
-  const available = PLACES.filter((p) => usedIds.indexOf(p.id) === -1);
+  const available = getPlaces().filter((p) => usedIds.indexOf(p.id) === -1);
   if (!available.length) {
     openModal("Add a stop", '<p class="muted">All five places are already in your itinerary. Remove one first if you want to swap it out.</p>', () => {}, "OK");
     return;
   }
   const placeOpts = available.map((p) => '<option value="' + p.id + '">' + esc(p.label) + '</option>').join("");
   const positionOpts = state.trip.stops.map((s, i) => {
-    const p = PLACES.find((x) => x.id === s.placeId);
+    const p = getPlace(s.placeId);
     return '<option value="' + i + '">Before ' + esc(p ? p.label : s.placeId) + '</option>';
   }).join("") + '<option value="' + state.trip.stops.length + '" selected>At the end</option>';
   const body =
@@ -1758,7 +1797,7 @@ function renderEmergencyInfo(state) {
   const container = document.getElementById("emergencyInfo");
   if (!container) return;
   const placeCards = (state.trip ? state.trip.stops : []).map((s) => {
-    const place = PLACES.find((p) => p.id === s.placeId);
+    const place = getPlace(s.placeId);
     if (!place) return "";
     const cityId = place.cityIds[0];
     const label = (typeof CITY_LABEL_MAP !== "undefined" && CITY_LABEL_MAP[cityId]) || place.label;
