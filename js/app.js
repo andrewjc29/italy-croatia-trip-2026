@@ -1198,31 +1198,42 @@ function renderBookingStatus(state) {
     return icons[status] || icons.idea;
   };
   const statusCell = (status) => '<span class="bs-status">' + statusIcon(status) + '<span class="status-pill ' + esc(status) + '">' + esc(status) + '</span></span>';
+  // Grouped by place instead of one flat row-per-booking list -- a stop can
+  // legitimately have more than one lodging booking (hotel-hopping within a
+  // city), but the far more common reason you see 2+ rows under the same
+  // city is that an earlier hotel pick was never removed after choosing a
+  // different one. The two look identical unless you check the dates, so
+  // this flags it explicitly: overlapping date ranges under one place get a
+  // conflict warning + are visually marked, and every row gets a one-click
+  // remove so cleaning up a stray old pick doesn't require opening the full
+  // edit form just to find the delete link at the bottom.
   const hotelRows = ranges.map((r) => {
     const place = PLACES.find((p) => p.id === r.placeId);
-    // A stop can be split across more than one hotel -- show every lodging
-    // booking that overlaps this stop's range as its own row, not just the
-    // first one found.
+    const placeLabel = esc(place ? place.label : r.placeId);
+    const headerRow = '<tr class="bs-place-row"><td colspan="3">' + placeLabel +
+      '<span class="bs-place-nights muted">' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></td></tr>';
     const lodgings = state.bookings.filter((b) => b.category === "lodging" && b.date < r.dateEnd && b.endDate > r.dateStart);
     if (!lodgings.length) {
       const dateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "";
-      return '<tr><td class="bs-item">' + esc(place ? place.label : r.placeId) +
-        '<span class="bs-sub muted">' + r.nights + (r.nights === 1 ? " night" : " nights") + '</span></td>' +
-        '<td class="bs-date">' + dateLabel + '</td>' +
+      return headerRow + '<tr><td class="bs-date">' + dateLabel + '</td>' +
         '<td><span class="muted">No hotel chosen yet</span></td>' +
-        '<td>' + statusCell("missing") + '</td>' +
-        '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="">choose</button></td></tr>';
+        '<td class="actions">' + statusCell("missing") + ' <button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="">choose</button></td></tr>';
     }
-    return lodgings.map((lodging) => {
+    const hasConflict = lodgings.some((a, i) => lodgings.some((b, j) => i !== j && a.date < b.endDate && b.date < a.endDate));
+    const conflictRow = hasConflict
+      ? '<tr class="bs-conflict-row"><td colspan="3">Overlapping dates below -- looks like an earlier hotel pick was never removed. Keep the one you want, remove the rest.</td></tr>'
+      : "";
+    const rows = lodgings.map((lodging) => {
       const nights = nightsBetween(lodging.date, lodging.endDate);
       const dateLabel = esc(fmtDate(lodging.date)) + " &ndash; " + esc(fmtDate(lodging.endDate));
-      return '<tr><td class="bs-item">' + esc(place ? place.label : r.placeId) +
+      return '<tr' + (hasConflict ? ' class="bs-conflict"' : '') + '><td class="bs-date">' + dateLabel +
         '<span class="bs-sub muted">' + nights + (nights === 1 ? " night" : " nights") + '</span></td>' +
-        '<td class="bs-date">' + dateLabel + '</td>' +
         '<td>' + esc(lodging.title) + '</td>' +
-        '<td>' + statusCell(lodging.status) + '</td>' +
-        '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + lodging.id + '">edit</button></td></tr>';
+        '<td class="actions">' + statusCell(lodging.status) +
+        ' <button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + lodging.id + '">edit</button>' +
+        ' <button class="link danger" data-bs-remove="' + lodging.id + '">remove</button></td></tr>';
     }).join("");
+    return headerRow + conflictRow + rows;
   }).join("");
   const transportBookings = state.bookings.filter((b) => b.category !== "lodging").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   const transportRows = transportBookings.length ? transportBookings.map((t) => {
@@ -1234,7 +1245,7 @@ function renderBookingStatus(state) {
       '<td class="actions"><button class="link" data-bs-booking="' + t.id + '">edit</button></td></tr>';
   }).join("") : '<tr><td colspan="5" class="muted">No transport between cities booked yet.</td></tr>';
   el2.innerHTML =
-    '<div class="bs-group"><h4>Hotels</h4><div class="table-scroll"><table><thead><tr><th>Stop</th><th>Dates</th><th>Hotel</th><th>Status</th><th></th></tr></thead><tbody>' + hotelRows + '</tbody></table></div></div>' +
+    '<div class="bs-group"><h4>Hotels</h4><div class="table-scroll"><table><thead><tr><th>Dates</th><th>Hotel</th><th></th></tr></thead><tbody>' + hotelRows + '</tbody></table></div></div>' +
     '<div class="bs-group"><h4>Transport between cities</h4><div class="table-scroll"><table><thead><tr><th>Leg</th><th>Date</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>' + transportRows + '</tbody></table></div></div>';
   el2.querySelectorAll("[data-bs-booking]").forEach((btn) => btn.addEventListener("click", () => {
     const id = btn.dataset.bsBooking;
@@ -1244,6 +1255,15 @@ function renderBookingStatus(state) {
     } else if (btn.dataset.bsHotel) {
       const target = document.getElementById(btn.dataset.bsHotel);
       if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }));
+  // One-click remove for a stray/duplicate lodging booking, right in the
+  // dashboard -- no need to open the full edit form just to find the
+  // delete link at the bottom of it.
+  el2.querySelectorAll("[data-bs-remove]").forEach((btn) => btn.addEventListener("click", () => {
+    const b = state.bookings.find((x) => x.id === btn.dataset.bsRemove);
+    if (b && confirm('Remove "' + b.title + '" (' + fmtDate(b.date) + ' - ' + fmtDate(b.endDate) + ')?')) {
+      Store.remove("bookings", b.id);
     }
   }));
 }
