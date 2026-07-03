@@ -20,11 +20,9 @@
   <div class="nav-inner">
     <div class="brand">Italy &amp; Croatia '26</div>
     <div class="timeline" id="timeline">
-      <button class="tl" data-target="rome"><span class="dot"></span><span class="lbl">Rome</span></button>
-      <button class="tl" data-target="puglia"><span class="dot"></span><span class="lbl">Puglia</span></button>
-      <button class="tl" data-target="dubrovnik"><span class="dot"></span><span class="lbl">Dubrovnik</span></button>
-      <button class="tl" data-target="hvar"><span class="dot"></span><span class="lbl">Hvar</span></button>
-      <button class="tl" data-target="split"><span class="dot"></span><span class="lbl">Split</span></button>
+      <button class="tl" data-target="todayView"><span class="dot"></span><span class="lbl">Today</span></button>
+      <button class="tl" data-target="itineraryTop"><span class="dot"></span><span class="lbl">Itinerary</span></button>
+      <button class="tl" data-target="bookings"><span class="dot"></span><span class="lbl">Bookings</span></button>
       <button class="tl" data-target="toolkit"><span class="dot"></span><span class="lbl">Toolkit</span></button>
       <button class="tl" data-target="prep"><span class="dot"></span><span class="lbl">Prep</span></button>
     </div>
@@ -70,11 +68,18 @@
 
 <main id="places"></main>
 
-<section class="wrap toolkit-block" id="toolkit">
-  <div class="sub-h"><h3>Toolkit</h3><span class="tag">Booking status · Budget · Weather · Documents · Emergency · Notes</span><span class="rule"></span></div>
-  <div class="sub-h" id="bookingStatus" style="margin-top:0"><h3>Booking status</h3><span class="tag">hotels &amp; transport at a glance</span><span class="rule"></span></div>
+<div class="divider"></div>
+
+<section class="wrap" id="bookings">
+  <div class="sub-h"><h3>Bookings</h3><span class="tag">hotels &amp; transport at a glance</span><span class="rule"></span></div>
   <div id="bookingStatusPanel"></div>
-  <div class="sub-h" style="margin-top:2.4rem"><h3>Budget</h3><span class="rule"></span></div>
+</section>
+
+<div class="divider"></div>
+
+<section class="wrap toolkit-block" id="toolkit">
+  <div class="sub-h"><h3>Toolkit</h3><span class="tag">Budget · Weather · Documents · Emergency · Notes</span><span class="rule"></span></div>
+  <div class="sub-h" style="margin-top:0"><h3>Budget</h3><span class="rule"></span></div>
   <div id="budgetPanel"></div>
 
   <details class="tk-collapse">
@@ -122,21 +127,25 @@
 <button class="totop" id="totop" aria-label="Back to top">&uarr;</button>
 
 <nav class="bottom-nav" id="bottomNav">
+  <button class="bn-tab" data-target="todayView" aria-label="Today">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.6" y1="5.6" x2="7.3" y2="7.3"/><line x1="16.7" y1="16.7" x2="18.4" y2="18.4"/><line x1="18.4" y1="5.6" x2="16.7" y2="7.3"/><line x1="7.3" y1="16.7" x2="5.6" y2="18.4"/></svg>
+    <span>Today</span>
+  </button>
   <button class="bn-tab" data-target="itineraryTop" aria-label="Itinerary">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>
     <span>Itinerary</span>
   </button>
-  <button class="bn-tab" data-target="bookingStatus" aria-label="Bookings">
+  <button class="bn-tab" data-target="bookings" aria-label="Bookings">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><line x1="12" y1="6" x2="12" y2="18" stroke-dasharray="1.5 2.2"/></svg>
     <span>Bookings</span>
-  </button>
-  <button class="bn-tab" data-target="prep" aria-label="Prep">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2.5 2.5L16 8.5"/><rect x="3" y="3.5" width="18" height="17" rx="2.5"/></svg>
-    <span>Prep</span>
   </button>
   <button class="bn-tab" data-target="toolkit" aria-label="Toolkit">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2-2z"/></svg>
     <span>Toolkit</span>
+  </button>
+  <button class="bn-tab" data-target="prep" aria-label="Prep">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2.5 2.5L16 8.5"/><rect x="3" y="3.5" width="18" height="17" rx="2.5"/></svg>
+    <span>Prep</span>
   </button>
 </nav>
 

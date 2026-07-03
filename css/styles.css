@@ -30,12 +30,13 @@ button{font-family:inherit}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
 /* ---- nav / scrollspy timeline ---- */
-.nav{position:sticky;top:0;z-index:50;background:rgba(247,244,237,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.nav-inner{max-width:1180px;margin:0 auto;padding:.7rem 1.4rem;display:flex;align-items:center;gap:1rem}
+.nav{position:sticky;top:0;z-index:50;background:rgba(247,244,237,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 2px 12px rgba(18,60,82,.06)}
+.nav-inner{max-width:1180px;margin:0 auto;padding:1rem 1.4rem;display:flex;align-items:center;gap:1rem}
 .brand{font-family:'Fraunces';font-style:italic;font-size:1.05rem;color:var(--adriatic-deep);white-space:nowrap;padding-right:1rem;border-right:1px solid var(--line)}
 .timeline{display:flex;gap:.2rem;flex:1;overflow-x:auto;scrollbar-width:none}
 .timeline::-webkit-scrollbar{display:none}
-.tl{display:flex;flex-direction:column;align-items:center;gap:.35rem;padding:.3rem .8rem;border-radius:10px;cursor:pointer;white-space:nowrap;border:none;background:none;font-family:'Outfit';transition:background .2s}
+.tl{display:flex;flex-direction:row;align-items:center;gap:.45rem;padding:.45rem .95rem;border-radius:var(--radius-pill);cursor:pointer;white-space:nowrap;border:none;background:none;font-family:'Outfit';transition:background .2s}
+.tl.active{background:rgba(207,125,84,.1)}
 .tl:hover{background:#eae3d4}
 .tl .dot{width:9px;height:9px;border-radius:50%;background:var(--line);border:2px solid var(--seaglass-soft);transition:all .25s}
 .tl .lbl{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -474,15 +475,9 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .hero-overview{margin-top:.8rem}
   .hero-inner,.place-head .ph-inner{padding-left:6vw;padding-right:6vw}
   .wrap{padding:0 1.3rem}
-  .brand{display:none}
-  .nav-inner{gap:.6rem;padding:.55rem .8rem}
-  /* City names in the top nav are too wide for a proportional row of segments
-     on a narrow screen, so on mobile this becomes a compact horizontally-
-     scrollable chip strip instead: dot + short label only, snap-scrolling. */
-  .timeline{position:relative;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
-  .tl{flex-direction:row;gap:.4rem;padding:.4rem .7rem;scroll-snap-align:start;flex-shrink:0}
-  .tl .dot{width:7px;height:7px}
-  .tl .lbl{font-size:.68rem}
+  /* On mobile the bottom tab bar is the primary nav, so the top nav is
+     redundant -- hide it entirely and let content start at the top. */
+  .nav{display:none}
   .stay-card{flex-direction:column;align-items:flex-start}
   .sub-h{gap:.3rem .7rem}
   .sub-h .rule{flex-basis:100%;order:3}
