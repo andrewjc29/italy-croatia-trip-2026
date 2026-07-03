@@ -15,6 +15,16 @@ function getPlaces() {
   return PLACES.concat(extra);
 }
 function getPlace(id) { return getPlaces().find((p) => p.id === id); }
+// The distinct place ids in the current itinerary, in stop order. City
+// sections are built from THIS (not the whole catalog), so a library city
+// that isn't in the trip doesn't render an empty section.
+function itineraryPlaceIds() {
+  const st = (typeof Store !== "undefined" && Store.getState) ? Store.getState() : null;
+  const stops = (st && st.trip && Array.isArray(st.trip.stops)) ? st.trip.stops : [];
+  const seen = [];
+  stops.forEach((s) => { if (s.placeId && seen.indexOf(s.placeId) === -1) seen.push(s.placeId); });
+  return seen;
+}
 function getAccent(id) {
   if (PLACE_ACCENT[id]) return PLACE_ACCENT[id];
   const p = getPlace(id);
@@ -227,6 +237,7 @@ function renderTodayActivityLine(a, nn, canMove) {
 let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
 let hotelFilter = {}; // placeId -> "all" | "budget" | "splurge"
 let todayViewOffset = 0; // Today view day-paging offset (0 = actual today)
+let lastSkeletonSig = null; // last-built itinerary place-id signature (rebuild trigger)
 let itineraryEditMode = false; // itinerary editor: view (false) vs edit controls (true)
 let budgetCurrency = "USD"; // display-only toggle for the budget panel, not persisted
 
@@ -507,7 +518,11 @@ function openPlaceDetailCard(type, item, place) {
 // ---- build the static per-place shells once, then re-render their dynamic parts ----
 function buildPlacesSkeleton() {
   const container = document.getElementById("places");
-  container.innerHTML = getPlaces().map((p, i) => {
+  if (!container) return;
+  // Sections are the itinerary's cities, in stop order -- not the whole
+  // catalog. Adding a city to the trip adds its section; removing it drops it.
+  const places = itineraryPlaceIds().map((id) => getPlace(id)).filter(Boolean);
+  container.innerHTML = places.map((p, i) => {
     const num = String(i + 1).padStart(2, "0");
     const tips = (PLACE_TIPS[p.id] || p.tips || []).map((t) => "<li>" + esc(t) + "</li>").join("");
     // Built-in cities are themed by their #id css rule; user-created places
@@ -516,7 +531,7 @@ function buildPlacesSkeleton() {
     const themeStyle = builtin ? "" : ' style="--accent:' + getAccent(p.id) + ';--accent-deep:' + getAccentDeep(p.id) + '"';
     return '<section id="' + p.id + '"' + themeStyle + '>' +
       '<div class="place-head"><div class="bg" style="background-image:url(\'' + p.image + '\')"></div>' +
-      '<div class="ph-inner"><div class="place-num">' + num + " / " + getPlaces().length + '</div>' +
+      '<div class="ph-inner"><div class="place-num">' + num + " / " + places.length + '</div>' +
       "<h2>" + esc(p.title) + " <em>" + esc(p.titleEm) + "</em></h2>" +
       '<div class="nights" id="nights-' + p.id + '"></div></div></div>' +
       '<div class="wrap">' +
@@ -555,7 +570,7 @@ function buildPlacesSkeleton() {
       '</div></details>' +
 
       (tips ? '<details class="tips"><summary>Good to know<span class="arw">+</span></summary><ul>' + tips + "</ul></details>" : "") +
-      "</div></section>" + (i < getPlaces().length - 1 ? '<div class="divider"></div>' : "");
+      "</div></section>" + (i < places.length - 1 ? '<div class="divider"></div>' : "");
   }).join("");
 
   // Planning sections (stay / see&do / eat) collapse per city, and start
@@ -1204,11 +1219,25 @@ function renderHero(state) {
   const dateLabel = range.start
     ? fmtDateShort(range.start) + (range.end && range.end !== range.start ? " – " + fmtDateShort(range.end) : "")
     : "Dates not set";
+  // Distinct countries across the itinerary's cities (via each place's
+  // cityIds -> CITIES.country). Auto-updates as stops change.
+  const countries = new Set();
+  itineraryPlaceIds().forEach((pid) => {
+    const p = getPlace(pid);
+    (p && p.cityIds || []).forEach((cid) => {
+      const c = CITIES.find((x) => x.id === cid);
+      if (c && c.country) countries.add(c.country);
+      else if (p && p.country) countries.add(p.country);
+    });
+    if ((!p || !p.cityIds || !p.cityIds.length) && p && p.country) countries.add(p.country);
+  });
+  const countryCount = countries.size;
   document.title = state.meta.tripName + " · " + totalDays + " days";
   const eyebrowEl = document.getElementById("heroEyebrow");
   if (eyebrowEl) eyebrowEl.textContent = state.meta.tripName + " · " + dateLabel;
   document.getElementById("heroMeta").innerHTML =
-    '<span>' + esc(dateLabel) + '</span><span>' + totalDays + ' days</span><span>' + stopCount + ' destinations</span>';
+    '<span>' + esc(dateLabel) + '</span><span>' + totalDays + ' days</span><span>' + stopCount + ' destinations</span>' +
+    (countryCount ? '<span>' + countryCount + (countryCount === 1 ? ' country' : ' countries') + '</span>' : "");
 }
 
 // A bigger, more prominent countdown banner (separate from the small hero
@@ -1453,7 +1482,7 @@ function renderItineraryEditor(state) {
       '<div class="ie-thumb" style="' + thumbStyle + '"></div>' +
       '<div class="ie-simple-body">' +
       '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
-      '<div class="ie-stop-dates muted">' + esc(dateLabel) + (dateLabel ? " &middot; " : "") + stop.nights + (stop.nights === 1 ? " night" : " nights") + '</div>' +
+      '<div class="ie-stop-dates muted">' + esc(dateLabel) + '</div>' +
       '</div>' +
       '</div>';
   }).join("") + '</div>';
@@ -1921,6 +1950,10 @@ function renderSyncStatus(syncStatus) {
 // ---- master render ----
 function renderAll(state, syncStatus) {
   renderSyncStatus(syncStatus);
+  // Rebuild the city-section skeleton only when the set/order of itinerary
+  // cities changes (not on every sync poll), then render their dynamic parts.
+  const sig = itineraryPlaceIds().join(",");
+  if (sig !== lastSkeletonSig) { buildPlacesSkeleton(); lastSkeletonSig = sig; }
   renderHero(state);
   renderCountdown(state);
   renderTodayView(state);
