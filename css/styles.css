@@ -155,7 +155,7 @@ section[id]{scroll-margin-top:84px}
 .stay-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:1.3rem 1.5rem;box-shadow:0 8px 24px var(--shadow);margin-bottom:1.6rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center}
 .stay-card .stay-name{font-family:'Fraunces';font-size:1.25rem;color:var(--accent-deep,var(--adriatic-deep))}
 .stay-card .stay-meta{font-size:.82rem;color:var(--muted);margin-top:.2rem}
-.status-pill{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:.22rem .6rem;border-radius:var(--radius-pill)}
+.status-pill{font-family:'Outfit';font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:.22rem .6rem;border-radius:var(--radius-pill)}
 .status-pill.idea{background:#f7e6d8;color:#8a4a1c}
 .status-pill.booked{background:#fff3c4;color:#7a5c00}
 .status-pill.confirmed{background:#e0efe4;color:#276149}
@@ -185,7 +185,7 @@ section[id]{scroll-margin-top:84px}
 .il-actions{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
 .il-actions .link{font-size:.72rem}
 .day-add-row{display:flex;gap:1.2rem;flex-wrap:wrap;margin-top:.2rem;padding-top:.3rem;border-top:1px dashed var(--line)}
-.add-line{font-family:'Outfit';font-size:.78rem;font-weight:500;color:var(--accent,var(--seaglass));cursor:pointer;background:none;border:none;padding:.3rem 0}
+.add-line{font-family:'Outfit';font-size:13px;font-weight:500;color:var(--accent,var(--adriatic));cursor:pointer;background:none;border:none;padding:.3rem 0}
 .add-line:hover{color:var(--terracotta)}
 
 /* ---- restaurant / food cards ---- */
@@ -197,7 +197,7 @@ section[id]{scroll-margin-top:84px}
 .card .kind{font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent,var(--seaglass));font-weight:600;margin-bottom:.5rem}
 .card p{font-size:.88rem;color:#4a5c63;flex:1}
 .card .foot{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:.8rem;flex-wrap:wrap}
-.veg{font-size:.64rem;letter-spacing:.05em;text-transform:uppercase;font-weight:500;padding:.2rem .55rem;border-radius:var(--radius-pill)}
+.veg{font-family:'Outfit';font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:.22rem .6rem;border-radius:var(--radius-pill)}
 .veg.yes{background:#e3f0ec;color:#2c6b56}
 .veg.no{background:#eef2f3;color:#5e7178}
 .card .site{font-family:'Outfit';font-size:.76rem;font-weight:500;border:1px solid var(--line);padding:.3rem .7rem;border-radius:var(--radius-input);background:none;cursor:pointer;color:var(--ink)}
@@ -286,7 +286,7 @@ section[id]{scroll-margin-top:84px}
 .modal.place-modal{padding:0;overflow:hidden;overflow-y:auto}
 .modal.place-modal .pm-head{position:relative;padding:1.5rem 3rem 1.3rem 1.5rem;color:#fff}
 .pm-kind{font-family:'Outfit';font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.92);margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-.pm-veg{font-size:.6rem;letter-spacing:.05em;padding:.15rem .5rem;border-radius:var(--radius-pill);background:rgba(255,255,255,.25);color:#fff;text-transform:uppercase}
+.pm-veg{font-family:'Outfit';font-size:.6rem;letter-spacing:.1em;font-weight:600;padding:.18rem .5rem;border-radius:var(--radius-pill);background:rgba(255,255,255,.25);color:#fff;text-transform:uppercase}
 .modal.place-modal .pm-head h3{font-family:'Fraunces';font-size:1.45rem;color:#fff;margin:0;line-height:1.2}
 .pm-city{font-family:'Outfit';font-size:.8rem;color:rgba(255,255,255,.88);margin-top:.3rem}
 .pm-body{padding:1.2rem 1.5rem 1.4rem}
@@ -484,13 +484,17 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .stay-card{flex-direction:column;align-items:flex-start}
   .sub-h{gap:.3rem .7rem}
   .sub-h .rule{flex-basis:100%;order:3}
+  /* Native date/time pickers won't shrink below their intrinsic width, so a
+     two-up grid overlaps them on narrow screens. Stack modal field pairs. */
+  .grid2{grid-template-columns:1fr!important}
   .bottom-nav{
     display:flex;position:fixed;left:0;right:0;bottom:0;z-index:55;
     background:rgba(247,244,237,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);
     padding:.35rem .4rem calc(.35rem + env(safe-area-inset-bottom));
   }
-  .bn-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:.3rem 0;border:none;background:none;cursor:pointer;color:var(--muted);font-family:'Outfit'}
-  .bn-tab span{font-size:.62rem;letter-spacing:.04em}
+  .bn-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:.3rem .1rem;border:none;background:none;cursor:pointer;color:var(--muted);font-family:'Outfit'}
+  .bn-tab span{font-size:.6rem;letter-spacing:.02em;white-space:nowrap}
+  .bn-tab svg{width:19px;height:19px}
   .bn-tab.active{color:var(--terracotta)}
   .bn-tab.active svg{stroke:var(--terracotta)}
   .totop{bottom:calc(4.4rem + env(safe-area-inset-bottom))}
@@ -508,7 +512,7 @@ tbody tr.hidden{display:none}
 td.hotel{font-family:'Fraunces';font-size:1rem;color:var(--accent-deep,var(--adriatic-deep));min-width:150px}
 td.hotel .area{display:block;font-family:'Outfit';font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent,var(--seaglass));margin-top:.15rem;font-weight:500}
 td.cost{font-weight:500;white-space:nowrap;color:var(--accent,var(--terracotta))}
-.pill{display:inline-block;margin-top:.3rem;font-size:.54rem;letter-spacing:.08em;text-transform:uppercase;background:var(--accent,var(--terracotta));color:#fff;padding:.1rem .4rem;border-radius:var(--radius-pill)}
+.pill{display:inline-block;margin-top:.3rem;font-family:'Outfit';font-size:.6rem;letter-spacing:.1em;font-weight:600;text-transform:uppercase;background:var(--accent,var(--terracotta));color:#fff;padding:.22rem .5rem;border-radius:var(--radius-pill)}
 td.actions{white-space:nowrap}
 td.actions a, td.actions button.site-link{font-family:'Outfit';font-size:.76rem;font-weight:500;border:1px solid var(--line);padding:.28rem .6rem;border-radius:var(--radius-input);display:inline-block;background:none;cursor:pointer;color:var(--ink);margin-bottom:.3rem}
 td.actions a:hover, td.actions button.site-link:hover{border-color:var(--terracotta);background:#fbf1ea;color:var(--terracotta)}
