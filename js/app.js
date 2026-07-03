@@ -10,6 +10,13 @@ function fmtDate(iso) {
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
+// Compact "Sep 3" form (no weekday) -- used where space is tight, like the
+// hero's date range chip.
+function fmtDateShort(iso) {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 function fmtTime12(hhmm) {
   if (!hhmm) return "";
   const parts = hhmm.split(":");
@@ -1117,17 +1124,24 @@ function renderTodayView(state) {
 }
 
 // ---- hero + intro ----
+// Hero leads with the concrete facts (trip name, dates, day/destination
+// counts) so those are visible without reading the narrative -- the
+// narrative itself lives behind the "Trip overview" toggle just below, and
+// the full city-by-city route is intentionally NOT repeated here since the
+// itinerary editor's own summary line (just below the hero) already shows
+// it -- no need to maintain the same route text in two places.
 function renderHero(state) {
   const totalDays = Store.getTotalDays();
+  const stopCount = state.trip ? state.trip.stops.length : PLACES.length;
+  const range = Store.getTripDateRange();
+  const dateLabel = range.start
+    ? fmtDateShort(range.start) + (range.end && range.end !== range.start ? " – " + fmtDateShort(range.end) : "")
+    : "Dates not set";
   document.title = state.meta.tripName + " · " + totalDays + " days";
-  const startDate = state.trip && state.trip.startDate;
-  let countdown = "Dates not set";
-  if (startDate) {
-    const days2go = Math.ceil((new Date(startDate) - new Date()) / 86400000);
-    countdown = days2go > 0 ? days2go + " days to go" : "Underway or past";
-  }
+  const eyebrowEl = document.getElementById("heroEyebrow");
+  if (eyebrowEl) eyebrowEl.textContent = state.meta.tripName + " · " + dateLabel;
   document.getElementById("heroMeta").innerHTML =
-    '<span>' + (state.trip ? state.trip.stops.length : PLACES.length) + " stops</span><span>" + totalDays + ' days</span><span><strong>' + countdown + '</strong></span>';
+    '<span>' + esc(dateLabel) + '</span><span>' + totalDays + ' days</span><span>' + stopCount + ' destinations</span>';
 }
 
 // A bigger, more prominent countdown banner (separate from the small hero
@@ -1775,6 +1789,17 @@ function setupStaticBindings() {
     openModal("Add note", '<label class="field">Note</label><textarea data-field="text"></textarea>',
       (data) => Store.add("notesLog", { text: data.text, ts: new Date().toISOString() }, "n"));
   });
+  // Hero's "Trip overview" toggle -- closed by default (the narrative blurb
+  // is nice-to-have, not something you need on every visit), remembers
+  // whether you opened it on this device, same pattern as the per-city
+  // planning-section collapsibles.
+  const heroOverview = document.getElementById("heroOverview");
+  if (heroOverview) {
+    if (localStorage.getItem("heroOverviewOpen") === "1") heroOverview.setAttribute("open", "");
+    heroOverview.addEventListener("toggle", () => {
+      try { localStorage.setItem("heroOverviewOpen", heroOverview.open ? "1" : "0"); } catch (err) { /* private mode */ }
+    });
+  }
 }
 
 // ---- boot ----

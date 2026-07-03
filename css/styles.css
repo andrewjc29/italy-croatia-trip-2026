@@ -58,9 +58,15 @@ button{font-family:inherit}
 .hero h1{font-size:clamp(2.4rem,7vw,5.2rem);font-weight:300;letter-spacing:-.01em;text-wrap:balance}
 .hero h1 em{color:var(--seaglass-soft);padding-bottom:.15em;display:inline-block}
 .hero .sub{margin-top:1.3rem;font-size:clamp(1rem,2vw,1.2rem);max-width:600px;opacity:.95}
-.hero .meta{margin-top:1.7rem;display:flex;gap:1.6rem;flex-wrap:wrap;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;opacity:.94}
+.hero .meta{margin-top:1.3rem;display:flex;gap:1.6rem;flex-wrap:wrap;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;opacity:.94}
 .hero .meta span{border-left:2px solid var(--seaglass);padding-left:.7rem}
 .hero .meta strong{font-weight:600;color:var(--seaglass-soft)}
+.hero-overview{margin-top:1.2rem;max-width:620px}
+.hero-overview summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:.5rem;font-family:'Outfit';font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;color:var(--seaglass-soft)}
+.hero-overview summary::-webkit-details-marker{display:none}
+.hero-overview summary .arw{font-family:'Outfit';font-size:1rem;font-weight:400;transition:transform .25s}
+.hero-overview[open] summary .arw{transform:rotate(45deg)}
+.hero-overview .sub{margin-top:.8rem;font-size:clamp(1rem,2vw,1.15rem);opacity:.95}
 
 /* ---- intro / trip controls ---- */
 .intro{max-width:760px;margin:0 auto;padding:3rem 2rem 1rem}
