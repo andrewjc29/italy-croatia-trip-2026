@@ -1493,11 +1493,16 @@ function renderItineraryEditor(state) {
     const dateLabel = range && range.dateStart ? fmtDate(range.dateStart) + " – " + fmtDate(range.dateEnd) : "";
     const accent = getAccent(stop.placeId) || "#7cc0c2";
     const thumbStyle = "color:" + accent + (place ? ";background-image:url('" + place.image + "')" : ";background:" + accent);
+    // Rename only offered for user-created destinations (state.places) -- a
+    // built-in city's name is authored in code, not stored, so it can't be
+    // edited from here.
+    const isBuiltin = PLACES.some((x) => x.id === stop.placeId);
     return '<div class="ie-stop">' +
       '<div class="ie-thumb" style="' + thumbStyle + '"></div>' +
       '<div class="ie-stop-card">' +
       '<div class="ie-stop-top">' +
-      '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) + '</div>' +
+      '<div class="ie-stop-name">' + esc(place ? place.label : stop.placeId) +
+      (isBuiltin ? "" : ' <button class="link" data-rename-stop="' + i + '" title="Rename this destination">rename</button>') + '</div>' +
       '<div class="ie-stop-order">' +
       '<button class="ie-arrow" data-move-up="' + i + '"' + (i === 0 ? " disabled" : "") + '>&uarr;</button>' +
       '<button class="ie-arrow" data-move-down="' + i + '"' + (i === state.trip.stops.length - 1 ? " disabled" : "") + '>&darr;</button>' +
@@ -1562,6 +1567,11 @@ function renderItineraryEditor(state) {
     Store.setTripStopNights(i, state.trip.stops[i].nights + 1);
   }));
   container.querySelectorAll("[data-remove-stop]").forEach((btn) => btn.addEventListener("click", () => Store.removeTripStop(parseInt(btn.dataset.removeStop, 10))));
+  container.querySelectorAll("[data-rename-stop]").forEach((btn) => btn.addEventListener("click", () => {
+    const i = parseInt(btn.dataset.renameStop, 10);
+    const place = getPlace(state.trip.stops[i].placeId);
+    if (place) openRenamePlaceModal(place);
+  }));
 
   const addBtn = document.getElementById("addStopBtn");
   if (addBtn) addBtn.onclick = () => openAddStopModal(state);
@@ -1570,35 +1580,58 @@ function renderItineraryEditor(state) {
 // Adding a stop opens a modal so you can see (and choose) exactly which dates it
 // lands on before committing -- pick the place, where in the sequence it goes,
 // and how many nights, with a live preview of the resulting date range.
+// Small curated palette offered when creating a brand-new destination --
+// distinct from every built-in PLACE_ACCENT so a new place always reads as
+// its own thing next to the library cities.
+const NEW_PLACE_PALETTE = ["#b8873a", "#b8492f", "#1c8f93", "#7a3b52", "#2f6b4a", "#3d7ab8", "#c0623a", "#6f8f5a"];
+
 function openAddStopModal(state) {
   const usedIds = state.trip.stops.map((s) => s.placeId);
   const available = getPlaces().filter((p) => usedIds.indexOf(p.id) === -1);
-  if (!available.length) {
-    openModal("Add a stop", '<p class="muted">All five places are already in your itinerary. Remove one first if you want to swap it out.</p>', () => {}, "OK");
-    return;
-  }
-  const placeOpts = available.map((p) => '<option value="' + p.id + '">' + esc(p.label) + '</option>').join("");
+  const placeOpts = '<option value="__new__">+ Create a new destination…</option>' +
+    available.map((p) => '<option value="' + p.id + '">' + esc(p.label) + '</option>').join("");
   const positionOpts = state.trip.stops.map((s, i) => {
     const p = getPlace(s.placeId);
     return '<option value="' + i + '">Before ' + esc(p ? p.label : s.placeId) + '</option>';
   }).join("") + '<option value="' + state.trip.stops.length + '" selected>At the end</option>';
+  const swatches = NEW_PLACE_PALETTE.map((c, i) =>
+    '<button type="button" class="swatch' + (i === 0 ? " on" : "") + '" data-swatch="' + c + '" style="background:' + c + '" aria-label="' + c + '"></button>'
+  ).join("");
   const body =
     '<label class="field">Place</label><select data-field="placeId">' + placeOpts + '</select>' +
+    '<div id="newPlaceFields" style="display:' + (available.length ? "none" : "block") + '">' +
+    '<label class="field">Name</label><input data-field="newLabel" placeholder="e.g. Vieste">' +
+    '<label class="field">Accent color</label><div class="swatch-row">' + swatches + '</div>' +
+    '<input type="hidden" data-field="newAccent" value="' + NEW_PLACE_PALETTE[0] + '">' +
+    '<label class="field">Image URL (optional)</label><input data-field="newImageUrl" placeholder="Paste a photo URL, or leave blank for a color header">' +
+    '</div>' +
     '<label class="field">Insert</label><select data-field="position">' + positionOpts + '</select>' +
     '<label class="field">Nights</label><input data-field="nights" type="number" min="1" value="1">' +
     '<div class="ie-preview muted" id="addStopPreview" style="margin-top:.6rem"></div>';
   openModal("Add a stop", body, (data) => {
-    Store.insertTripStop(parseInt(data.position, 10), data.placeId, parseInt(data.nights, 10) || 1);
+    let placeId = data.placeId;
+    if (placeId === "__new__") {
+      const label = (data.newLabel || "").trim();
+      if (!label) return; // no name given -- silently no-op, matches other required-field forms
+      const place = Store.addPlace(label, data.newAccent, (data.newImageUrl || "").trim());
+      placeId = place.id;
+    }
+    Store.insertTripStop(parseInt(data.position, 10), placeId, parseInt(data.nights, 10) || 1);
   }, "Add stop");
 
   // Live preview: simulate the insertion against a copy of the current stops
-  // and show the computed date range, without touching real state yet.
+  // and show the computed date range, without touching real state yet. Also
+  // toggles the new-destination fields and wires the accent swatch picker.
   function updatePreview() {
     const placeSelect = document.querySelector('[data-field="placeId"]');
     const positionSelect = document.querySelector('[data-field="position"]');
     const nightsInput = document.querySelector('[data-field="nights"]');
     const preview = document.getElementById("addStopPreview");
     if (!placeSelect || !positionSelect || !nightsInput || !preview) return;
+    const isNew = placeSelect.value === "__new__";
+    const fields = document.getElementById("newPlaceFields");
+    if (fields) fields.style.display = isNew ? "block" : "none";
+    if (isNew) { preview.textContent = ""; return; }
     const position = parseInt(positionSelect.value, 10);
     const nights = parseInt(nightsInput.value, 10) || 1;
     const candidate = state.trip.stops.slice();
@@ -1614,8 +1647,24 @@ function openAddStopModal(state) {
       const elx = document.querySelector('[data-field="' + f + '"]');
       if (elx) elx.addEventListener("input", updatePreview);
     });
+    document.querySelectorAll("[data-swatch]").forEach((btn) => btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-swatch]").forEach((b) => b.classList.remove("on"));
+      btn.classList.add("on");
+      const hidden = document.querySelector('[data-field="newAccent"]');
+      if (hidden) hidden.value = btn.dataset.swatch;
+    }));
     updatePreview();
   }, 0);
+}
+
+// Renaming only ever applies to a user-created destination (state.places) --
+// built-ins are authored in code and aren't editable from the UI.
+function openRenamePlaceModal(place) {
+  const body = '<label class="field">Name</label><input data-field="label" value="' + esc(place.label) + '">';
+  openModal("Rename destination", body, (data) => {
+    const label = (data.label || "").trim();
+    if (label) Store.renamePlace(place.id, label);
+  }, "Save");
 }
 
 

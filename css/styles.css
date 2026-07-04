@@ -467,6 +467,15 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
 #dubrovnik{--accent:#1f6f99;--accent-deep:#123c52}
 #hvar{--accent:#6f8f5a;--accent-deep:#465c38}
 #split{--accent:#106b86;--accent-deep:#0a3f50}
+.swatch-row{display:flex;gap:.5rem;margin:.3rem 0 .8rem}
+.swatch{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.swatch.on{border-color:var(--ink,#222);box-shadow:0 0 0 2px #fff inset}
+#ostuni{--accent:#b8873a;--accent-deep:#7a5a24}
+#monopoli{--accent:#b8492f;--accent-deep:#7a2e1c}
+#otranto{--accent:#1c8f93;--accent-deep:#0f5457}
+#korcula{--accent:#7a3b52;--accent-deep:#4d2233}
+#mljet{--accent:#2f6b4a;--accent-deep:#1c4530}
+#makarska{--accent:#3d7ab8;--accent-deep:#244a70}
 
 @media(max-width:600px){
   body{font-size:16px}

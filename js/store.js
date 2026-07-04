@@ -76,6 +76,38 @@ const Store = (() => {
     });
   }
 
+  // Reaches existing saved states when a NEW built-in city's content lands in
+  // the SEED arrays (Phase 4). backfillFromSeed() only adds missing top-level
+  // keys, never merges new items into an already-existing array -- so a new
+  // city's hotels/thingsToDo/restaurants would otherwise never reach anyone
+  // who saved state before that city existed. This runs once per city (per
+  // saved state): for each built-in PLACES entry not yet recorded in
+  // state.meta.seededCities, it injects that place's SEED_DATA items by id
+  // (skipping any id already present, so a user-deleted item is never
+  // resurrected and nothing is ever duplicated), then marks the city seeded
+  // so it's never touched again. Returns true if it changed anything.
+  function backfillCityContent() {
+    if (!state.meta) state.meta = {};
+    if (!Array.isArray(state.meta.seededCities)) state.meta.seededCities = [];
+    let changed = false;
+    PLACES.forEach((place) => {
+      if (state.meta.seededCities.indexOf(place.id) !== -1) return;
+      ["hotels", "thingsToDo", "restaurants"].forEach((collection) => {
+        if (!Array.isArray(state[collection])) state[collection] = [];
+        const seedItems = (SEED_DATA[collection] || []).filter((x) => x.placeId === place.id);
+        seedItems.forEach((item) => {
+          if (!state[collection].some((x) => x.id === item.id)) {
+            state[collection].push(JSON.parse(JSON.stringify(item)));
+            changed = true;
+          }
+        });
+      });
+      state.meta.seededCities.push(place.id);
+      changed = true;
+    });
+    return changed;
+  }
+
   let lastRemoteJSON = null;
   let pollHandle = null;
 
@@ -100,6 +132,7 @@ const Store = (() => {
     const local = loadLocal();
     state = local || JSON.parse(JSON.stringify(SEED_DATA));
     backfillFromSeed();
+    if (backfillCityContent()) saveLocal();
     notify();
     if (remoteEnabled) {
       const remote = await loadRemote();
@@ -148,6 +181,45 @@ const Store = (() => {
   function updateMeta(patch) {
     state.meta = Object.assign({}, state.meta, patch);
     persist();
+  }
+
+  // ---- Phase 5: user-created destinations (write to state.places; PLACES itself
+  // stays code-only). A new place becomes selectable everywhere getPlaces() is
+  // used, exactly like a built-in one, the moment it's added. ----
+  function slugify(s) {
+    return (s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "place";
+  }
+  function uniquePlaceId(base) {
+    const existingIds = PLACES.map((p) => p.id).concat((state.places || []).map((p) => p.id));
+    let id = base, n = 2;
+    while (existingIds.indexOf(id) !== -1) { id = base + "-" + n; n++; }
+    return id;
+  }
+  // label: display name: accent: hex color from the small palette offered in the
+  // UI; imageUrl: optional pasted image URL, left "" for the color-header fallback
+  // (place-head already renders an accent-colored header when there's no photo).
+  function addPlace(label, accent, imageUrl) {
+    if (!Array.isArray(state.places)) state.places = [];
+    const id = uniquePlaceId(slugify(label));
+    const place = {
+      id, label: label, cityIds: [id],
+      image: imageUrl || "",
+      title: label, titleEm: "", blurb: "",
+      accent: accent || "#7cc0c2"
+    };
+    state.places.push(place);
+    persist();
+    return place;
+  }
+  // Only ever touches state.places -- built-in PLACES entries are authored in
+  // code and aren't renameable here.
+  function renamePlace(id, newLabel) {
+    const p = (state.places || []).find((x) => x.id === id);
+    if (!p || !newLabel) return null;
+    p.label = newLabel;
+    p.title = newLabel;
+    persist();
+    return p;
   }
 
   // ---- trip structure: ordered stops (placeId + nights) driving the whole calendar ----
@@ -278,7 +350,7 @@ const Store = (() => {
 
   return {
     init, subscribe, getState, getSyncStatus, persist,
-    add, update, remove, updateMeta,
+    add, update, remove, updateMeta, backfillCityContent, addPlace, renamePlace,
     computeStopRanges, computeRangesFor, getTotalDays, getTripDateRange, getStopRangeForPlace,
     updateTripStops, addTripStop, insertTripStop, removeTripStop, moveTripStop, setTripStopNights,
     getItineraryDays, uid

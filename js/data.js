@@ -13,7 +13,14 @@ const CITIES = [
   { id: "lecce",       name: "Lecce",              country: "Italy",   lat: 40.3515, lng: 18.1750 },
   { id: "dubrovnik",   name: "Dubrovnik",          country: "Croatia", lat: 42.6507, lng: 18.0944 },
   { id: "hvar",        name: "Hvar",               country: "Croatia", lat: 43.1729, lng: 16.4413 },
-  { id: "split",       name: "Split",              country: "Croatia", lat: 43.5081, lng: 16.4402 }
+  { id: "split",       name: "Split",              country: "Croatia", lat: 43.5081, lng: 16.4402 },
+  // -- Phase 4 destinations --
+  { id: "ostuni",      name: "Ostuni",             country: "Italy",   lat: 40.7284, lng: 17.5750 },
+  { id: "monopoli",    name: "Monopoli",           country: "Italy",   lat: 40.9515, lng: 17.3020 },
+  { id: "otranto",     name: "Otranto",            country: "Italy",   lat: 40.1454, lng: 18.4903 },
+  { id: "korcula",     name: "Korčula",            country: "Croatia", lat: 42.9603, lng: 17.1358 },
+  { id: "mljet",       name: "Mljet",              country: "Croatia", lat: 42.7770, lng: 17.3550 },
+  { id: "makarska",    name: "Makarska",           country: "Croatia", lat: 43.2967, lng: 17.0178 }
 ];
 
 // -- Maps link helpers: every hotel/restaurant/thing-to-do link is a Google
@@ -21,11 +28,15 @@ const CITIES = [
 const CITY_LABEL_MAP = {
   rome: "Rome, Italy", bari: "Bari, Italy", polignano: "Polignano a Mare, Italy",
   alberobello: "Alberobello, Italy", matera: "Matera, Italy", lecce: "Lecce, Italy",
-  dubrovnik: "Dubrovnik, Croatia", hvar: "Hvar, Croatia", split: "Split, Croatia"
+  dubrovnik: "Dubrovnik, Croatia", hvar: "Hvar, Croatia", split: "Split, Croatia",
+  ostuni: "Ostuni, Italy", monopoli: "Monopoli, Italy", otranto: "Otranto, Italy",
+  korcula: "Korčula, Croatia", mljet: "Mljet, Croatia", makarska: "Makarska, Croatia"
 };
 const PLACE_LABEL_MAP = {
   rome: "Rome, Italy", puglia: "Bari, Italy", dubrovnik: "Dubrovnik, Croatia",
-  hvar: "Hvar, Croatia", split: "Split, Croatia"
+  hvar: "Hvar, Croatia", split: "Split, Croatia",
+  ostuni: "Ostuni, Italy", monopoli: "Monopoli, Italy", otranto: "Otranto, Italy",
+  korcula: "Korčula, Croatia", mljet: "Mljet, Croatia", makarska: "Makarska, Croatia"
 };
 // Plain-text (not URL-encoded) versions of the same query used to build the
 // map links below -- this is what "copy address" copies to the clipboard.
@@ -65,7 +76,13 @@ const PLACE_ACCENT = {
   puglia: "#0f8a86",
   dubrovnik: "#1f6f99",
   hvar: "#6f8f5a",
-  split: "#106b86"
+  split: "#106b86",
+  ostuni: "#b8873a",
+  monopoli: "#b8492f",
+  otranto: "#1c8f93",
+  korcula: "#7a3b52",
+  mljet: "#2f6b4a",
+  makarska: "#3d7ab8"
 };
 
 // Typical September climate (F), used until a live forecast is close enough to
@@ -75,7 +92,13 @@ const SEPT_CLIMATE_NORMALS = {
   bari: { high: 82, low: 66, sea: 74, note: "Warm and mostly dry, the easiest weather of the trip." },
   dubrovnik: { high: 74, low: 63, sea: 76, note: "Warm days, comfortable nights, cooling toward month's end." },
   hvar: { high: 79, low: 64, sea: 73, note: "Similar to Split with an island breeze." },
-  split: { high: 79, low: 64, sea: 73, note: "Warm days, comfortable nights." }
+  split: { high: 79, low: 64, sea: 73, note: "Warm days, comfortable nights." },
+  ostuni: { high: 82, low: 65, sea: 74, note: "Warm hilltop days, cooler evenings than the coast below." },
+  monopoli: { high: 81, low: 66, sea: 75, note: "Right on the Adriatic -- warm, dry, easy swimming weather." },
+  otranto: { high: 80, low: 66, sea: 75, note: "Where the Adriatic meets the Ionian -- warm and mostly dry." },
+  korcula: { high: 79, low: 64, sea: 74, note: "Island climate, similar to Hvar and Split." },
+  mljet: { high: 78, low: 64, sea: 74, note: "Cooler and greener than the mainland, pine-shaded." },
+  makarska: { high: 80, low: 66, sea: 75, note: "Warm beach weather under Biokovo's shade in the afternoon." }
 };
 
 // Verified via US State Dept / embassy sites, July 2026.
@@ -168,7 +191,21 @@ const PLACES = [
   { id: "hvar", label: "Hvar", cityIds: ["hvar"], image: "assets/images/hvar.jpg",
     title: "Hvar", titleEm: "island time", blurb: "One night between catamarans, so stay central in <strong>Hvar Town</strong>: it's walkable end to end in twenty minutes and puts the square, the harbor, the restaurants and the fortress walk at your door. Make this night count." },
   { id: "split", label: "Split", cityIds: ["split"], image: "assets/images/split.jpg",
-    title: "Split", titleEm: "Diocletian's city", blurb: "Stay in <strong>Veli Varo\u0161</strong>, the stone neighborhood on Marjan Hill's slope, five to ten minutes from Diocletian's Palace and the Riva but quieter and better value, with the best local konobas and wine bars. The palace interior is atmospheric but the noisiest at night." }
+    title: "Split", titleEm: "Diocletian's city", blurb: "Stay in <strong>Veli Varo\u0161</strong>, the stone neighborhood on Marjan Hill's slope, five to ten minutes from Diocletian's Palace and the Riva but quieter and better value, with the best local konobas and wine bars. The palace interior is atmospheric but the noisiest at night." },
+  // -- Phase 4 destinations: Ostuni, Monopoli, Otranto (around Bari, not duplicating the
+  // existing Puglia sub-towns) and Korcula, Mljet, Makarska (between Dubrovnik and Split). --
+  { id: "ostuni", label: "Ostuni", cityIds: ["ostuni"], image: "assets/images/ostuni.jpg",
+    title: "Ostuni", titleEm: "the White City", blurb: "Base in or near the <strong>Centro Storico</strong>, the whitewashed hilltop old town that gives Ostuni its name -- walkable end to end and ringed by views to the Adriatic. The surrounding <strong>masserie</strong> (converted farmhouses) in the olive-grove countryside are the other real option, ten to twenty minutes out by car, for a quieter pool-and-view stay." },
+  { id: "monopoli", label: "Monopoli", cityIds: ["monopoli"], image: "assets/images/monopoli.jpg",
+    title: "Monopoli", titleEm: "the working harbor", blurb: "Base near the <strong>Centro Storico</strong> and its working fishing harbor, Porto Antico -- flatter and more low-key than flashier neighbor Polignano a Mare, with its own strong lungomare restaurant scene and easy beach-hopping just outside town." },
+  { id: "otranto", label: "Otranto", cityIds: ["otranto"], image: "assets/images/otranto.jpg",
+    title: "Otranto", titleEm: "Italy's edge on the Adriatic", blurb: "Base inside or just outside the <strong>Centro Storico</strong>, ringed by 15th-century walls and a five-minute walk from the city beach. Italy's easternmost town, where the Adriatic and Ionian seas meet, with Byzantine churches and a Baroque-adjacent Salento charm." },
+  { id: "korcula", label: "Korčula", cityIds: ["korcula"], image: "assets/images/korcula.jpg",
+    title: "Korčula", titleEm: "Marco Polo's island", blurb: "Stay in <strong>Korčula Town</strong>'s fishbone-planned old town, walkable in minutes and the departure point for the Škoji islets (Badija, Stupe, Vrnik) and Lumbarda's vineyards. Reputed birthplace of Marco Polo." },
+  { id: "mljet", label: "Mljet", cityIds: ["mljet"], image: "assets/images/mljet.jpg",
+    title: "Mljet", titleEm: "the green island", blurb: "Base near <strong>Pomena</strong>, the small harbor at the edge of Mljet National Park's saltwater lakes. The island has almost no built-up center, so this is less a town stay and more a quiet base inside the pine forest for the park itself." },
+  { id: "makarska", label: "Makarska", cityIds: ["makarska"], image: "assets/images/makarska.jpg",
+    title: "Makarska", titleEm: "under Biokovo", blurb: "Base along the <strong>Riva</strong>, the palm-lined waterfront promenade beneath Mount Biokovo, with the Makarska Riviera's beaches stretching either side and a cable car up the mountain for those who want the view." }
 ];
 
 const PLACE_TIPS = {
@@ -507,6 +544,150 @@ SEED_DATA.hotels = [
     "cons": "Old Town evening crowd noise; confirm the exact stepped street.",
     "url": "https://www.google.com/maps/search/?api=1&query=Cornaro%20Hotel%2C%20Old%20Town%2C%20Split%2C%20Croatia",
     "splurge": false
+  },
+  {
+    "id": "ht26", "placeId": "ostuni", "name": "La Sommità Relais & Chateaux", "area": "Centro Storico",
+    "costLabel": "~$350–550", "cost": 450,
+    "pros": "The finest in-town address; charming luxury boutique hotel with a Michelin restaurant on site.",
+    "cons": "Books out early; upper end of the range.",
+    "url": "https://www.google.com/maps/search/?api=1&query=La%20Sommit%C3%A0%20Relais%20%26%20Chateaux%2C%20Ostuni%2C%20Italy",
+    "splurge": true
+  },
+  {
+    "id": "ht27", "placeId": "ostuni", "name": "I 7 Archi Guest House", "area": "Centro Storico",
+    "costLabel": "~$180–260", "cost": 220,
+    "pros": "Studios, suites and apartments right in the old town; unbeatable walking-distance location.",
+    "cons": "On the pricier side for a guest house; limited on-site services.",
+    "url": "https://www.google.com/maps/search/?api=1&query=I%207%20Archi%20Guest%20House%2C%20Ostuni%2C%20Italy",
+    "splurge": false
+  },
+  {
+    "id": "ht28", "placeId": "ostuni", "name": "Masseria Moroseta", "area": "Countryside, ~15 min out",
+    "costLabel": "~$300–450", "cost": 375,
+    "pros": "Design-forward masseria with sea views, a pool and its own restaurant; the best-known Puglian design brand.",
+    "cons": "Need a car; removed from the old town.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Masseria%20Moroseta%2C%20Ostuni%2C%20Italy",
+    "splurge": true
+  },
+  {
+    "id": "ht29", "placeId": "ostuni", "name": "Paragon 700 Boutique Hotel & Spa", "area": "Centro Storico edge",
+    "costLabel": "~$220–320", "cost": 270,
+    "pros": "5-star boutique about a 5-minute walk from the center; quiet, private, with a lovely pool.",
+    "cons": "Smaller property, books up in season.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Paragon%20700%20Boutique%20Hotel%20%26%20Spa%2C%20Ostuni%2C%20Italy",
+    "splurge": false
+  },
+  {
+    "id": "ht30", "placeId": "monopoli", "name": "Hotel Don Ferrante", "area": "Centro Storico",
+    "costLabel": "~$300–420", "cost": 360,
+    "pros": "Old Town's most luxurious option; utter privacy, footsteps to everything. Best splurge in town.",
+    "cons": "Upper end of the range; small property.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Hotel%20Don%20Ferrante%2C%20Monopoli%2C%20Italy",
+    "splurge": true
+  },
+  {
+    "id": "ht31", "placeId": "monopoli", "name": "Dimora Pietrabianca", "area": "Centro Storico",
+    "costLabel": "~$150–220", "cost": 185,
+    "pros": "Quaint boutique hotel at fair prices; terrace rooms are especially lovely.",
+    "cons": "Smaller rooms; limited amenities.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Dimora%20Pietrabianca%2C%20Monopoli%2C%20Italy",
+    "splurge": false
+  },
+  {
+    "id": "ht32", "placeId": "monopoli", "name": "Orazio 33 B&B", "area": "Centro Storico",
+    "costLabel": "~$120–190", "cost": 150,
+    "pros": "In-demand, well-loved design B&B in the heart of the old town.",
+    "cons": "Books out early; B&B-level services.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Orazio%2033%20B%26B%2C%20Monopoli%2C%20Italy",
+    "splurge": false
+  },
+  {
+    "id": "ht33", "placeId": "monopoli", "name": "Masseria Torrepietra", "area": "Just outside town",
+    "costLabel": "~$180–280", "cost": 220,
+    "pros": "19th-century countryside masseria; classic Puglian design and a good family-friendly option.",
+    "cons": "Need a car for the old town; outside walking distance.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Masseria%20Torrepietra%2C%20Monopoli%2C%20Italy",
+    "splurge": false
+  },
+  {
+    "id": "ht34", "placeId": "otranto", "name": "Masseria Prosperi", "area": "Countryside, near Otranto",
+    "costLabel": "~$280–420", "cost": 350,
+    "pros": "Elegant countryside masseria with an indoor pool; sleeps up to 18, good for groups.",
+    "cons": "Need a car; not an in-town stay.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Masseria%20Prosperi%2C%20Otranto%2C%20Italy",
+    "splurge": true
+  },
+  {
+    "id": "ht35", "placeId": "otranto", "name": "Masseria Longa", "area": "Countryside, near Otranto",
+    "costLabel": "~$220–330", "cost": 275,
+    "pros": "Rustic stone masseria near the Adriatic coast; secluded gardens, quieter alternative to the Old Town.",
+    "cons": "Need a car; a short drive from the Old Town and beach.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Masseria%20Longa%2C%20Otranto%2C%20Italy",
+    "splurge": false
+  },
+  {
+    "id": "ht36", "placeId": "korcula", "name": "Lešić Dimitri Palace", "area": "Old Town",
+    "costLabel": "~$450–700+", "cost": 550,
+    "pros": "The island's only 5-star; restored 18th-century bishop's palace, Michelin-starred restaurant, spa. Best splurge.",
+    "cons": "Well above budget for most nights.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Le%C5%A1i%C4%87%20Dimitri%20Palace%2C%20Kor%C4%8Dula%2C%20Croatia",
+    "splurge": true
+  },
+  {
+    "id": "ht37", "placeId": "korcula", "name": "Aminess Korčula Heritage Hotel", "area": "Old Town seafront",
+    "costLabel": "~$180–280", "cost": 230,
+    "pros": "The island's oldest hotel (1912); seafront in the heart of the Old Town, views over the marina.",
+    "cons": "Simpler rooms than the price suggests; older building.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Aminess%20Kor%C4%8Dula%20Heritage%20Hotel%2C%20Kor%C4%8Dula%2C%20Croatia",
+    "splurge": false
+  },
+  {
+    "id": "ht38", "placeId": "korcula", "name": "Hotel Liburna", "area": "15 min walk from Old Town",
+    "costLabel": "~$140–220", "cost": 180,
+    "pros": "Good-sized outdoor pool with panoramic views; most rooms have sea views; solid value.",
+    "cons": "Not walking-distance close; more resort than boutique.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Hotel%20Liburna%2C%20Kor%C4%8Dula%2C%20Croatia",
+    "splurge": false
+  },
+  {
+    "id": "ht39", "placeId": "mljet", "name": "Hotel Odisej", "area": "Pomena, inside the National Park",
+    "costLabel": "~$160–240", "cost": 200,
+    "pros": "The only traditional hotel on the island, right by the National Park entrance and Pomena harbor.",
+    "cons": "Dated compared to mainland options; very limited alternatives if it's full.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Hotel%20Odisej%2C%20Mljet%2C%20Croatia",
+    "splurge": false
+  },
+  {
+    "id": "ht40", "placeId": "mljet", "name": "Apartmaji Mljet Soline", "area": "Soline, inside the National Park",
+    "costLabel": "~$90–140", "cost": 110,
+    "pros": "Simple boarding house overlooking both the sea and the lake, right at the heart of the National Park.",
+    "cons": "Basic, guesthouse-level amenities.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Apartmaji%20Mljet%20Soline%2C%20Mljet%2C%20Croatia",
+    "splurge": false
+  },
+  {
+    "id": "ht41", "placeId": "makarska", "name": "Hotel Osejava", "area": "Osejava peninsula",
+    "costLabel": "~$160–240", "cost": 200,
+    "pros": "Highly rated, quiet spot on the Osejava peninsula, close to the beach and a short walk to the Riva.",
+    "cons": "A bit removed from the busiest part of town (a plus for some).",
+    "url": "https://www.google.com/maps/search/?api=1&query=Hotel%20Osejava%2C%20Makarska%2C%20Croatia",
+    "splurge": false
+  },
+  {
+    "id": "ht42", "placeId": "makarska", "name": "Hotel Dalmacija", "area": "Near the Riva",
+    "costLabel": "~$130–200", "cost": 165,
+    "pros": "Well-reviewed, central, easy walk to the promenade and old town.",
+    "cons": "Simpler amenities than the resort-style properties.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Hotel%20Dalmacija%2C%20Makarska%2C%20Croatia",
+    "splurge": false
+  },
+  {
+    "id": "ht43", "placeId": "makarska", "name": "Aminess Khalani Beach Hotel", "area": "Beachfront",
+    "costLabel": "~$220–340", "cost": 280,
+    "pros": "Direct beach access, pools, resort amenities -- a comfortable splurge option on the Riviera.",
+    "cons": "Resort-style rather than boutique; a walk from the old town.",
+    "url": "https://www.google.com/maps/search/?api=1&query=Aminess%20Khalani%20Beach%20Hotel%2C%20Makarska%2C%20Croatia",
+    "splurge": true
   }
 ];
 
@@ -781,7 +962,43 @@ SEED_DATA.thingsToDo = [
     "kind": "View & history",
     "description": "A clifftop fortress just outside town with sweeping coastal views (and more Game of Thrones scenery).",
     "url": "https://www.google.com/maps/search/?api=1&query=Klis%20Fortress%2C%20Split%2C%20Croatia"
-  }
+  },
+  {"id":"td31","placeId":"ostuni","city":"ostuni","name":"Centro Storico of Ostuni","kind":"The White City","description":"The whitewashed hilltop old town that gives Ostuni its name -- a postcard worth a few hours on foot.","url":"https://www.google.com/maps/search/?api=1&query=Centro%20Storico%2C%20Ostuni%2C%20Italy"},
+  {"id":"td32","placeId":"ostuni","city":"ostuni","name":"Piazza della Libertà & Colonna di Sant'Oronzo","kind":"Main square","description":"The town's main square and its stone column honoring the patron saint; ring of cafes and bars.","url":"https://www.google.com/maps/search/?api=1&query=Piazza%20della%20Libert%C3%A0%2C%20Ostuni%2C%20Italy"},
+  {"id":"td33","placeId":"ostuni","city":"ostuni","name":"Ostuni Cathedral (Santa Maria Assunta)","kind":"15th-century","description":"A Roman Catholic cathedral with a striking rose window, reached through the Arco Scoppa.","url":"https://www.google.com/maps/search/?api=1&query=Cattedrale%20Santa%20Maria%20Assunta%2C%20Ostuni%2C%20Italy"},
+  {"id":"td34","placeId":"ostuni","city":"ostuni","name":"City walls & Corso Vittorio Emanuele II viewpoint","kind":"Views","description":"Ancient walls with views out to the Adriatic; this viewpoint has the best look back at the White City.","url":"https://www.google.com/maps/search/?api=1&query=Ostuni%20city%20walls%2C%20Ostuni%2C%20Italy"},
+  {"id":"td35","placeId":"ostuni","city":"ostuni","name":"Tuk-tuk tour of the old town","kind":"Guided","description":"A fun, fast way to see every corner of the hilltop town on a hot day.","url":"https://www.google.com/maps/search/?api=1&query=Ostuni%20tuk%20tuk%20tour%2C%20Ostuni%2C%20Italy"},
+  {"id":"td36","placeId":"ostuni","city":"ostuni","name":"La Mercanteria antiques","kind":"Shopping","description":"Traditional Apulian ceramics and antiques; a second-Sunday flea market fills the old town monthly.","url":"https://www.google.com/maps/search/?api=1&query=La%20Mercanteria%2C%20Ostuni%2C%20Italy"},
+  {"id":"td37","placeId":"ostuni","city":"ostuni","name":"Pasta cooking class with La Caseddha","kind":"Experience","description":"Learn Puglian pasta shapes from a local producer of olive oil and flour; can come to you or host at the farm.","url":"https://www.google.com/maps/search/?api=1&query=La%20Caseddha%2C%20Ostuni%2C%20Italy"},
+  {"id":"td38","placeId":"monopoli","city":"monopoli","name":"Lungomare sunset stroll","kind":"Waterfront","description":"The sea-facing promenade ringing the old town, liveliest right before and after sunset.","url":"https://www.google.com/maps/search/?api=1&query=Lungomare%2C%20Monopoli%2C%20Italy"},
+  {"id":"td39","placeId":"monopoli","city":"monopoli","name":"Castello Carlo V & Bastione Santa Maria","kind":"History","description":"A restored medieval castle with a small museum, beside an old defense tower on the promenade.","url":"https://www.google.com/maps/search/?api=1&query=Castello%20Carlo%20V%2C%20Monopoli%2C%20Italy"},
+  {"id":"td40","placeId":"monopoli","city":"monopoli","name":"Cattedrale Maria Santissima della Madia","kind":"12th-18th century","description":"Romanesque-Baroque cathedral with a Romanesque crypt below (Museo Cripta Romanica).","url":"https://www.google.com/maps/search/?api=1&query=Cattedrale%20Maria%20Santissima%20della%20Madia%2C%20Monopoli%2C%20Italy"},
+  {"id":"td41","placeId":"monopoli","city":"monopoli","name":"Palazzo Palmieri","kind":"Baroque palace","description":"An 18th-century Lecce-style Baroque palace on the piazza of the same name.","url":"https://www.google.com/maps/search/?api=1&query=Palazzo%20Palmieri%2C%20Monopoli%2C%20Italy"},
+  {"id":"td42","placeId":"monopoli","city":"monopoli","name":"Porto Antico","kind":"Working harbor","description":"The old fishing harbor with traditional red-and-blue gozzo boats -- classic Puglian coastal life.","url":"https://www.google.com/maps/search/?api=1&query=Porto%20Antico%2C%20Monopoli%2C%20Italy"},
+  {"id":"td43","placeId":"monopoli","city":"monopoli","name":"Beach hopping: Cala Porta Vecchia to Cala Paradiso","kind":"Beaches","description":"A string of small coves just outside town, from the central beach to the family-friendly Cala Paradiso.","url":"https://www.google.com/maps/search/?api=1&query=Cala%20Paradiso%2C%20Monopoli%2C%20Italy"},
+  {"id":"td44","placeId":"monopoli","city":"monopoli","name":"Boat tour to the Polignano caves","kind":"2.5-7.5 hours","description":"Shared or private boat trips along the coast to Polignano a Mare's sea caves.","url":"https://www.google.com/maps/search/?api=1&query=Polignano%20caves%20boat%20tour%2C%20Monopoli%2C%20Italy"},
+  {"id":"td45","placeId":"otranto","city":"otranto","name":"Centro Storico of Otranto","kind":"Old town","description":"A maze of narrow whitewashed streets, boutiques and cafes -- quieter than it looks since everyone's at the beach.","url":"https://www.google.com/maps/search/?api=1&query=Centro%20Storico%2C%20Otranto%2C%20Italy"},
+  {"id":"td46","placeId":"otranto","city":"otranto","name":"Cattedrale di Santa Maria Annunziata","kind":"11th century","description":"An 11th-century cathedral with a famous, well-preserved mosaic floor.","url":"https://www.google.com/maps/search/?api=1&query=Cattedrale%20di%20Santa%20Maria%20Annunziata%2C%20Otranto%2C%20Italy"},
+  {"id":"td47","placeId":"otranto","city":"otranto","name":"Castello Aragonese & city walls","kind":"15th century","description":"An imposing fortress (ramparts, towers, dungeons, ~€12 entry) with rotating art exhibitions; free walk along the walls.","url":"https://www.google.com/maps/search/?api=1&query=Castello%20Aragonese%2C%20Otranto%2C%20Italy"},
+  {"id":"td48","placeId":"otranto","city":"otranto","name":"Otranto city beach","kind":"Beach","description":"Pristine, convenient city-center beach right beside the old town walls.","url":"https://www.google.com/maps/search/?api=1&query=Otranto%20city%20beach%2C%20Otranto%2C%20Italy"},
+  {"id":"td49","placeId":"otranto","city":"otranto","name":"Punta Palascìa Lighthouse","kind":"Easternmost point of Italy","description":"Where the Adriatic and Ionian seas meet -- the literal eastern edge of the country.","url":"https://www.google.com/maps/search/?api=1&query=Punta%20Palasc%C3%ACa%20Lighthouse%2C%20Otranto%2C%20Italy"},
+  {"id":"td50","placeId":"otranto","city":"otranto","name":"Day trip to Grotta della Poesia","kind":"~30 min away","description":"A famous natural swimming grotto near Roca Vecchia, a legitimate cliff-jump-and-swim spot.","url":"https://www.google.com/maps/search/?api=1&query=Grotta%20della%20Poesia%2C%20Otranto%2C%20Italy"},
+  {"id":"td51","placeId":"korcula","city":"korcula","name":"Korčula Old Town","kind":"Medieval fishbone plan","description":"One of the best-preserved medieval towns in the Adriatic, its streets angled to block cold winds and let mild ones through.","url":"https://www.google.com/maps/search/?api=1&query=Kor%C4%8Dula%20Old%20Town%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"td52","placeId":"korcula","city":"korcula","name":"St. Mark's Cathedral & Bell Tower","kind":"15th century","description":"Gothic-Renaissance cathedral with Tintoretto works; climb the bell tower for the view.","url":"https://www.google.com/maps/search/?api=1&query=St%20Mark's%20Cathedral%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"td53","placeId":"korcula","city":"korcula","name":"House of Marco Polo","kind":"History","description":"Korčula's reputed connection to the explorer, near the cathedral in the old town.","url":"https://www.google.com/maps/search/?api=1&query=House%20of%20Marco%20Polo%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"td54","placeId":"korcula","city":"korcula","name":"Island-hop to Badija, Stupe & Vrnik","kind":"Boat trip","description":"Water taxi out to the Škoji islets: a monastery and deer on Badija, a beach club on Stupe, quarries on Vrnik.","url":"https://www.google.com/maps/search/?api=1&query=Badija%20Island%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"td55","placeId":"korcula","city":"korcula","name":"Wine tasting: Pošip & Grk","kind":"Experience","description":"Local white wines from Korčula's vineyards, with tours to family-run wineries around the island.","url":"https://www.google.com/maps/search/?api=1&query=Ko%C5%A1ip%20wine%20tasting%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"td56","placeId":"korcula","city":"korcula","name":"Pržina Beach, Lumbarda","kind":"~15 min drive","description":"The island's best sandy beach, in the small fishing village of Lumbarda.","url":"https://www.google.com/maps/search/?api=1&query=Pr%C5%BEina%20Beach%2C%20Lumbarda%2C%20Croatia"},
+  {"id":"td57","placeId":"mljet","city":"mljet","name":"Mljet National Park: Veliko & Malo Jezero","kind":"Saltwater lakes","description":"Two connected saltwater lakes ringed by pine forest -- the heart of the park, walkable and bikeable.","url":"https://www.google.com/maps/search/?api=1&query=Mljet%20National%20Park%2C%20Mljet%2C%20Croatia"},
+  {"id":"td58","placeId":"mljet","city":"mljet","name":"St. Mary's Islet monastery","kind":"Boat trip on Veliko Jezero","description":"A small Benedictine monastery on an islet in the middle of the Great Lake, reached by a short boat ride.","url":"https://www.google.com/maps/search/?api=1&query=St%20Mary's%20Islet%2C%20Mljet%2C%20Croatia"},
+  {"id":"td59","placeId":"mljet","city":"mljet","name":"Bike the lake loop","kind":"Self-guided","description":"Rent a bike in Pomena or Polače to circle the lakes -- the easiest way to see the park without a car.","url":"https://www.google.com/maps/search/?api=1&query=Mljet%20bike%20rental%2C%20Mljet%2C%20Croatia"},
+  {"id":"td60","placeId":"mljet","city":"mljet","name":"Odysseus Cave","kind":"Near Babino Polje","description":"A sea cave with a legendary link to Odysseus and Calypso; swimmable in calm weather.","url":"https://www.google.com/maps/search/?api=1&query=Odysseus%20Cave%2C%20Mljet%2C%20Croatia"},
+  {"id":"td61","placeId":"makarska","city":"makarska","name":"Biokovo Nature Park cable car","kind":"Mountain views","description":"A cable car up Mount Biokovo for a dramatic view over the Makarska Riviera and the sea.","url":"https://www.google.com/maps/search/?api=1&query=Biokovo%20Skywalk%2C%20Makarska%2C%20Croatia"},
+  {"id":"td62","placeId":"makarska","city":"makarska","name":"The Riva promenade","kind":"Waterfront","description":"Palm-lined seafront walk, the social heart of town by day and night.","url":"https://www.google.com/maps/search/?api=1&query=Riva%2C%20Makarska%2C%20Croatia"},
+  {"id":"td63","placeId":"makarska","city":"makarska","name":"Kačić Square & St. Mark's Church","kind":"Old town","description":"The main square, named for local poet Andrija Kačić Miošić, anchored by the parish church.","url":"https://www.google.com/maps/search/?api=1&query=Ka%C4%8Di%C4%87%20Square%2C%20Makarska%2C%20Croatia"},
+  {"id":"td64","placeId":"makarska","city":"makarska","name":"Malacological Museum","kind":"Shell collection","description":"A well-known, slightly eccentric seashell museum run by Franciscan friars.","url":"https://www.google.com/maps/search/?api=1&query=Malacological%20Museum%2C%20Makarska%2C%20Croatia"},
+  {"id":"td65","placeId":"makarska","city":"makarska","name":"Osejava peninsula walk","kind":"Coastal path","description":"A pine-shaded path around the peninsula with pebble coves along the way.","url":"https://www.google.com/maps/search/?api=1&query=Osejava%2C%20Makarska%2C%20Croatia"},
+  {"id":"td66","placeId":"makarska","city":"makarska","name":"Day trip to Brela's Punta Rata","kind":"~15 min drive","description":"One of Croatia's most photographed beaches, just up the Riviera from Makarska.","url":"https://www.google.com/maps/search/?api=1&query=Punta%20Rata%2C%20Brela%2C%20Croatia"}
 ];
 
 // -- Restaurants: replaces the earlier placeholder list with the real 30-spot guide. --
@@ -1115,7 +1332,35 @@ SEED_DATA.restaurants = [
     "vegetarian": true,
     "vegLabel": "Snacks & small plates",
     "url": "https://www.google.com/maps/search/?api=1&query=Stow%20Coffee%20%26%20Monika's%20Wine%20Bar%2C%20Split%2C%20Croatia"
-  }
+  },
+  {"id":"r31","placeId":"ostuni","city":"ostuni","name":"Burro Cafe","kind":"Coffee & breakfast","description":"All-day coffee and pastries in the old town; a favorite morning stop.","vegetarian":true,"vegLabel":"Coffee & pastries","url":"https://www.google.com/maps/search/?api=1&query=Burro%20Cafe%2C%20Ostuni%2C%20Italy"},
+  {"id":"r32","placeId":"ostuni","city":"ostuni","name":"Osteria Ricanatti","kind":"Elevated Puglian tasting menu","description":"Only 8 tables; traditional Puglian cuisine with an elevated twist. Call ahead.","vegetarian":true,"vegLabel":"Veg options on request","url":"https://www.google.com/maps/search/?api=1&query=Osteria%20Ricanatti%2C%20Ostuni%2C%20Italy"},
+  {"id":"r33","placeId":"ostuni","city":"ostuni","name":"Impasto Napoletano","kind":"Pizza","description":"The best pizza in town by reputation; quiet early, packed by 9pm.","vegetarian":true,"vegLabel":"Veg pizzas available","url":"https://www.google.com/maps/search/?api=1&query=Impasto%20Napoletano%2C%20Ostuni%2C%20Italy"},
+  {"id":"r34","placeId":"ostuni","city":"ostuni","name":"Borgo Antico Bistro","kind":"Sunset bar & views","description":"Terraced restaurant with a line for sunset drinks -- arrive early for a table.","vegetarian":true,"vegLabel":"Small plates","url":"https://www.google.com/maps/search/?api=1&query=Borgo%20Antico%20Bistro%2C%20Ostuni%2C%20Italy"},
+  {"id":"r35","placeId":"ostuni","city":"ostuni","name":"Vinicolo","kind":"Wine bar","description":"Chic little wine bar for regional wines and small plates.","vegetarian":true,"vegLabel":"Small plates","url":"https://www.google.com/maps/search/?api=1&query=Vinicolo%2C%20Ostuni%2C%20Italy"},
+  {"id":"r36","placeId":"ostuni","city":"ostuni","name":"Trattoria Sapere E Sapori","kind":"Traditional Puglian","description":"Orecchiette, pestos and local cheeses in the Centro Storico.","vegetarian":true,"vegLabel":"Very veg-friendly","url":"https://www.google.com/maps/search/?api=1&query=Trattoria%20Sapere%20E%20Sapori%2C%20Ostuni%2C%20Italy"},
+  {"id":"r37","placeId":"monopoli","city":"monopoli","name":"Porto Rosso – Bar Ristorante Pizzeria","kind":"Open-air pizzeria","description":"Set right over the water; a standout meal on the coast, with fish and local plates in the adjacent ristorante.","vegetarian":true,"vegLabel":"Veg pizzas available","url":"https://www.google.com/maps/search/?api=1&query=Porto%20Rosso%2C%20Monopoli%2C%20Italy"},
+  {"id":"r38","placeId":"monopoli","city":"monopoli","name":"CarloQuinto","kind":"Italian & cocktails","description":"A nightly crowd spilling onto the lungomare for Italian food and cocktails overlooking the sea.","vegetarian":true,"vegLabel":"Veg mains available","url":"https://www.google.com/maps/search/?api=1&query=CarloQuinto%2C%20Monopoli%2C%20Italy"},
+  {"id":"r39","placeId":"monopoli","city":"monopoli","name":"Trattoria La Locanda dei Mercanti","kind":"Traditional trattoria","description":"Known for spaghetti alle vongole; reserve ahead, it's popular.","vegetarian":true,"vegLabel":"Veg options available","url":"https://www.google.com/maps/search/?api=1&query=Trattoria%20La%20Locanda%20dei%20Mercanti%2C%20Monopoli%2C%20Italy"},
+  {"id":"r40","placeId":"monopoli","city":"monopoli","name":"Titti La Pizzicheria","kind":"Deli & small bites","description":"Apulian cheeses and salamis, with small bites served on the terrace.","vegetarian":false,"vegLabel":"Deli, some veg items","url":"https://www.google.com/maps/search/?api=1&query=Titti%20La%20Pizzicheria%2C%20Monopoli%2C%20Italy"},
+  {"id":"r41","placeId":"monopoli","city":"monopoli","name":"Tuttoapposto Winebar","kind":"Wine bar","description":"Evening drinks with a view of the port; ask for a table inside.","vegetarian":true,"vegLabel":"Small plates","url":"https://www.google.com/maps/search/?api=1&query=Tuttoapposto%20Winebar%2C%20Monopoli%2C%20Italy"},
+  {"id":"r42","placeId":"monopoli","city":"monopoli","name":"La Portavecchia","kind":"Bakery & patisserie","description":"Go-to spot for fresh bread and Apulian pastries.","vegetarian":true,"vegLabel":"Bakery","url":"https://www.google.com/maps/search/?api=1&query=La%20Portavecchia%2C%20Monopoli%2C%20Italy"},
+  {"id":"r43","placeId":"monopoli","city":"monopoli","name":"Bella Blu Gelateria","kind":"Gelato","description":"The best gelato in town -- grab a cone for an evening stroll.","vegetarian":true,"vegLabel":"Gelato","url":"https://www.google.com/maps/search/?api=1&query=Bella%20Blu%20Gelateria%2C%20Monopoli%2C%20Italy"},
+  {"id":"r44","placeId":"otranto","city":"otranto","name":"L'Ortale Ristoro Salentissimo","kind":"Garden restaurant","description":"A killer garden out back; a relaxed Salento spot, also good for takeaway to the beach.","vegetarian":true,"vegLabel":"Veg options available","url":"https://www.google.com/maps/search/?api=1&query=L'Ortale%20Ristoro%20Salentissimo%2C%20Otranto%2C%20Italy"},
+  {"id":"r45","placeId":"otranto","city":"otranto","name":"Vicolo Matto Fishbar","kind":"Seafood","description":"Traveler-recommended fresh seafood spot in the old town.","vegetarian":false,"vegLabel":"Seafood-forward","url":"https://www.google.com/maps/search/?api=1&query=Vicolo%20Matto%20Fishbar%2C%20Otranto%2C%20Italy"},
+  {"id":"r46","placeId":"otranto","city":"otranto","name":"Agli Angeli Ribelli","kind":"Traditional Puglian","description":"Traveler-recommended for classic Puglian cuisine.","vegetarian":true,"vegLabel":"Veg options available","url":"https://www.google.com/maps/search/?api=1&query=Agli%20Angeli%20Ribelli%2C%20Otranto%2C%20Italy"},
+  {"id":"r47","placeId":"otranto","city":"otranto","name":"Patronale","kind":"Traditional Puglian","description":"Traveler-recommended, known for fresh seafood and Puglian classics.","vegetarian":true,"vegLabel":"Veg options available","url":"https://www.google.com/maps/search/?api=1&query=Patronale%2C%20Otranto%2C%20Italy"},
+  {"id":"r48","placeId":"korcula","city":"korcula","name":"Filippi","kind":"Seafront fine dining","description":"Tuna carpaccio, pan-fried sea bass and homemade macaroni on the seafront promenade -- book a sunset table.","vegetarian":true,"vegLabel":"Veg mains available","url":"https://www.google.com/maps/search/?api=1&query=Filippi%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"r49","placeId":"korcula","city":"korcula","name":"Adio Mare","kind":"Historic family tavern (since 1974)","description":"Hearty Dalmatian meat and fish dishes on an authentic barbecue, in a former shipbuilding workshop.","vegetarian":false,"vegLabel":"Meat & fish focused","url":"https://www.google.com/maps/search/?api=1&query=Adio%20Mare%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"r50","placeId":"korcula","city":"korcula","name":"LD Restaurant","kind":"Michelin-starred","description":"Seasonal, local ingredients -- look out for scallops and Ston oysters.","vegetarian":true,"vegLabel":"Veg mains available","url":"https://www.google.com/maps/search/?api=1&query=LD%20Restaurant%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"r51","placeId":"korcula","city":"korcula","name":"Pod Bore","kind":"Vela Luka","description":"Black cuttlefish risotto, a Dalmatian specialty, with harbor views.","vegetarian":false,"vegLabel":"Seafood-forward","url":"https://www.google.com/maps/search/?api=1&query=Pod%20Bore%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"r52","placeId":"korcula","city":"korcula","name":"Vrnik Arts Club","kind":"Vrnik islet","description":"Homemade food by the town beach, including creamy macaroni with monkfish.","vegetarian":false,"vegLabel":"Some veg options","url":"https://www.google.com/maps/search/?api=1&query=Vrnik%20Arts%20Club%2C%20Kor%C4%8Dula%2C%20Croatia"},
+  {"id":"r53","placeId":"mljet","city":"mljet","name":"Barba Ive","kind":"Pomena harbor","description":"One of a handful of harborside restaurants at the National Park entrance.","vegetarian":false,"vegLabel":"Seafood-forward","url":"https://www.google.com/maps/search/?api=1&query=Barba%20Ive%2C%20Mljet%2C%20Croatia"},
+  {"id":"r54","placeId":"mljet","city":"mljet","name":"Komarac","kind":"Bar, Pomena","description":"The island's main bar -- day drinks and a night hangout, one of the only options.","vegetarian":true,"vegLabel":"Drinks & snacks","url":"https://www.google.com/maps/search/?api=1&query=Komarac%2C%20Mljet%2C%20Croatia"},
+  {"id":"r55","placeId":"makarska","city":"makarska","name":"La Pentola Trattoria Makarska","kind":"Italian & pizza","description":"Well-reviewed trattoria in town, Italian classics and pizza.","vegetarian":true,"vegLabel":"Veg options available","url":"https://www.google.com/maps/search/?api=1&query=La%20Pentola%20Trattoria%2C%20Makarska%2C%20Croatia"},
+  {"id":"r56","placeId":"makarska","city":"makarska","name":"Tempera Streetfood & Bar","kind":"Mediterranean","description":"Casual, well-reviewed streetfood-style spot.","vegetarian":true,"vegLabel":"Veg options available","url":"https://www.google.com/maps/search/?api=1&query=Tempera%20Streetfood%20%26%20Bar%2C%20Makarska%2C%20Croatia"},
+  {"id":"r57","placeId":"makarska","city":"makarska","name":"Restaurant Cvit Soli","kind":"Dalmatian","description":"A well-reviewed local pick for Dalmatian dishes.","vegetarian":false,"vegLabel":"Seafood & meat focused","url":"https://www.google.com/maps/search/?api=1&query=Restaurant%20Cvit%20Soli%2C%20Makarska%2C%20Croatia"},
+  {"id":"r58","placeId":"makarska","city":"makarska","name":"Konoba Jeska","kind":"Traditional Dalmatian","description":"A deeply traditional konoba tucked in a stone alley near Kačić Square.","vegetarian":false,"vegLabel":"Traditional, some veg items","url":"https://www.google.com/maps/search/?api=1&query=Konoba%20Jeska%2C%20Makarska%2C%20Croatia"}
 ];
 
 // -- Real per-place tips, extracted from the original guide (replaces PLACE_TIPS placeholder). --
@@ -1154,6 +1399,48 @@ const PLACE_TIPS_REAL = {
     "Skip the restaurants right on the Peristyle; they charge for the setting. Eat in Varoš or the back streets instead.",
     "September runs noticeably cheaper than peak summer with excellent weather and a swimmable sea.",
     "Tourist tax is about €1.86–2.50 per person per night, paid locally."
+  ],
+  "ostuni": [
+    "The historic center is a ZTL (limited traffic zone) -- if you're driving, you'll park outside and walk in.",
+    "Many countryside masserie have Saturday-only check-ins with week-long minimum stays; check before booking.",
+    "September to October is the sweet spot: still warm enough to swim, well past peak-summer crowds.",
+    "The best view of the White City is from the Corso Vittorio Emanuele II viewpoint on the way out of town.",
+    "Book countryside restaurant tables (Masseria Moroseta and similar) ahead -- reservations are required."
+  ],
+  "monopoli": [
+    "The Old Town has no car access; if you're driving, confirm your accommodation's parking situation first.",
+    "Trains from Bari Centrale run every 30-50 minutes and cost around €3.30 -- an easy day trip or arrival point.",
+    "Siesta is real here: expect shops and some restaurants to close mid-afternoon.",
+    "The lungomare comes alive right before and after sunset -- time a stroll for then.",
+    "Popular trattorias (like La Locanda dei Mercanti) book out; reserve a day or two ahead in season."
+  ],
+  "otranto": [
+    "It's Italy's easternmost town, so it's the place to watch sunrise, not sunset, over the water.",
+    "The Castello Aragonese charges an entrance fee (around €12); the city walls and beach walk are free.",
+    "City beaches are steps from the Old Town, but Baia dei Turchi and the Alimini Lakes are worth the short trip out.",
+    "Grotta della Poesia (about 30 minutes away) is a legitimate swimming spot, not just a viewpoint -- bring a suit.",
+    "Fall (September-October) trades a few degrees of heat for dramatically thinner crowds."
+  ],
+  "korcula": [
+    "It's pronounced KOR-chew-lah. Marco Polo's disputed birthplace, and the island runs with that theme.",
+    "The old town is compact and walkable; a water taxi from the harbor gets you out to Badija, Stupe or Vrnik islets.",
+    "Local wines to look for: Pošip and Grk (white), Plavac (red) -- Lumbarda's vineyards produce both.",
+    "Fine-dining tables (Filippi, LD Restaurant) fill up in high season; reserve ahead, especially for a sunset seating.",
+    "Ferries and catamarans connect to both Split and Dubrovnik, so it slots in either direction of the Croatia leg."
+  ],
+  "mljet": [
+    "There's no real town center -- Pomena (by the National Park entrance) and Sobra (the ferry port) are the two hubs.",
+    "Mljet National Park has its own entrance fee, covering the saltwater lakes and the boat to St. Mary's Islet.",
+    "Dining is limited island-wide; Hotel Odisej and a handful of harbor konobas in Pomena are the main options.",
+    "Bring cash for smaller places -- card acceptance is patchier here than on the mainland or bigger islands.",
+    "Rent a bike to circle the lakes; it's the easiest way to see the park without a car."
+  ],
+  "makarska": [
+    "The Riva promenade is the social center of town -- come for an evening walk and gelato regardless of where you eat.",
+    "The Biokovo cable car (from near town) is a quick way to a genuinely dramatic mountain view over the coast.",
+    "Makarska Riviera beaches (including Brela's Punta Rata, a short drive north) are pebble, not sand -- water shoes help.",
+    "It's a common ferry/catamaran hub for Hvar and Brac, so it can work as a transit point as well as a stay.",
+    "Restaurants right on the Riva charge for the view; a block or two back tends to be better value."
   ]
 };
 Object.assign(PLACE_TIPS, PLACE_TIPS_REAL);
