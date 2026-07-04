@@ -79,8 +79,8 @@ section[id]{scroll-margin-top:84px}
 .ie-head{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;background:var(--adriatic-deep);color:#fff;padding:.75rem 1.3rem}
 .ie-head-title{font-family:'Fraunces';font-style:italic;font-size:1.1rem;color:#fff}
 .ie-head .tag{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.75);font-weight:600}
-.ie-head .ie-edit-toggle{margin-left:auto;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35)}
-.ie-head .ie-edit-toggle:hover{background:rgba(255,255,255,.22)}
+.ie-head .btn.secondary.ie-edit-toggle{margin-left:auto;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45)}
+.ie-head .btn.secondary.ie-edit-toggle:hover{background:rgba(255,255,255,.26);color:#fff}
 .ie-body{padding:1.4rem 1.6rem 1.6rem}
 .ie-timeline{position:relative;padding-left:3.5rem}
 .ie-timeline::before{content:"";position:absolute;left:21px;top:.3rem;bottom:.3rem;width:2px;background:var(--line)}
