@@ -1557,9 +1557,35 @@ function renderBookingStatus(state) {
   const transportGroups = legBlocks.concat(standaloneBlocks)
     .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
     .map((b) => b.html).join("") || '<div class="muted">Add a stop to start tracking transport.</div>';
+  // Same collapsible-section chrome as Where to stay / See & do / Where to
+  // eat (sub-h header, rule, a "+" to add a new booking, chevron), instead
+  // of the plain <h4> these used before -- same visual language, same
+  // open/closed persistence mechanism (the shared "planOpen" key).
   el2.innerHTML =
-    '<div class="bs-group"><h4>Hotels</h4>' + hotelGroups + '</div>' +
-    '<div class="bs-group"><h4>Transportation</h4>' + transportGroups + '</div>';
+    '<details class="plan-collapse" data-collapse-key="bs-hotels">' +
+    '<summary><div class="sub-h"><h3>Hotels</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-hotel" title="Add a hotel booking" aria-label="Add a hotel booking">+</button><span class="arw">&rsaquo;</span></div></summary>' +
+    '<div class="plan-collapse-body bs-group">' + hotelGroups + '</div></details>' +
+    '<details class="plan-collapse" data-collapse-key="bs-transport">' +
+    '<summary><div class="sub-h"><h3>Transportation</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-transport" title="Add a transport booking" aria-label="Add a transport booking">+</button><span class="arw">&rsaquo;</span></div></summary>' +
+    '<div class="plan-collapse-body bs-group">' + transportGroups + '</div></details>';
+  // Same collapse-state persistence as the per-city planning sections
+  // (shared "planOpen" localStorage key) -- these start closed the first
+  // time, then remember whatever you left them at on this device.
+  let planOpen = {};
+  try { planOpen = JSON.parse(localStorage.getItem("planOpen") || "{}"); } catch (err) { planOpen = {}; }
+  el2.querySelectorAll(".plan-collapse").forEach((det) => {
+    if (planOpen[det.dataset.collapseKey]) det.setAttribute("open", "");
+    else det.removeAttribute("open");
+    det.addEventListener("toggle", () => {
+      planOpen[det.dataset.collapseKey] = det.open;
+      try { localStorage.setItem("planOpen", JSON.stringify(planOpen)); } catch (err) { /* private mode */ }
+    });
+  });
+  el2.querySelectorAll("[data-sec-add]").forEach((btn) => btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openBookingForm(state, null, null);
+  }));
   el2.querySelectorAll("[data-bs-add-leg]").forEach((card) => card.addEventListener("click", () => {
     const fromPlace = getPlace(card.dataset.bsLegPlace) || null;
     openBookingForm(state, null, fromPlace, card.dataset.bsAddLeg || undefined);
