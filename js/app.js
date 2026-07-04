@@ -91,8 +91,12 @@ function renderTransportLine(t) {
     (bits.length ? ' <span class="muted">(' + bits.join(" · ") + ')</span>' : "") + '</span>' +
     '<span class="il-actions"><span class="status-pill ' + t.status + '">' + t.status + '</span></span></div>';
 }
+// No inline time chip: timed activities render inside an hour-slot whose
+// own label (e.g. "3 PM") already says the time, so repeating it per-row
+// was redundant. Untimed ("anytime") activities never had a time to show
+// anyway, so this is a no-op for them.
 function renderActivityLine(a) {
-  return '<div class="item-line item-line-clickable act-draggable" draggable="true" data-view-activity="' + a.id + '"><span class="drag-grip" aria-hidden="true">&#8942;&#8942;</span><span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + '</span></div>';
+  return '<div class="item-line item-line-clickable act-draggable" draggable="true" data-view-activity="' + a.id + '"><span class="drag-grip" aria-hidden="true">&#8942;&#8942;</span><span>' + esc(a.title) + '</span></div>';
 }
 
 // Calendar-style drag-to-time. Every day box is an hour rail; dropping an
@@ -176,11 +180,13 @@ function bookingEventsForDate(state, dateStr) {
 // the booking's own time field (checkinTime / checkoutTime / time), so the
 // schedule and the booking stay in sync. They can only move within their
 // own day -- moving a checkout to a different date is a booking-dates edit.
+// Same reasoning as renderActivityLine: the hour-slot this sits in already
+// shows the time, so the inline chip repeated it for no reason.
 function renderRailEvent(ev) {
   return '<div class="item-line item-line-clickable rail-event ev-draggable" draggable="true" data-view-booking="' + ev.booking.id + '"' +
     ' data-ev-booking="' + ev.booking.id + '" data-ev-field="' + ev.field + '" data-ev-date="' + esc(ev.date) + '">' +
     '<span class="drag-grip" aria-hidden="true">&#8942;&#8942;</span>' +
-    '<span><span class="time">' + esc(ev.time) + '</span><span class="rail-event-label">' + esc(ev.label) + '</span> ' + esc(ev.booking.title) + '</span>' +
+    '<span><span class="rail-event-label">' + esc(ev.label) + '</span> ' + esc(ev.booking.title) + '</span>' +
     '<span class="il-actions"><span class="status-pill ' + esc(ev.booking.status || "idea") + '">' + esc(ev.booking.status || "idea") + '</span></span></div>';
 }
 
@@ -1090,9 +1096,14 @@ function renderTodayView(state) {
   const rel = todayViewOffset;
   const badge = section.querySelector(".tv-badge");
   if (badge) {
-    badge.textContent = rel === 0 ? (previewDate ? "Today (preview)" : "Today")
-      : rel === 1 ? "Tomorrow" : rel === -1 ? "Yesterday"
-      : new Date(viewISO + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" });
+    // Today/Tomorrow/Yesterday are genuinely useful shorthand. Beyond that
+    // range the date pill next to this badge already spells out the
+    // weekday (fmtDate = "Sat, Jul 4"), so repeating it here as "Saturday"
+    // was pure redundancy -- just hide the badge for those days instead.
+    const relLabel = rel === 0 ? (previewDate ? "Today (preview)" : "Today")
+      : rel === 1 ? "Tomorrow" : rel === -1 ? "Yesterday" : "";
+    badge.textContent = relLabel;
+    badge.classList.toggle("hidden", !relLabel);
     badge.title = rel === 0 ? "" : "Tap to jump back to today";
     badge.onclick = rel === 0 ? null : () => { todayViewOffset = 0; renderTodayView(Store.getState()); };
     badge.style.cursor = rel === 0 ? "" : "pointer";
@@ -1108,28 +1119,27 @@ function renderTodayView(state) {
   }
   const contentEl = document.getElementById("todayContent");
   if (!today) {
-    // No itinerary day for this date -- explain why instead of hiding the
-    // whole widget, so it's still obvious how far off the trip is (or that
-    // it's over) without needing the countdown banner above.
+    // No itinerary day for this date -- show the countdown card (days to
+    // go / which day of the trip / wrap-up message) so it's still obvious
+    // how far off the trip is without a separate banner section above.
     const range = Store.getTripDateRange();
-    const msPerDay = 86400000;
-    let msg;
+    const cd = buildCountdownCardHtml();
+    let msg = "";
     if (!range.start) {
       msg = "Add stops to your itinerary to see day-by-day plans here.";
     } else {
       const viewD = new Date(viewISO + "T00:00:00");
       const startD = new Date(range.start + "T00:00:00");
       const endD = range.end ? new Date(range.end + "T00:00:00") : null;
-      if (viewD < startD) {
-        const n = Math.round((startD - viewD) / msPerDay);
-        msg = "No itinerary yet for " + fmtDate(viewISO) + " -- trip starts in " + n + (n === 1 ? " day" : " days") + " (" + fmtDate(range.start) + ").";
-      } else if (endD && viewD >= endD) {
-        msg = "Trip's done as of " + fmtDate(range.end) + " -- hope it was unforgettable.";
-      } else {
+      // The countdown card already covers the "before trip" and "after
+      // trip" cases relative to *actual* today; only add text here for
+      // dates being browsed via the ‹ › controls that fall outside both
+      // the countdown's message and the real schedule.
+      if (!(viewD < startD) && !(endD && viewD >= endD)) {
         msg = "No itinerary set for " + fmtDate(viewISO) + " yet.";
       }
     }
-    contentEl.innerHTML = '<div class="muted" style="padding:.6rem 0">' + esc(msg) + '</div>';
+    contentEl.innerHTML = cd + (msg ? '<div class="muted" style="padding:.6rem 0">' + esc(msg) + '</div>' : "");
     return;
   }
   const place = getPlace(today.placeId);
@@ -1151,21 +1161,18 @@ function renderTodayView(state) {
     ? '<div class="tv-city" style="color:' + accent + '">' + esc(place.label) +
       '<span class="tv-daynum">Day ' + dayNum + " of " + days.length + '</span></div>'
     : "";
-  const hotelHtml = renderDayHotelBar(today.lodging, today.date, today.placeId);
-  const transportHtml = today.transport.filter((t) => !t.time).map(renderTransportLine).join("");
-  // Timed booking moments (check-in/out, departures) interleave with the
-  // activities in time order, so the day reads as one schedule.
-  const merged = [
-    ...bookingEventsForDate(state, today.date).map((ev) => ({ time: ev.time, html: renderRailEvent(ev) })),
-    ...today.activities.map((a) => ({
-      time: a.time || "99:99",
-      html: renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)
-    }))
-  ].sort((x, y) => x.time.localeCompare(y.time)).map((x) => x.html).join("");
-  // On stop-boundary dates the day reads top-to-bottom: check out of the
-  // old hotel (top), the day's schedule, then the travel banner + check-in
-  // at the new hotel (bottom). Other days keep the single bottom bar.
-  let topBar = "", bottomHtml = hotelHtml;
+  // Schedule is activities only now -- hotel status and transport (timed
+  // or not) move into their own "Today's logistics" banner below, so the
+  // quick-glance bookings info is clearly separated from the hour-by-hour
+  // plan instead of interleaved into it.
+  const merged = today.activities.map((a) => ({
+    time: a.time || "99:99",
+    html: renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)
+  })).sort((x, y) => x.time.localeCompare(y.time)).map((x) => x.html).join("");
+  // On stop-boundary dates the logistics banner reads top-to-bottom: check
+  // out of the old hotel (top), travel banner, then check-in at the new
+  // hotel (bottom). Other days keep the single hotel-status line.
+  let topBar = "", bottomHtml = renderDayHotelBar(today.lodging, today.date, today.placeId);
   const ranges = Store.computeStopRanges();
   const arrIdx = ranges.findIndex((r, i) => i > 0 && r.dateStart === today.date);
   const tHotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === today.date);
@@ -1186,10 +1193,14 @@ function renderTodayView(state) {
     topBar = renderDayHotelBar(tHotelOut, today.date, today.placeId, true);
     bottomHtml = renderDayHotelBar(tHotelIn, today.date, today.placeId);
   }
+  const transportHtml = today.transport.map(renderTransportLine).join("");
+  const logisticsInner = topBar + transportHtml + bottomHtml;
+  const logisticsHtml = logisticsInner
+    ? '<div class="tv-logistics"><span class="tv-logistics-label">Today\'s logistics</span>' + logisticsInner + '</div>'
+    : "";
   contentEl.innerHTML =
-    cityHtml + topBar + transportHtml +
-    (merged || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>') +
-    bottomHtml;
+    cityHtml + logisticsHtml +
+    (merged || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>');
   contentEl.querySelectorAll("[data-view-booking]").forEach((row) => row.addEventListener("click", () => {
     const b = Store.getState().bookings.find((x) => x.id === row.dataset.viewBooking);
     if (b) openItemDetailCard("booking", b, place);
@@ -1233,45 +1244,42 @@ function renderHero(state) {
   });
   const countryCount = countries.size;
   document.title = state.meta.tripName + " · " + totalDays + " days";
+  // Trip name only here -- the dates already appear once, in the stat
+  // line just below (dateLabel was previously duplicated in both places).
   const eyebrowEl = document.getElementById("heroEyebrow");
-  if (eyebrowEl) eyebrowEl.textContent = state.meta.tripName + " · " + dateLabel;
+  if (eyebrowEl) eyebrowEl.textContent = state.meta.tripName;
   document.getElementById("heroMeta").innerHTML =
     '<span>' + esc(dateLabel) + '</span><span>' + totalDays + ' days</span><span>' + stopCount + ' destinations</span>' +
     (countryCount ? '<span>' + countryCount + (countryCount === 1 ? ' country' : ' countries') + '</span>' : "");
 }
 
-// A bigger, more prominent countdown banner (separate from the small hero
-// meta line above) -- shows days-to-go before the trip, which day you're on
-// while traveling, and a wrap-up message afterward.
-function renderCountdown(state) {
-  const el2 = document.getElementById("countdownBanner");
-  if (!el2) return;
+// Countdown card markup -- days-to-go before the trip, which day you're on
+// while traveling, or a wrap-up message afterward. Rendered inside the
+// Today box (see renderTodayView) in place of its old plain-text
+// "no itinerary yet" message. Was previously its own standalone banner
+// section between the hero and Today; folding it in here reclaims a full
+// section of mobile scroll with no data lost. Returns "" if no trip start
+// date is set yet.
+function buildCountdownCardHtml() {
   const range = Store.getTripDateRange();
-  if (!range.start) { el2.style.display = "none"; return; }
+  if (!range.start) return "";
   const msPerDay = 86400000;
   const todayISO = new Date().toISOString().slice(0, 10);
   const todayD = new Date(todayISO + "T00:00:00");
   const startD = new Date(range.start + "T00:00:00");
   const endD = range.end ? new Date(range.end + "T00:00:00") : null;
-  el2.style.display = "";
-  let cls = "countdown-banner", html;
   if (todayD < startD) {
     const days = Math.round((startD - todayD) / msPerDay);
-    cls += " cd-upcoming";
-    html = '<div class="cd-card"><div class="cd-num">' + days + '</div><div class="cd-label">' +
+    return '<div class="cd-card cd-upcoming"><div class="cd-num">' + days + '</div><div class="cd-label">' +
       (days === 1 ? "day" : "days") + ' until departure<span class="cd-sub">' + esc(fmtDate(range.start)) + '</span></div></div>';
-  } else if (endD && todayD >= endD) {
-    cls += " cd-done";
-    html = '<div class="cd-card"><div class="cd-num">&#10003;</div><div class="cd-label">Trip complete<span class="cd-sub">Hope it was unforgettable</span></div></div>';
-  } else {
-    const dayNum = Math.round((todayD - startD) / msPerDay) + 1;
-    const totalDays = Store.getTotalDays();
-    cls += " cd-live";
-    html = '<div class="cd-card"><div class="cd-num">' + dayNum + '</div><div class="cd-label">of ' + totalDays +
-      " -- you're on the trip<span class=\"cd-sub\">Enjoy today</span></div></div>";
   }
-  el2.className = cls;
-  el2.innerHTML = html;
+  if (endD && todayD >= endD) {
+    return '<div class="cd-card cd-done"><div class="cd-num">&#10003;</div><div class="cd-label">Trip complete<span class="cd-sub">Hope it was unforgettable</span></div></div>';
+  }
+  const dayNum = Math.round((todayD - startD) / msPerDay) + 1;
+  const totalDays = Store.getTotalDays();
+  return '<div class="cd-card cd-live"><div class="cd-num">' + dayNum + '</div><div class="cd-label">of ' + totalDays +
+    " -- you're on the trip<span class=\"cd-sub\">Enjoy today</span></div></div>";
 }
 
 // ---- booking status at a glance: hotels + inter-city transport only, the
@@ -2004,7 +2012,6 @@ function renderAll(state, syncStatus) {
   const sig = itineraryPlaceIds().join(",");
   if (sig !== lastSkeletonSig) { buildPlacesSkeleton(); lastSkeletonSig = sig; }
   renderHero(state);
-  renderCountdown(state);
   renderTodayView(state);
   renderItineraryEditor(state);
   renderPlaces(state);
