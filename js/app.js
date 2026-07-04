@@ -1364,27 +1364,13 @@ function renderHero(state) {
   const dateLabel = range.start
     ? fmtDateShort(range.start) + (range.end && range.end !== range.start ? " – " + fmtDateShort(range.end) : "")
     : "Dates not set";
-  // Distinct countries across the itinerary's cities (via each place's
-  // cityIds -> CITIES.country). Auto-updates as stops change.
-  const countries = new Set();
-  itineraryPlaceIds().forEach((pid) => {
-    const p = getPlace(pid);
-    (p && p.cityIds || []).forEach((cid) => {
-      const c = CITIES.find((x) => x.id === cid);
-      if (c && c.country) countries.add(c.country);
-      else if (p && p.country) countries.add(p.country);
-    });
-    if ((!p || !p.cityIds || !p.cityIds.length) && p && p.country) countries.add(p.country);
-  });
-  const countryCount = countries.size;
   document.title = state.meta.tripName + " · " + totalDays + " days";
   // Trip name only here -- the dates already appear once, in the stat
   // line just below (dateLabel was previously duplicated in both places).
   const eyebrowEl = document.getElementById("heroEyebrow");
   if (eyebrowEl) eyebrowEl.textContent = state.meta.tripName;
   document.getElementById("heroMeta").innerHTML =
-    '<span>' + esc(dateLabel) + '</span><span>' + totalDays + ' days</span><span>' + stopCount + ' destinations</span>' +
-    (countryCount ? '<span>' + countryCount + (countryCount === 1 ? ' country' : ' countries') + '</span>' : "");
+    '<span>' + esc(dateLabel) + '</span><span>' + totalDays + ' days</span><span>' + stopCount + ' destinations</span>';
 }
 
 // Countdown card markup -- days-to-go before the trip, which day you're on
