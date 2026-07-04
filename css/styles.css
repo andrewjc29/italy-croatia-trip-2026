@@ -125,6 +125,18 @@ section[id]{scroll-margin-top:84px}
 .sub-h h3{font-size:1.6rem;color:var(--accent-deep,var(--adriatic-deep))}
 .sub-h .tag{font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent,var(--terracotta));font-weight:600}
 .sub-h .rule{flex:1;height:1px;background:var(--line);min-width:2rem}
+
+/* Top-level section banners (Bookings, Toolkit) -- a full gradient bar
+   instead of the plain text sub-h used everywhere else, so these two
+   major sections read as a clear break in the page rather than just
+   another sub-h among many. Same site palette as the hero/nav banners,
+   just recombined per section so they're related but distinguishable. */
+.section-banner{align-items:center;border-radius:var(--radius-card);padding:1.1rem 1.5rem;margin:3.4rem 0 1.6rem;box-shadow:0 10px 26px var(--shadow)}
+.section-banner h3{color:#fff}
+.section-banner .tag{color:var(--seaglass-soft)}
+.section-banner .rule{background:rgba(255,255,255,.3)}
+.banner-bookings{background:linear-gradient(135deg,var(--adriatic-deep),var(--adriatic) 55%,var(--seaglass))}
+.banner-toolkit{background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta))}
 .sub-sub{margin:-1rem 0 1.2rem;font-size:.82rem;color:var(--muted);font-family:'Outfit'}
 
 /* ---- collapsible toolkit sections (Documents, Emergency, Notes -- checked
