@@ -126,17 +126,18 @@ section[id]{scroll-margin-top:84px}
 .sub-h .tag{font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent,var(--terracotta));font-weight:600}
 .sub-h .rule{flex:1;height:1px;background:var(--line);min-width:2rem}
 
-/* Top-level section banners (Bookings, Toolkit) -- a full gradient bar
-   instead of the plain text sub-h used everywhere else, so these two
-   major sections read as a clear break in the page rather than just
-   another sub-h among many. Same site palette as the hero/nav banners,
-   just recombined per section so they're related but distinguishable. */
-.section-banner{align-items:center;border-radius:var(--radius-card);padding:1.1rem 1.5rem;margin:3.4rem 0 1.6rem;box-shadow:0 10px 26px var(--shadow)}
-.section-banner h3{color:#fff}
-.section-banner .tag{color:var(--seaglass-soft)}
-.section-banner .rule{background:rgba(255,255,255,.3)}
-.banner-bookings{background:linear-gradient(135deg,var(--adriatic-deep),var(--adriatic) 55%,var(--seaglass))}
-.banner-toolkit{background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta))}
+/* Top-level section banners (Bookings, Toolkit, Prep) -- a full gradient
+   bar instead of the plain text sub-h used everywhere else, so these
+   major sections read as a clear break in the page. One shared gradient
+   across all three (same palette as the hero/nav). Title stacks above
+   the subtitle instead of sitting inline, and extra top padding echoes
+   the city section banners (.place-head), which anchor their title near
+   the bottom of a tall band with room above it -- same idea, scaled down
+   for a compact banner instead of a full-height photo hero. */
+.section-banner{display:flex;flex-direction:column;align-items:flex-start;gap:.35rem;border-radius:var(--radius-card);padding:2.2rem 1.6rem 1.3rem;margin:3.4rem 0 1.6rem;box-shadow:0 10px 26px var(--shadow);background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta))}
+.section-banner h3{color:#fff;font-size:1.7rem}
+.section-banner .tag{color:var(--seaglass-soft);font-size:.72rem}
+.section-banner .rule{display:none}
 .sub-sub{margin:-1rem 0 1.2rem;font-size:.82rem;color:var(--muted);font-family:'Outfit'}
 
 /* ---- collapsible toolkit sections (Documents, Emergency, Notes -- checked
@@ -267,8 +268,11 @@ section[id]{scroll-margin-top:84px}
 .bs-group h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:.6rem}
 .bs-sub{display:block;font-family:'Outfit';font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;margin-top:.15rem}
 .bs-date{white-space:nowrap;color:var(--muted);font-size:.84rem;display:block}
-.bs-city-head{font-family:'Fraunces';font-size:1rem;color:var(--accent-deep,var(--adriatic-deep));background:#f5f2ea;border-radius:var(--radius-card) var(--radius-card) 0 0;padding:.6rem .9rem}
-.bs-place-nights{display:inline-block;margin-left:.6rem;font-family:'Outfit';font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+/* Navy banner block per city/leg, matching the itinerary editor's own
+   header (.ie-head) treatment instead of the previous cream/tan strip --
+   ties the Bookings dashboard's grouping visually to the itinerary above it. */
+.bs-city-head{font-family:'Fraunces';font-size:1rem;color:#fff;background:var(--adriatic-deep);border-radius:var(--radius-card) var(--radius-card) 0 0;padding:.6rem .9rem}
+.bs-city-head .bs-place-nights{display:inline-block;margin-left:.6rem;font-family:'Outfit';font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.75)}
 .bs-cards{border:1px solid var(--line);border-top:none;border-radius:0 0 var(--radius-card) var(--radius-card);background:var(--card);box-shadow:0 8px 24px var(--shadow);margin-bottom:1rem;overflow:hidden}
 .bs-card{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.7rem .9rem;border-top:1px solid var(--line)}
 .bs-cards>.bs-card:first-child,.bs-cards>.bs-conflict-note:first-child{border-top:none}
@@ -428,9 +432,10 @@ section[id]{scroll-margin-top:84px}
 /* ---- prep checklist (footer-style, interactive) ---- */
 .prep{background:var(--adriatic-deep);color:#eaf2f1;margin-top:4.5rem;padding:4.5rem 2rem 3.5rem}
 .prep-wrap{max-width:800px;margin:0 auto}
-.prep h2{font-size:2.3rem;font-weight:300;margin-bottom:.4rem}
-.prep h2 em{font-style:italic;color:var(--seaglass-soft)}
-.prep .fp{opacity:.82;margin-bottom:2rem;max-width:560px}
+/* Prep's title/subtitle now use the shared .section-banner component
+   (see above) instead of its own h2/.fp -- kept the surrounding dark
+   .prep section as-is, just the header block changed. */
+.prep .section-banner{margin-top:0;margin-bottom:2rem}
 .prep-phase{margin-top:2rem}
 .prep-phase:first-child{margin-top:0}
 .prep-phase h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--seaglass-soft);font-weight:600;margin-bottom:.3rem;padding-top:1.2rem;border-top:1px solid rgba(255,255,255,.16)}
