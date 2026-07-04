@@ -530,7 +530,21 @@ function buildPlacesSkeleton() {
   const places = itineraryPlaceIds().map((id) => getPlace(id)).filter(Boolean);
   container.innerHTML = places.map((p, i) => {
     const num = String(i + 1).padStart(2, "0");
-    const tips = (PLACE_TIPS[p.id] || p.tips || []).map((t) => "<li>" + esc(t) + "</li>").join("");
+    // Typical September climate goes at the top of "Good to know" (one
+    // line per city for a place that bundles several, e.g. Puglia) --
+    // replaces the standalone Toolkit weather grid, which only ever showed
+    // the same static normals anyway until the trip got close. A live
+    // forecast still shows up separately in the Today view near trip time
+    // (see maybeRenderTodayForecast), so day-of you're not just seeing
+    // averages.
+    const climateLis = (p.cityIds || []).map((cid) => {
+      const norm = SEPT_CLIMATE_NORMALS[cid];
+      if (!norm) return "";
+      const label = p.cityIds.length > 1 ? esc(cityName(cid)) + ": " : "";
+      return '<li class="tips-climate">' + label + "Typical high " + norm.high + "F / low " + norm.low + "F" +
+        (norm.sea ? ", sea ~" + norm.sea + "F" : "") + ". " + esc(norm.note) + "</li>";
+    }).join("");
+    const tips = climateLis + (PLACE_TIPS[p.id] || p.tips || []).map((t) => "<li>" + esc(t) + "</li>").join("");
     // Built-in cities are themed by their #id css rule; user-created places
     // have no such rule, so theme them inline from their record's accent.
     const builtin = PLACES.some((x) => x.id === p.id);
@@ -748,7 +762,14 @@ function renderPlaceHotels(placeId, state) {
   if (filter === "budget") list = list.filter((h) => !h.splurge);
   if (filter === "splurge") list = list.filter((h) => h.splurge);
   const el2 = document.getElementById("hotels-" + placeId);
-  el2.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Hotel</th><th>Nightly</th><th>Pros</th><th>Cons</th><th></th></tr></thead><tbody>' +
+  const splitNoteHtml = placeLodgings.length > 1 ? '<div class="muted" style="font-size:.82rem;margin-top:.4rem">Split stay: ' +
+    placeLodgings.map((b) => esc(b.title) + " (" + esc(fmtDate(b.date)) + "–" + esc(fmtDate(b.endDate)) + ")").join(", ") + '</div>' : "";
+  // Desktop keeps the side-by-side comparison table (pros/cons visible
+  // without tapping); mobile gets a card per hotel instead -- the table's
+  // forced min-width made it require horizontal scrolling below ~640px,
+  // which is what wasn't working. CSS toggles which one is visible.
+  el2.innerHTML =
+    '<div class="table-scroll hotel-table-wrap"><table><thead><tr><th>Hotel</th><th>Nightly</th><th>Pros</th><th>Cons</th><th></th></tr></thead><tbody>' +
     list.map((h) => {
       // Match per-hotel, not "does this place have any lodging booking at
       // all" -- that's what lets two different hotels both show as chosen
@@ -761,11 +782,24 @@ function renderPlaceHotels(placeId, state) {
         '<td class="actions">' +
         (h.url ? '<a href="' + esc(h.url) + '" target="_blank" rel="noopener">Google Maps</a> &middot; <a href="' + esc(appleMapsUrlForPlace(h.name, h.area, h.placeId)) + '" target="_blank" rel="noopener">Apple</a><br>' : "") +
         '<button type="button" class="link" data-copy="' + encodeURIComponent(locationLabelForPlace(h.name, h.area, h.placeId)) + '">copy address</button><br>' +
+        '<a href="' + esc(bookingComUrlForPlace(h.name, h.placeId)) + '" target="_blank" rel="noopener">Book here</a><br>' +
         '<button class="site-link" data-choose-hotel="' + h.id + '">' + (existingForHotel ? "Chosen -- edit dates" : "Choose this") + '</button><br>' +
         '<button class="link" data-edit-hotel="' + h.id + '">edit</button></td></tr>';
     }).join("") + "</tbody></table></div>" +
-    (placeLodgings.length > 1 ? '<div class="muted" style="font-size:.82rem;margin-top:.4rem">Split stay: ' +
-      placeLodgings.map((b) => esc(b.title) + " (" + esc(fmtDate(b.date)) + "–" + esc(fmtDate(b.endDate)) + ")").join(", ") + '</div>' : "");
+    splitNoteHtml +
+    '<div class="hotel-cards">' +
+    list.map((h) => {
+      const existingForHotel = placeLodgings.find((b) => b.title === h.name);
+      return '<div class="card card-clickable hotel-card" data-view-hotel="' + h.id + '"><div class="body">' +
+        '<h4>' + esc(h.name) + (h.splurge ? '<span class="pill">splurge</span>' : "") + '</h4>' +
+        '<div class="kind">' + esc(h.area) + '</div>' +
+        '<div class="hotel-card-cost">' + esc(h.costLabel || fmtMoney(h.cost, "USD")) + (h.costLabel ? "" : "/night") + '</div>' +
+        (existingForHotel ? '<div class="status-pill ' + esc(existingForHotel.status || "idea") + '" style="margin-top:.4rem">' + esc(existingForHotel.status || "idea") + '</div>' : "") +
+        '<div class="foot">' +
+        (h.url ? '<a class="site" href="' + esc(h.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Map</a>' : "") +
+        '</div></div></div>';
+    }).join("") + "</div>" +
+    (list.length ? "" : '<div class="muted" style="padding:.5rem 0">Nothing saved yet -- use the + next to the section title.</div>');
   wireCopyButtons(el2);
   el2.querySelectorAll("[data-choose-hotel]").forEach((btn) => btn.addEventListener("click", () => {
     const h = state.hotels.find((x) => x.id === btn.dataset.chooseHotel);
@@ -773,6 +807,66 @@ function renderPlaceHotels(placeId, state) {
     openHotelChooseConfirm(state, h, place, existingForHotel, placeLodgings);
   }));
   el2.querySelectorAll("[data-edit-hotel]").forEach((btn) => btn.addEventListener("click", () => openHotelForm(state, state.hotels.find((x) => x.id === btn.dataset.editHotel), place)));
+  el2.querySelectorAll(".hotel-card[data-view-hotel]").forEach((card) => card.addEventListener("click", (e) => {
+    if (e.target.closest(".foot")) return;
+    const h = state.hotels.find((x) => x.id === card.dataset.viewHotel);
+    if (h) openHotelDetailCard(state, h, place);
+  }));
+}
+
+// Tapping a hotel card (mobile) opens this -- pros/cons, every link
+// (Google/Apple Maps, copy address, Book here to booking.com), the same
+// Choose this / Chosen -- edit dates action as the desktop table, and
+// Edit/Remove. Mirrors openPlaceDetailCard's layout for restaurants/things
+// to do so hotels feel like the same kind of card, just with a booking
+// action instead of "+ Add to a day".
+function openHotelDetailCard(state, h, place) {
+  const placeLodgings = lodgingBookingsForPlace(state, place);
+  const existingForHotel = placeLodgings.find((b) => b.title === h.name);
+  const accent = getAccent(place.id) || "#1d6a8c";
+  const rows = [];
+  if (h.pros) rows.push(["Why it works", h.pros]);
+  if (h.cons) rows.push(["Trade-offs", h.cons]);
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = "";
+  const overlay = el('<div class="modal-overlay"><div class="modal place-modal">' +
+    '<div class="pm-head" style="background:' + accent + '">' +
+    '<button class="pm-x" id="pmClose" aria-label="Close">&times;</button>' +
+    '<div class="pm-kind">Hotel' + (h.splurge ? ' <span class="pm-veg">splurge</span>' : "") +
+    (existingForHotel ? ' <span class="pm-veg">' + esc(existingForHotel.status || "idea") + '</span>' : "") + '</div>' +
+    '<h3>' + esc(h.name) + '</h3>' +
+    '<div class="pm-city">' + esc(h.area) + " &middot; " + esc(h.costLabel || fmtMoney(h.cost, "USD")) + '</div>' +
+    '</div>' +
+    '<div class="pm-body">' +
+    '<div class="idc-rows">' + rows.map((r) => '<div class="idc-row"><span class="idc-label">' + esc(r[0]) + '</span><span class="idc-val">' + esc(r[1]) + '</span></div>').join("") + '</div>' +
+    (rows.length === 0 ? '<p class="muted">No extra details yet -- add some from Edit below.</p>' : "") +
+    '<div class="pm-actions">' +
+    '<button class="btn" id="pmChooseHotel">' + (existingForHotel ? "Chosen -- edit dates" : "Choose this") + '</button>' +
+    '<a class="site" href="' + esc(bookingComUrlForPlace(h.name, h.placeId)) + '" target="_blank" rel="noopener">Book here</a>' +
+    '</div>' +
+    (existingForHotel && placeLodgings.length > 1 ? '<div class="muted" style="font-size:.82rem">Split stay: ' +
+      placeLodgings.map((b) => esc(b.title) + " (" + esc(fmtDate(b.date)) + "–" + esc(fmtDate(b.endDate)) + ")").join(", ") + '</div>' : "") +
+    mapActionsRow(h.url, appleMapsUrlForPlace(h.name, h.area, h.placeId), locationLabelForPlace(h.name, h.area, h.placeId)) +
+    '</div>' +
+    '<div class="pm-footer">' +
+    '<button class="link" id="pmEditHotel">Edit details</button>' +
+    '<button class="link danger" id="pmRemoveHotel">Remove</button>' +
+    '</div></div></div>');
+  root.appendChild(overlay);
+  wireCopyButtons(overlay);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) root.innerHTML = ""; });
+  document.getElementById("pmClose").addEventListener("click", () => { root.innerHTML = ""; });
+  document.getElementById("pmChooseHotel").addEventListener("click", () => {
+    closeModal();
+    openHotelChooseConfirm(state, h, place, existingForHotel, placeLodgings);
+  });
+  document.getElementById("pmEditHotel").addEventListener("click", () => openHotelForm(state, h, place));
+  document.getElementById("pmRemoveHotel").addEventListener("click", () => {
+    if (confirm('Remove "' + h.name + '"?')) {
+      Store.remove("hotels", h.id);
+      closeModal();
+    }
+  });
 }
 
 // Choosing a hotel always confirms the exact check-in/check-out dates before
@@ -820,7 +914,7 @@ function openHotelForm(state, existing, place) {
     '<label class="field">Nightly cost (label, e.g. "~$180-260")</label><input data-field="costLabel" value="' + esc(existing ? existing.costLabel : "") + '">' +
     '<label class="field">Why it works</label><textarea data-field="pros">' + esc(existing ? existing.pros : "") + '</textarea>' +
     '<label class="field">Trade-offs</label><textarea data-field="cons">' + esc(existing ? existing.cons : "") + '</textarea>' +
-    (existing ? '<div style="margin-top:8px"><button class="link" id="deleteHotelBtn">Remove</button></div>' : "");
+    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteHotelBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit hotel option" : "Add a hotel option", body, (data) => {
     const placeId = existing ? existing.placeId : place.id;
     const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: mapsUrlForPlace(data.name, data.area, placeId), placeId: placeId, splurge: existing ? existing.splurge : false };
@@ -867,7 +961,7 @@ function openSeeForm(state, existing, place) {
     '<label class="field">Kind / category</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Notes (optional, brief)</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
-    (existing ? '<div style="margin-top:8px"><button class="link" id="deleteSeeBtn">Remove</button></div>' : "");
+    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteSeeBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add a thing to do", body, (data) => {
     const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), placeId: place.id };
     if (existing) Store.update("thingsToDo", existing.id, payload);
@@ -998,7 +1092,7 @@ function openActivityForm(state, date, existing, place) {
     '<div><label class="field">Currency</label><select data-field="currency">' + currencyOpts + '</select></div></div>' +
     '<label class="field">Status</label><select data-field="status">' + statusOpts + '</select>' +
     '<label class="field">Notes</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
-    (existing ? '<div style="margin-top:8px"><button class="link" id="deleteActBtn">Remove this item</button></div>' : "");
+    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteActBtn">Remove this item</button></div>' : "");
   openModal(existing ? "Edit itinerary item" : "Add to " + (dateVal ? fmtDate(dateVal) : "your itinerary"), body, (data) => {
     const payload = { date: data.date, title: data.title, time: data.time, city: data.city, type: data.type, notes: data.notes, status: data.status || (existing ? existing.status : "idea"), cost: parseFloat(data.cost) || 0, currency: data.currency || "USD" };
     if (existing) Store.update("activities", existing.id, payload);
@@ -1035,7 +1129,7 @@ function openBookingForm(state, existing, place, defaultDate) {
     '<label class="field">Status</label><select data-field="status">' + statusOpts + '</select>' +
     '<label class="field">Link</label><input data-field="link" value="' + esc(existing ? existing.link : "") + '">' +
     '<label class="field">Notes</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
-    (existing ? '<div style="margin-top:8px"><button class="link" id="deleteBkBtn">Remove this booking</button></div>' : "");
+    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteBkBtn">Remove this booking</button></div>' : "");
   openModal(existing ? "Edit booking" : "Add booking", body, (data) => {
     const payload = Object.assign({}, data, {
       date: data.date,
@@ -1060,7 +1154,7 @@ function openRestForm(state, existing, place) {
     '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Notes (optional -- reservation info, tips)</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
     '<label class="field">Vegetarian friendly?</label><select data-field="vegetarian"><option value="true"' + (existing && existing.vegetarian ? " selected" : "") + '>Yes</option><option value="false"' + (existing && !existing.vegetarian ? " selected" : "") + '>No</option></select>' +
-    (existing ? '<div style="margin-top:8px"><button class="link" id="deleteRestBtn">Remove</button></div>' : "");
+    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteRestBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add restaurant", body, (data) => {
     const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), vegetarian: data.vegetarian === "true", placeId: place.id };
     if (existing) Store.update("restaurants", existing.id, payload);
@@ -1157,9 +1251,21 @@ function renderTodayView(state) {
   }
   const tripEnd = days.length ? days[days.length - 1].date : null;
   const canMove = tripEnd && today.date < tripEnd;
+  // A live forecast is only meaningful once you're close to (or on) the
+  // trip -- otherwise it's just today's weather at home. Gated on the
+  // trip's real dates (not whatever day is being browsed via ‹ ›), so
+  // paging around doesn't spuriously trigger fetches; the fetched day is
+  // whichever one is actually being viewed.
+  const tripRangeNow = Store.getTripDateRange();
+  const realTodayISO = new Date().toISOString().slice(0, 10);
+  const daysToTripFromNow = tripRangeNow.start ? Math.ceil((new Date(tripRangeNow.start) - new Date(realTodayISO)) / 86400000) : null;
+  const tripUnderwayNow = tripRangeNow.start && tripRangeNow.end && realTodayISO >= tripRangeNow.start && realTodayISO <= tripRangeNow.end;
+  const showLiveForecast = today.cityId && (tripUnderwayNow || (daysToTripFromNow !== null && daysToTripFromNow <= 10 && daysToTripFromNow >= 0));
   const cityHtml = place
     ? '<div class="tv-city" style="color:' + accent + '">' + esc(place.label) +
-      '<span class="tv-daynum">Day ' + dayNum + " of " + days.length + '</span></div>'
+      '<span class="tv-daynum">Day ' + dayNum + " of " + days.length + '</span>' +
+      (showLiveForecast ? '<span class="tv-forecast muted" id="todayForecastStrip">Loading forecast&hellip;</span>' : "") +
+      '</div>'
     : "";
   // Schedule is activities only now -- hotel status and transport (timed
   // or not) move into their own "Today's logistics" banner below, so the
@@ -1201,6 +1307,7 @@ function renderTodayView(state) {
   contentEl.innerHTML =
     cityHtml + logisticsHtml +
     (merged || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>');
+  if (showLiveForecast) renderTodayForecastStrip(today.cityId, today.date);
   contentEl.querySelectorAll("[data-view-booking]").forEach((row) => row.addEventListener("click", () => {
     const b = Store.getState().bookings.find((x) => x.id === row.dataset.viewBooking);
     if (b) openItemDetailCard("booking", b, place);
@@ -1214,6 +1321,33 @@ function renderTodayView(state) {
     const a = Store.getState().activities.find((x) => x.id === btn.dataset.moveTomorrow);
     if (a) Store.update("activities", a.id, { date: isoAddDays(a.date, 1) });
   }));
+}
+
+// Fills in the "Loading forecast..." placeholder in the Today view's city
+// line with a real high/low for the specific day being viewed, once it's
+// close enough to matter (see showLiveForecast above). Silently removes
+// the placeholder on any failure or if the date falls outside the
+// forecast API's window -- no error state needed for a nice-to-have strip.
+async function renderTodayForecastStrip(cityId, dateISO) {
+  const stripEl = document.getElementById("todayForecastStrip");
+  if (!stripEl) return;
+  const c = CITIES.find((x) => x.id === cityId);
+  if (!c) { stripEl.remove(); return; }
+  try {
+    const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + c.lat + "&longitude=" + c.lng +
+      "&daily=temperature_2m_max,temperature_2m_min&forecast_days=10&temperature_unit=fahrenheit&timezone=auto");
+    const j = await res.json();
+    const idx = j.daily && j.daily.time ? j.daily.time.indexOf(dateISO) : -1;
+    const stillThere = document.getElementById("todayForecastStrip");
+    if (!stillThere) return; // view re-rendered while the fetch was in flight
+    if (idx === -1) { stillThere.remove(); return; }
+    const hi = Math.round(j.daily.temperature_2m_max[idx]);
+    const lo = Math.round(j.daily.temperature_2m_min[idx]);
+    stillThere.textContent = "Forecast " + hi + "F / " + lo + "F";
+  } catch (e) {
+    const stillThere = document.getElementById("todayForecastStrip");
+    if (stillThere) stillThere.remove();
+  }
 }
 
 // ---- hero + intro ----
@@ -1320,14 +1454,19 @@ function renderBookingStatus(state) {
   // stop's own date range, so a differently-tagged booking (e.g. a
   // Bari-tagged hotel with drifted Rome-window dates) can never bleed in --
   // it's excluded by the city-membership filter before dates even matter.
-  const hotelRows = ranges.map((r) => {
+  // Cards instead of table rows -- grouped by city (hotels) / by leg
+  // (transport), each night-run or booking as its own clickable card that
+  // opens the actual booking (tapping a table "edit" link used to be the
+  // only way in; now the whole card is the click target, same convention
+  // as every other list in this app). A missing night/leg still gets its
+  // own card with a status pill + CTA, so a gap can't silently disappear.
+  const hotelGroups = ranges.map((r) => {
     const place = getPlace(r.placeId);
     const placeLabel = esc(place ? place.label : r.placeId);
     const placeDateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "dates not set";
-    const headerRow = '<tr class="bs-place-row"><td colspan="4">' + placeLabel +
-      '<span class="bs-place-nights muted">' + placeDateLabel + '</span></td></tr>';
+    const headHtml = '<div class="bs-city-head">' + placeLabel + '<span class="bs-place-nights muted">' + placeDateLabel + '</span></div>';
     if (!r.dateStart || !r.nights) {
-      return headerRow + '<tr><td colspan="4" class="muted">Set trip dates to track by night.</td></tr>';
+      return headHtml + '<div class="bs-cards"><div class="muted">Set trip dates to track by night.</div></div>';
     }
     const lodgings = state.bookings.filter((b) => b.category === "lodging" && (!place || place.cityIds.includes(b.city)));
     const nightList = [];
@@ -1342,48 +1481,41 @@ function renderBookingStatus(state) {
       if (last && last.key === key) last.endDate = isoAddDays(n.date, 1);
       else runs.push({ key, startDate: n.date, endDate: isoAddDays(n.date, 1), covering: n.covering });
     });
-    const rows = runs.map((run) => {
+    const cards = runs.map((run) => {
       const nRun = nightsBetween(run.startDate, run.endDate);
       const dateLabel = esc(fmtDate(run.startDate)) + " &ndash; " + esc(fmtDate(run.endDate));
       const nightsLabel = '<span class="bs-sub muted">' + nRun + (nRun === 1 ? " night" : " nights") + '</span>';
       if (!run.covering.length) {
-        return '<tr><td class="bs-date">' + dateLabel + nightsLabel + '</td>' +
-          '<td><span class="muted">No hotel chosen yet</span></td>' +
-          '<td>' + statusCell("missing") + '</td>' +
-          '<td class="actions"><button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="">choose</button></td></tr>';
+        return '<div class="bs-card bs-card-missing" data-bs-hotel="' + r.placeId + '">' +
+          '<div class="bs-card-main"><span class="bs-date">' + dateLabel + nightsLabel + '</span>' +
+          '<span class="muted">No hotel chosen yet</span></div>' + statusCell("missing") + '</div>';
       }
       if (run.covering.length > 1) {
-        const conflictRow = '<tr class="bs-conflict-row"><td colspan="4">Overlapping dates below for ' + dateLabel +
-          ' -- looks like an earlier hotel pick was never removed. Keep the one you want, remove the rest.</td></tr>';
-        const subRows = run.covering.map((b) =>
-          '<tr class="bs-conflict"><td class="bs-date">' + esc(fmtDate(b.date)) + " &ndash; " + esc(fmtDate(b.endDate)) + '</td>' +
-          '<td>' + esc(b.title) + '</td>' +
-          '<td>' + statusCell(b.status) + '</td>' +
-          '<td class="actions">' +
-          '<button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + b.id + '">edit</button>' +
-          ' <button class="link danger" data-bs-remove="' + b.id + '">remove</button></td></tr>'
+        const conflictNote = '<div class="bs-conflict-note">Overlapping dates below for ' + dateLabel +
+          ' -- looks like an earlier hotel pick was never removed. Keep the one you want, remove the rest.</div>';
+        const subCards = run.covering.map((b) =>
+          '<div class="bs-card bs-card-clickable bs-conflict" data-bs-view-booking="' + b.id + '">' +
+          '<div class="bs-card-main"><span class="bs-date">' + esc(fmtDate(b.date)) + " &ndash; " + esc(fmtDate(b.endDate)) + '</span>' +
+          '<span>' + esc(b.title) + '</span></div>' + statusCell(b.status) +
+          '<button class="link danger bs-card-remove" data-bs-remove="' + b.id + '" onclick="event.stopPropagation()">remove</button></div>'
         ).join("");
-        return conflictRow + subRows;
+        return conflictNote + subCards;
       }
       const b = run.covering[0];
-      return '<tr><td class="bs-date">' + dateLabel + nightsLabel + '</td>' +
-        '<td>' + esc(b.title) + '</td>' +
-        '<td>' + statusCell(b.status) + '</td>' +
-        '<td class="actions">' +
-        '<button class="link" data-bs-hotel="' + r.placeId + '" data-bs-booking="' + b.id + '">edit</button>' +
-        ' <button class="link danger" data-bs-remove="' + b.id + '">remove</button></td></tr>';
+      return '<div class="bs-card bs-card-clickable" data-bs-view-booking="' + b.id + '">' +
+        '<div class="bs-card-main"><span class="bs-date">' + dateLabel + nightsLabel + '</span>' +
+        '<span>' + esc(b.title) + '</span></div>' + statusCell(b.status) +
+        '<button class="link danger bs-card-remove" data-bs-remove="' + b.id + '" onclick="event.stopPropagation()">remove</button></div>';
     }).join("");
-    return headerRow + rows;
+    return headHtml + '<div class="bs-cards">' + cards + '</div>';
   }).join("");
   const transportBookings = state.bookings.filter((b) => b.category !== "lodging").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-  const transportRowHtml = (t) => {
+  const transportCardHtml = (t) => {
     const dateLabel = t.date ? (t.endDate && t.endDate !== t.date ? esc(fmtDate(t.date)) + " &ndash; " + esc(fmtDate(t.endDate)) : esc(fmtDate(t.date))) : '<span class="muted">no date set</span>';
-    return '<tr><td class="bs-date">' + dateLabel + '<span class="bs-sub muted">' + esc(t.category) + '</span></td>' +
-      '<td>' + esc(t.title) + '</td>' +
-      '<td>' + statusCell(t.status) + '</td>' +
-      '<td class="actions">' +
-      '<button class="link" data-bs-booking="' + t.id + '">edit</button>' +
-      ' <button class="link danger" data-bs-remove="' + t.id + '">remove</button></td></tr>';
+    return '<div class="bs-card bs-card-clickable" data-bs-view-booking="' + t.id + '">' +
+      '<div class="bs-card-main"><span class="bs-date">' + dateLabel + '<span class="bs-sub muted">' + esc(t.category) + '</span></span>' +
+      '<span>' + esc(t.title) + '</span></div>' + statusCell(t.status) +
+      '<button class="link danger bs-card-remove" data-bs-remove="' + t.id + '" onclick="event.stopPropagation()">remove</button></div>';
   };
   // Grouped by leg (the transition between consecutive stops, plus the two
   // "leg" that bookend the whole trip: home airport out to the first city,
@@ -1424,42 +1556,45 @@ function renderBookingStatus(state) {
   const legBlocks = legDefs.map((leg) => {
     const legLabel = esc(leg.fromLabel) + ' &rarr; ' + esc(leg.toLabel);
     const legDate = leg.legDate;
-    const headerRow = '<tr class="bs-place-row"><td colspan="4">' + legLabel +
-      '<span class="bs-place-nights muted">' + (legDate ? esc(fmtDate(legDate)) : "date not set") + '</span></td></tr>';
+    const headHtml = '<div class="bs-city-head">' + legLabel +
+      '<span class="bs-place-nights muted">' + (legDate ? esc(fmtDate(legDate)) : "date not set") + '</span></div>';
     const matches = legDate ? transportBookings.filter((t) => t.date && t.date <= legDate && (t.endDate || t.date) >= legDate) : [];
     matches.forEach((t) => matchedIds.add(t.id));
     const html = !matches.length
-      ? headerRow + '<tr><td class="bs-date">' + (legDate ? esc(fmtDate(legDate)) : "") + '</td>' +
-        '<td><span class="muted">No transport booked yet</span></td>' +
-        '<td>' + statusCell("missing") + '</td>' +
-        '<td class="actions"><button class="link" data-bs-add-leg="' + esc(legDate || "") + '" data-bs-leg-place="' + esc(leg.contextPlaceId) + '">add</button></td></tr>'
-      : headerRow + matches.map(transportRowHtml).join("");
+      ? headHtml + '<div class="bs-cards"><div class="bs-card bs-card-missing" data-bs-add-leg="' + esc(legDate || "") + '" data-bs-leg-place="' + esc(leg.contextPlaceId) + '">' +
+        '<div class="bs-card-main"><span class="bs-date">' + (legDate ? esc(fmtDate(legDate)) : "") + '</span>' +
+        '<span class="muted">No transport booked yet</span></div>' + statusCell("missing") + '</div></div>'
+      : headHtml + '<div class="bs-cards">' + matches.map(transportCardHtml).join("") + '</div>';
     return { sortKey: legDate || "9999-99-99", html };
   });
-  const standaloneBlocks = transportBookings.filter((t) => !matchedIds.has(t.id)).map((t) => ({ sortKey: t.date || "9999-99-99", html: transportRowHtml(t) }));
-  const transportRows = legBlocks.concat(standaloneBlocks)
+  const standaloneBlocks = transportBookings.filter((t) => !matchedIds.has(t.id)).map((t) => ({ sortKey: t.date || "9999-99-99", html: '<div class="bs-cards">' + transportCardHtml(t) + '</div>' }));
+  const transportGroups = legBlocks.concat(standaloneBlocks)
     .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-    .map((b) => b.html).join("") || '<tr><td colspan="4" class="muted">Add a stop to start tracking transport.</td></tr>';
+    .map((b) => b.html).join("") || '<div class="muted">Add a stop to start tracking transport.</div>';
   el2.innerHTML =
-    '<div class="bs-group"><h4>Hotels</h4><div class="table-scroll"><table><thead><tr><th>Dates</th><th>Hotel</th><th>Status</th><th></th></tr></thead><tbody>' + hotelRows + '</tbody></table></div></div>' +
-    '<div class="bs-group"><h4>Transportation</h4><div class="table-scroll"><table><thead><tr><th>Date</th><th>Transport</th><th>Status</th><th></th></tr></thead><tbody>' + transportRows + '</tbody></table></div></div>';
-  el2.querySelectorAll("[data-bs-add-leg]").forEach((btn) => btn.addEventListener("click", () => {
-    const fromPlace = getPlace(btn.dataset.bsLegPlace) || null;
-    openBookingForm(state, null, fromPlace, btn.dataset.bsAddLeg || undefined);
+    '<div class="bs-group"><h4>Hotels</h4>' + hotelGroups + '</div>' +
+    '<div class="bs-group"><h4>Transportation</h4>' + transportGroups + '</div>';
+  el2.querySelectorAll("[data-bs-add-leg]").forEach((card) => card.addEventListener("click", () => {
+    const fromPlace = getPlace(card.dataset.bsLegPlace) || null;
+    openBookingForm(state, null, fromPlace, card.dataset.bsAddLeg || undefined);
   }));
-  el2.querySelectorAll("[data-bs-booking]").forEach((btn) => btn.addEventListener("click", () => {
-    const id = btn.dataset.bsBooking;
-    if (id) {
-      const b = state.bookings.find((x) => x.id === id);
-      if (b) openBookingForm(state, b, null);
-    } else if (btn.dataset.bsHotel) {
-      const target = document.getElementById(btn.dataset.bsHotel);
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+  // A missing-hotel card has nothing to open yet -- jump down to that
+  // city's "Where to stay" section so you can pick one.
+  el2.querySelectorAll("[data-bs-hotel]").forEach((card) => card.addEventListener("click", () => {
+    const target = document.getElementById(card.dataset.bsHotel);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  // Every real booking's card opens the same detail view used everywhere
+  // else in the app (Edit/Remove inside), instead of a bare "edit" link --
+  // the whole card is now the click target.
+  el2.querySelectorAll("[data-bs-view-booking]").forEach((card) => card.addEventListener("click", () => {
+    const b = state.bookings.find((x) => x.id === card.dataset.bsViewBooking);
+    if (b) openItemDetailCard("booking", b, placeForCity(b.city) || null);
   }));
   // One-click remove for a stray/duplicate lodging booking, right in the
-  // dashboard -- no need to open the full edit form just to find the
-  // delete link at the bottom of it.
+  // dashboard -- no need to open the full detail card just to find the
+  // delete action inside it. stopPropagation on the button keeps this from
+  // also triggering the card's own click-to-open handler above.
   el2.querySelectorAll("[data-bs-remove]").forEach((btn) => btn.addEventListener("click", () => {
     const b = state.bookings.find((x) => x.id === btn.dataset.bsRemove);
     if (b && confirm('Remove "' + b.title + '" (' + fmtDate(b.date) + ' - ' + fmtDate(b.endDate) + ')?')) {
@@ -1676,58 +1811,6 @@ function openRenamePlaceModal(place) {
 }
 
 
-// ---- toolkit: weather ----
-// A 7-10 day forecast is meaningless two months out, so this shows typical
-// September climate normals until the trip is close enough for a real
-// forecast to mean anything, then switches over automatically.
-function renderHistoricalWeather(visited, daysUntilTrip) {
-  const container = document.getElementById("weatherGrid");
-  const cards = visited.map((id) => {
-    const c = CITIES.find((x) => x.id === id);
-    const norm = SEPT_CLIMATE_NORMALS[id];
-    if (!c || !norm) return "";
-    return '<div class="util-card"><h4>' + esc(c.name) + '</h4>' +
-      '<div class="muted">Typical high ' + norm.high + 'F / low ' + norm.low + 'F</div>' +
-      (norm.sea ? '<div class="muted">Sea ~' + norm.sea + 'F</div>' : "") +
-      '<div class="muted">' + esc(norm.note) + '</div></div>';
-  }).join("");
-  const caption = '<div class="muted" style="margin-bottom:.8rem;grid-column:1/-1">' +
-    (daysUntilTrip !== null && daysUntilTrip > 0
-      ? daysUntilTrip + " days to go -- showing typical September averages. A live forecast appears within 10 days of departure."
-      : "Typical September averages.") +
-    "</div>";
-  container.innerHTML = caption + (cards || '<div class="muted">Add a stay to see typical weather for that city.</div>');
-}
-
-async function renderWeather() {
-  const visited = [];
-  Store.getItineraryDays().forEach((d) => { if (d.cityId && visited.indexOf(d.cityId) === -1) visited.push(d.cityId); });
-  const container = document.getElementById("weatherGrid");
-  const tripRange = Store.getTripDateRange();
-  const daysUntilTrip = tripRange.start ? Math.ceil((new Date(tripRange.start) - new Date()) / 86400000) : null;
-  const tripUnderway = tripRange.start && tripRange.end && new Date() >= new Date(tripRange.start) && new Date() <= new Date(tripRange.end);
-  const useLiveForecast = tripUnderway || (daysUntilTrip !== null && daysUntilTrip <= 10);
-
-  if (!useLiveForecast) { renderHistoricalWeather(visited, daysUntilTrip); return; }
-
-  container.innerHTML = '<div class="muted">Loading forecast...</div>';
-  const cards = await Promise.all(visited.map(async (id) => {
-    const c = CITIES.find((x) => x.id === id);
-    if (!c) return "";
-    try {
-      const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + c.lat + "&longitude=" + c.lng + "&current=temperature_2m&daily=temperature_2m_max,temperature_2m_min&forecast_days=10&temperature_unit=fahrenheit&timezone=auto");
-      const j = await res.json();
-      const cur = j.current ? Math.round(j.current.temperature_2m) + "F now" : "";
-      return '<div class="util-card"><h4>' + esc(c.name) + '</h4><div class="muted">' + cur + '</div>' +
-        '<div class="muted">Forecast highs: ' + (j.daily ? j.daily.temperature_2m_max.map((t) => Math.round(t)).join(", ") : "n/a") + 'F</div></div>';
-    } catch (e) {
-      const norm = SEPT_CLIMATE_NORMALS[id];
-      return '<div class="util-card"><h4>' + esc(c.name) + '</h4><div class="muted">Forecast unavailable right now' + (norm ? " -- typical high " + norm.high + "F / low " + norm.low + "F" : "") + '.</div></div>';
-    }
-  }));
-  container.innerHTML = cards.join("") || '<div class="muted">Add a stay to see weather for that city.</div>';
-}
-
 // ---- toolkit: budget rollup ----
 // Every booking's cost, converted to one currency, rolled up against the
 // per-person budget target from meta. Lodging bookings store a nightly rate,
@@ -1867,16 +1950,6 @@ function openBudgetTargetModal(state) {
 }
 
 // ---- toolkit: documents ----
-function renderDocuments(state) {
-  document.getElementById("docGrid").innerHTML = state.documents.map((d) =>
-    '<div class="util-card"><h4>' + esc(d.title) + '</h4><div class="muted">' + esc(d.category) + '</div>' +
-    (d.link ? '<div><a href="' + esc(d.link) + '" target="_blank" rel="noopener">' + esc(d.link) + '</a></div>' : "") +
-    (d.notes ? '<div class="muted">' + esc(d.notes) + '</div>' : "") +
-    '<div style="margin-top:6px"><button class="link" data-del-doc="' + d.id + '">remove</button></div></div>').join("") ||
-    '<div class="muted">No documents yet.</div>';
-  document.querySelectorAll("[data-del-doc]").forEach((btn) => btn.addEventListener("click", () => Store.remove("documents", btn.dataset.delDoc)));
-}
-
 // ---- toolkit: emergency info ----
 function renderEmergencyInfo(state) {
   const container = document.getElementById("emergencyInfo");
@@ -1942,7 +2015,7 @@ function openPrepItemModal(state, existing, forcedPhase) {
     '<label class="field">To-do</label><textarea data-field="text">' + esc(existing ? existing.text : "") + '</textarea>' +
     '<label class="field">Phase / timing</label><input data-field="phase" list="prepPhaseOptions" value="' + esc(defaultPhase) + '">' +
     '<datalist id="prepPhaseOptions">' + datalistOpts + '</datalist>' +
-    (existing ? '<div style="margin-top:8px"><button class="link" id="deletePrepBtn">Remove this to-do</button></div>' : "");
+    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deletePrepBtn">Remove this to-do</button></div>' : "");
   openModal(existing ? "Edit to-do" : "Add a to-do", body, (data) => {
     if (!data.text) return;
     const payload = { phase: data.phase || "Other", text: data.text, done: existing ? existing.done : false };
@@ -2015,11 +2088,9 @@ function renderAll(state, syncStatus) {
   renderTodayView(state);
   renderItineraryEditor(state);
   renderPlaces(state);
-  renderDocuments(state);
   renderEmergencyInfo(state);
   renderNotes(state);
   renderPrep(state);
-  renderWeather();
   renderBookingStatus(state);
   renderBudget(state);
 }
@@ -2069,13 +2140,6 @@ function setupTotop() {
 
 // ---- static UI bindings ----
 function setupStaticBindings() {
-  document.getElementById("addDocBtn").addEventListener("click", () => {
-    openModal("Add document", '<label class="field">Title</label><input data-field="title">' +
-      '<label class="field">Category</label><input data-field="category" placeholder="Passport, Confirmation, Ticket...">' +
-      '<label class="field">Link (Drive, PDF, etc)</label><input data-field="link">' +
-      '<label class="field">Notes</label><textarea data-field="notes"></textarea>',
-      (data) => Store.add("documents", data, "doc"));
-  });
   document.getElementById("addNoteBtn").addEventListener("click", () => {
     openModal("Add note", '<label class="field">Note</label><textarea data-field="text"></textarea>',
       (data) => Store.add("notesLog", { text: data.text, ts: new Date().toISOString() }, "n"));

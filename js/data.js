@@ -67,6 +67,13 @@ function appleMapsUrlForCity(name, cityId) {
 function appleMapsUrlForPlace(name, extra, placeId) {
   return appleMapsUrl(locationLabelForPlace(name, extra, placeId));
 }
+// booking.com has no public per-property lookup API and none of the saved
+// hotels have a curated property URL, so "Book here" goes to a booking.com
+// search pre-filled with the hotel name + city -- gets you straight to the
+// listing (or very close to it) without hand-maintaining a link per hotel.
+function bookingComUrlForPlace(name, placeId) {
+  return "https://www.booking.com/searchresults.html?ss=" + encodeURIComponent([name, PLACE_LABEL_MAP[placeId] || ""].filter(Boolean).join(", "));
+}
 
 // Mirrors the per-city accent colors in css/styles.css (#rome, #puglia, ...).
 // Used for the timeline dot colors in the itinerary editor, which lives outside
