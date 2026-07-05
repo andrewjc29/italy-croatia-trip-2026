@@ -226,7 +226,11 @@ const Store = (() => {
   function addDays(iso, n) {
     const d = new Date(iso + "T00:00:00");
     d.setDate(d.getDate() + n);
-    return d.toISOString().slice(0, 10);
+    // Read back via local getters, not toISOString() (which is UTC) --
+    // for anyone east of Greenwich (e.g. Italy/Croatia during the actual
+    // trip), converting local midnight to UTC rolls back to the previous
+    // calendar day and silently shifts every date by one.
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
 
   // Returns one entry per stop: { placeId, nights, place, dayStart, dayEnd, dateStart, dateEnd }.

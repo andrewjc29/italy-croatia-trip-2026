@@ -75,6 +75,14 @@ function fmtTime12(hhmm) {
   return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 function esc(s) { return (s === undefined || s === null) ? "" : String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+// "Today" needs to be the device's local calendar date, not UTC --
+// Date#toISOString() is always UTC, so anyone west of Greenwich in the
+// evening/night gets tomorrow's date instead of today's. Reads the date
+// straight off the local Date getters instead.
+function localTodayISO() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
 function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
 
 // Shared line renderers -- used by both each place's day-by-day timeline and
@@ -1186,7 +1194,7 @@ function renderTodayView(state) {
   // (e.g. index.html?today=2026-09-18). During the trip it works off the
   // real date automatically. The ‹ › arrows page through nearby days.
   const previewDate = new URLSearchParams(location.search).get("today");
-  const baseISO = previewDate || new Date().toISOString().slice(0, 10);
+  const baseISO = previewDate || localTodayISO();
   const days = Store.getItineraryDays();
   const viewISO = isoAddDays(baseISO, todayViewOffset);
   const today = days.find((d) => d.date === viewISO);
@@ -1266,7 +1274,7 @@ function renderTodayView(state) {
   // paging around doesn't spuriously trigger fetches; the fetched day is
   // whichever one is actually being viewed.
   const tripRangeNow = Store.getTripDateRange();
-  const realTodayISO = new Date().toISOString().slice(0, 10);
+  const realTodayISO = localTodayISO();
   const daysToTripFromNow = tripRangeNow.start ? Math.ceil((new Date(tripRangeNow.start) - new Date(realTodayISO)) / 86400000) : null;
   const tripUnderwayNow = tripRangeNow.start && tripRangeNow.end && realTodayISO >= tripRangeNow.start && realTodayISO <= tripRangeNow.end;
   const showLiveForecast = today.cityId && (tripUnderwayNow || (daysToTripFromNow !== null && daysToTripFromNow <= 10 && daysToTripFromNow >= 0));
@@ -1393,7 +1401,7 @@ function buildCountdownCardHtml() {
   const range = Store.getTripDateRange();
   if (!range.start) return "";
   const msPerDay = 86400000;
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayISO = localTodayISO();
   const todayD = new Date(todayISO + "T00:00:00");
   const startD = new Date(range.start + "T00:00:00");
   const endD = range.end ? new Date(range.end + "T00:00:00") : null;
