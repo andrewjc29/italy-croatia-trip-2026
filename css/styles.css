@@ -134,10 +134,14 @@ section[id]{scroll-margin-top:84px}
    the city section banners (.place-head), which anchor their title near
    the bottom of a tall band with room above it -- same idea, scaled down
    for a compact banner instead of a full-height photo hero. */
-.section-banner{display:flex;flex-direction:column;align-items:flex-start;gap:.35rem;border-radius:var(--radius-card);padding:2.2rem 1.6rem 1.3rem;margin:3.4rem 0 1.6rem;box-shadow:0 10px 26px var(--shadow);background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta))}
-.section-banner h3{color:#fff;font-size:1.7rem}
+/* Full-bleed banner: the outer element spans the full viewport width (no
+   .wrap max-width), the .sb-inner div re-applies the same max-width/padding
+   as .wrap so the title lines up with the content below it. Sits directly
+   against the section above/below it -- no divider lines, no double-margins. */
+.section-banner{box-shadow:0 6px 20px var(--shadow);background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta));margin-top:3rem}
+.section-banner .sb-inner{max-width:1080px;margin:0 auto;padding:2.6rem 2rem 1.5rem;display:flex;flex-direction:column;align-items:flex-start;gap:.35rem}
+.section-banner h3{color:#fff;font-size:1.7rem;margin:0}
 .section-banner .tag{color:var(--seaglass-soft);font-size:.72rem}
-.section-banner .rule{display:none}
 .sub-sub{margin:-1rem 0 1.2rem;font-size:.82rem;color:var(--muted);font-family:'Outfit'}
 
 /* ---- collapsible toolkit sections (Documents, Emergency, Notes -- checked
@@ -429,26 +433,24 @@ section[id]{scroll-margin-top:84px}
 .note-row:first-child{border-top:none}
 .note-row time{display:block;font-size:.68rem;letter-spacing:.06em;color:var(--muted);margin-top:.25rem}
 
-/* ---- prep checklist (footer-style, interactive) ---- */
-.prep{background:var(--adriatic-deep);color:#eaf2f1;margin-top:4.5rem;padding:4.5rem 2rem 3.5rem}
-.prep-wrap{max-width:800px;margin:0 auto}
-/* Prep's title/subtitle now use the shared .section-banner component
-   (see above) instead of its own h2/.fp -- kept the surrounding dark
-   .prep section as-is, just the header block changed. */
-.prep .section-banner{margin-top:0;margin-bottom:2rem}
+/* ---- prep checklist ----
+   Now a plain .wrap section like Bookings/Toolkit (light card background,
+   dark text), sitting under the shared full-bleed .section-banner. */
+.prep-wrap{max-width:800px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:0 8px 24px var(--shadow);padding:1.5rem 1.7rem}
 .prep-phase{margin-top:2rem}
 .prep-phase:first-child{margin-top:0}
-.prep-phase h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--seaglass-soft);font-weight:600;margin-bottom:.3rem;padding-top:1.2rem;border-top:1px solid rgba(255,255,255,.16)}
+.prep-phase h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--seaglass);font-weight:600;margin-bottom:.3rem;padding-top:1.2rem;border-top:1px solid var(--line)}
 .prep-phase:first-child h4{border-top:none;padding-top:0}
-.prep-item-row{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 0}
+.prep-item-row{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 0;border-top:1px dashed var(--line)}
+.prep-phase h4 + .prep-item-row{border-top:none}
 .prep-item{display:flex;align-items:flex-start;gap:.8rem;flex:1;min-width:0}
-.prep-item input[type=checkbox]{margin-top:.3rem;width:16px;height:16px;accent-color:var(--seaglass-soft);flex-shrink:0}
-.prep-item span{font-size:.95rem}
+.prep-item input[type=checkbox]{margin-top:.3rem;width:16px;height:16px;accent-color:var(--seaglass);flex-shrink:0}
+.prep-item span{font-size:.95rem;color:var(--ink)}
 .prep-item.done span{opacity:.55;text-decoration:line-through}
-.prep-edit{background:none;border:none;color:#eaf2f1;opacity:.55;font-size:.74rem;cursor:pointer;text-decoration:underline;padding:.3rem 0;flex-shrink:0}
-.prep-edit:hover{opacity:.95;color:var(--seaglass-soft)}
-.prep-add{display:block;margin-top:.6rem;background:none;border:none;color:var(--seaglass-soft);font-family:'Outfit';font-size:.78rem;font-weight:500;cursor:pointer;padding:.3rem 0}
-.prep-add:hover{color:#fff}
+.prep-edit{background:none;border:none;color:var(--muted);opacity:.8;font-size:.74rem;cursor:pointer;text-decoration:underline;padding:.3rem 0;flex-shrink:0}
+.prep-edit:hover{opacity:1;color:var(--terracotta)}
+.prep-add{display:block;margin-top:.6rem;background:none;border:none;color:var(--terracotta);font-family:'Outfit';font-size:.78rem;font-weight:500;cursor:pointer;padding:.3rem 0}
+.prep-add:hover{color:var(--adriatic-deep)}
 .foot-note{margin-top:2.4rem;font-size:.78rem;opacity:.6;letter-spacing:.02em}
 
 .totop{position:fixed;bottom:1.6rem;right:1.6rem;z-index:60;width:44px;height:44px;border-radius:50%;background:var(--adriatic-deep);color:#fff;border:none;cursor:pointer;font-size:1.2rem;box-shadow:0 6px 18px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .3s;padding:0;display:flex;align-items:center;justify-content:center;line-height:1}

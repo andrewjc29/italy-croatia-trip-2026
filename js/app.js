@@ -1,5 +1,11 @@
 // App shell: scrollspy nav, per-place rendering, shared helpers, modal system.
 
+// In-memory (not persisted) collapse-open state. Every collapsible section
+// (planning sections, bookings, hero overview) starts CLOSED on every page
+// load; toggling one open is remembered only for the rest of this visit, via
+// this plain object rather than localStorage.
+const SESSION_COLLAPSE_STATE = {};
+
 // ---- destination catalog accessor ----
 // The effective catalog is the built-in library (PLACES, authored in code)
 // merged with any user-created destinations in state.places. Built-ins stay
@@ -594,16 +600,14 @@ function buildPlacesSkeleton() {
   }).join("");
 
   // Planning sections (stay / see&do / eat) collapse per city, and start
-  // CLOSED -- they're planning-phase tools; the day-by-day is the main view.
-  // Any section you open stays open on this device.
-  let planOpen = {};
-  try { planOpen = JSON.parse(localStorage.getItem("planOpen") || "{}"); } catch (err) { planOpen = {}; }
+  // CLOSED on every page load -- they're planning-phase tools; the
+  // day-by-day is the main view. A section you open stays open only for
+  // the rest of this visit (in-memory state, not persisted).
   container.querySelectorAll(".plan-collapse").forEach((det) => {
-    if (planOpen[det.dataset.collapseKey]) det.setAttribute("open", "");
+    if (SESSION_COLLAPSE_STATE[det.dataset.collapseKey]) det.setAttribute("open", "");
     else det.removeAttribute("open");
     det.addEventListener("toggle", () => {
-      planOpen[det.dataset.collapseKey] = det.open;
-      try { localStorage.setItem("planOpen", JSON.stringify(planOpen)); } catch (err) { /* private mode */ }
+      SESSION_COLLAPSE_STATE[det.dataset.collapseKey] = det.open;
     });
   });
 
@@ -1568,17 +1572,14 @@ function renderBookingStatus(state) {
     '<details class="plan-collapse" data-collapse-key="bs-transport">' +
     '<summary><div class="sub-h"><h3>Transportation</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-transport" title="Add a transport booking" aria-label="Add a transport booking">+</button><span class="arw">&rsaquo;</span></div></summary>' +
     '<div class="plan-collapse-body bs-group">' + transportGroups + '</div></details>';
-  // Same collapse-state persistence as the per-city planning sections
-  // (shared "planOpen" localStorage key) -- these start closed the first
-  // time, then remember whatever you left them at on this device.
-  let planOpen = {};
-  try { planOpen = JSON.parse(localStorage.getItem("planOpen") || "{}"); } catch (err) { planOpen = {}; }
+  // Same collapse-state handling as the per-city planning sections -- these
+  // start closed on every page load, then remember whatever you left them
+  // at only for the rest of this visit (in-memory state, not persisted).
   el2.querySelectorAll(".plan-collapse").forEach((det) => {
-    if (planOpen[det.dataset.collapseKey]) det.setAttribute("open", "");
+    if (SESSION_COLLAPSE_STATE[det.dataset.collapseKey]) det.setAttribute("open", "");
     else det.removeAttribute("open");
     det.addEventListener("toggle", () => {
-      planOpen[det.dataset.collapseKey] = det.open;
-      try { localStorage.setItem("planOpen", JSON.stringify(planOpen)); } catch (err) { /* private mode */ }
+      SESSION_COLLAPSE_STATE[det.dataset.collapseKey] = det.open;
     });
   });
   el2.querySelectorAll("[data-sec-add]").forEach((btn) => btn.addEventListener("click", (e) => {
@@ -2156,15 +2157,15 @@ function setupStaticBindings() {
     openModal("Add note", '<label class="field">Note</label><textarea data-field="text"></textarea>',
       (data) => Store.add("notesLog", { text: data.text, ts: new Date().toISOString() }, "n"));
   });
-  // Hero's "Trip overview" toggle -- closed by default (the narrative blurb
-  // is nice-to-have, not something you need on every visit), remembers
-  // whether you opened it on this device, same pattern as the per-city
-  // planning-section collapsibles.
+  // Hero's "Trip overview" toggle -- closed on every page load (the
+  // narrative blurb is nice-to-have, not something you need on every
+  // visit), remembers whether you opened it only for the rest of this
+  // visit, same pattern as the per-city planning-section collapsibles.
   const heroOverview = document.getElementById("heroOverview");
   if (heroOverview) {
-    if (localStorage.getItem("heroOverviewOpen") === "1") heroOverview.setAttribute("open", "");
+    if (SESSION_COLLAPSE_STATE.heroOverview) heroOverview.setAttribute("open", "");
     heroOverview.addEventListener("toggle", () => {
-      try { localStorage.setItem("heroOverviewOpen", heroOverview.open ? "1" : "0"); } catch (err) { /* private mode */ }
+      SESSION_COLLAPSE_STATE.heroOverview = heroOverview.open;
     });
   }
 }
