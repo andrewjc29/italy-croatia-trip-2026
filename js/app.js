@@ -2008,6 +2008,15 @@ function groupByPhase(items) {
   return phases;
 }
 
+// Canonical on-page order for the phase dropdown: "Before you book" first,
+// then whatever timeframes exist in chronological (insertion) order, then
+// "General" last -- always includes both endpoints even if they're
+// currently empty, matching what renderPrep always shows as cards.
+function prepPhaseOrder(items) {
+  const rest = groupByPhase((items || []).filter((it) => it.phase !== "Before you book" && it.phase !== "General")).map((g) => g.phase);
+  return ["Before you book"].concat(rest, ["General"]);
+}
+
 function attachPrepToggleHandlers(container) {
   container.querySelectorAll("[data-prep-toggle]").forEach((cb) => cb.addEventListener("change", (e) => {
     const state2 = Store.getState();
@@ -2031,17 +2040,19 @@ function attachPrepToggleHandlers(container) {
 // either slots into an existing group or starts a new one. forcedPhase comes
 // from clicking "+ add to this section" on a specific phase block.
 function openPrepItemModal(state, existing, forcedPhase) {
-  const phases = groupByPhase(state.prepChecklist || []).map((g) => g.phase);
-  const datalistOpts = phases.map((p) => '<option value="' + esc(p) + '"></option>').join("");
-  const defaultPhase = existing ? existing.phase : (forcedPhase || (phases.length ? phases[phases.length - 1] : ""));
+  // Dropdown, not free text -- pick from the phases/timeframes that already
+  // exist on the page (plus General), so editing an item is also how you
+  // move it to a different phase/timing.
+  const phaseOrder = prepPhaseOrder(state.prepChecklist || []);
+  const defaultPhase = existing ? existing.phase : (forcedPhase || phaseOrder[0]);
+  const phaseOpts = phaseOrder.map((p) => '<option value="' + esc(p) + '"' + (p === defaultPhase ? " selected" : "") + '>' + esc(p) + '</option>').join("");
   const body =
     '<label class="field">To-do</label><textarea data-field="text">' + esc(existing ? existing.text : "") + '</textarea>' +
-    '<label class="field">Phase / timing</label><input data-field="phase" list="prepPhaseOptions" value="' + esc(defaultPhase) + '">' +
-    '<datalist id="prepPhaseOptions">' + datalistOpts + '</datalist>' +
+    '<label class="field">Phase / timing</label><select data-field="phase">' + phaseOpts + '</select>' +
     (existing ? '<div style="margin-top:8px"><button class="link danger" id="deletePrepBtn">Remove this to-do</button></div>' : "");
   openModal(existing ? "Edit to-do" : "Add a to-do", body, (data) => {
     if (!data.text) return;
-    const payload = { phase: data.phase || "Other", text: data.text, done: existing ? existing.done : false };
+    const payload = { phase: data.phase || "General", text: data.text, done: existing ? existing.done : false };
     if (existing) Store.update("prepChecklist", existing.id, payload);
     else Store.add("prepChecklist", payload, "pc");
   }, existing ? "Save" : "Add");
