@@ -6,6 +6,11 @@
 // this plain object rather than localStorage.
 const SESSION_COLLAPSE_STATE = {};
 
+// Same idea, scoped to Prep: each timeframe card has its own "Hide
+// completed" checkbox, keyed by phase name. In-memory only, so every card
+// shows everything again on a fresh page load.
+const PREP_HIDE_DONE = {};
+
 // ---- destination catalog accessor ----
 // The effective catalog is the built-in library (PLACES, authored in code)
 // merged with any user-created destinations in state.places. Built-ins stay
@@ -2014,6 +2019,11 @@ function attachPrepToggleHandlers(container) {
     const item = state2.prepChecklist.find((it) => it.id === btn.dataset.prepEdit);
     if (item) openPrepItemModal(state2, item);
   }));
+  container.querySelectorAll("[data-prep-hide-phase]").forEach((cb) => cb.addEventListener("change", () => {
+    PREP_HIDE_DONE[cb.dataset.prepHidePhase] = cb.checked;
+    const card = cb.closest(".prep-phase");
+    if (card) card.classList.toggle("hide-done", cb.checked);
+  }));
 }
 
 // Add (or edit) a single to-do in the Prep checklist. Phase is free text with
@@ -2051,13 +2061,17 @@ function prepItemHtml(item) {
     '<button class="prep-edit" data-prep-edit="' + item.id + '">edit</button></div>';
 }
 function prepPhaseBlock(phaseName, items) {
-  return '<div class="prep-phase"><h4>' + esc(phaseName) + '</h4>' + items.map(prepItemHtml).join("") +
+  const hideOn = !!PREP_HIDE_DONE[phaseName];
+  return '<div class="prep-phase' + (hideOn ? " hide-done" : "") + '">' +
+    '<div class="prep-phase-head"><h4>' + esc(phaseName) + '</h4>' +
+    '<label class="prep-hide-toggle"><input type="checkbox" data-prep-hide-phase="' + esc(phaseName) + '"' + (hideOn ? " checked" : "") + '> Hide completed</label></div>' +
+    items.map(prepItemHtml).join("") +
     '<button class="prep-add" data-prep-add-phase="' + esc(phaseName) + '">+ Add to-do</button></div>';
 }
-// "Hide completed" is a plain checkbox above the list (not persisted --
-// resets to unchecked, i.e. show everything, on every page load, same as
-// the collapsible sections). Toggling it just adds/removes a class on the
-// list container; CSS below hides rows already marked .done.
+// Each card's "Hide completed" checkbox filters just that card (not
+// persisted -- resets to unchecked, i.e. show everything, on every page
+// load, same as the collapsible sections). Toggling it adds/removes a
+// class on that .prep-phase card; CSS below hides rows already marked .done.
 
 function renderPrep(state) {
   const items = state.prepChecklist || [];
@@ -2161,15 +2175,7 @@ function setupStaticBindings() {
     openModal("Add note", '<label class="field">Note</label><textarea data-field="text"></textarea>',
       (data) => Store.add("notesLog", { text: data.text, ts: new Date().toISOString() }, "n"));
   });
-  // Prep's "Hide completed" toggle -- unchecked (show everything) on every
-  // page load, purely a display filter, no persistence.
-  const prepHideDone = document.getElementById("prepHideDone");
-  if (prepHideDone) {
-    const prepListEl = document.getElementById("prepList");
-    prepHideDone.addEventListener("change", () => {
-      prepListEl.classList.toggle("hide-done", prepHideDone.checked);
-    });
-  }
+
   // Hero's "Trip overview" toggle -- closed on every page load (the
   // narrative blurb is nice-to-have, not something you need on every
   // visit), remembers whether you opened it only for the rest of this
