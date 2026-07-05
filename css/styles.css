@@ -436,13 +436,17 @@ section[id]{scroll-margin-top:84px}
 /* ---- prep checklist ----
    Now a plain .wrap section like Bookings/Toolkit (light card background,
    dark text), sitting under the shared full-bleed .section-banner. */
-.prep-wrap{max-width:800px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:0 8px 24px var(--shadow);padding:1.5rem 1.7rem}
-.prep-phase{margin-top:2rem}
-.prep-phase:first-child{margin-top:0}
-.prep-phase h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--seaglass);font-weight:600;margin-bottom:.3rem;padding-top:1.2rem;border-top:1px solid var(--line)}
-.prep-phase:first-child h4{border-top:none;padding-top:0}
+.prep-wrap{max-width:800px;margin:2.6rem auto 0}
+.prep-controls{display:flex;justify-content:flex-end;margin-bottom:1rem}
+.prep-hide-toggle{display:flex;align-items:center;gap:.4rem;font-family:'Outfit';font-size:.78rem;color:var(--muted);cursor:pointer}
+.prep-hide-toggle input{accent-color:var(--seaglass);width:15px;height:15px}
+/* Each timeframe is its own card now, instead of one long list. */
+#prepList{display:flex;flex-direction:column;gap:1.2rem}
+.prep-phase{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:0 8px 24px var(--shadow);padding:1.3rem 1.5rem}
+.prep-phase h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--seaglass);font-weight:600;margin-bottom:.3rem}
 .prep-item-row{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 0;border-top:1px dashed var(--line)}
 .prep-phase h4 + .prep-item-row{border-top:none}
+#prepList.hide-done .prep-item-row.done{display:none}
 .prep-item{display:flex;align-items:flex-start;gap:.8rem;flex:1;min-width:0}
 .prep-item input[type=checkbox]{margin-top:.3rem;width:16px;height:16px;accent-color:var(--seaglass);flex-shrink:0}
 .prep-item span{font-size:.95rem;color:var(--ink)}

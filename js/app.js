@@ -2047,13 +2047,17 @@ function openPrepItemModal(state, existing, forcedPhase) {
 // "+ add to this section" control so a new to-do can go straight into
 // whichever timeframe it belongs to.
 function prepItemHtml(item) {
-  return '<div class="prep-item-row"><label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>' +
+  return '<div class="prep-item-row' + (item.done ? " done" : "") + '"><label class="prep-item' + (item.done ? " done" : "") + '"><input type="checkbox" data-prep-toggle="' + item.id + '" ' + (item.done ? "checked" : "") + '><span>' + esc(item.text) + '</span></label>' +
     '<button class="prep-edit" data-prep-edit="' + item.id + '">edit</button></div>';
 }
 function prepPhaseBlock(phaseName, items) {
   return '<div class="prep-phase"><h4>' + esc(phaseName) + '</h4>' + items.map(prepItemHtml).join("") +
     '<button class="prep-add" data-prep-add-phase="' + esc(phaseName) + '">+ Add to-do</button></div>';
 }
+// "Hide completed" is a plain checkbox above the list (not persisted --
+// resets to unchecked, i.e. show everything, on every page load, same as
+// the collapsible sections). Toggling it just adds/removes a class on the
+// list container; CSS below hides rows already marked .done.
 
 function renderPrep(state) {
   const items = state.prepChecklist || [];
@@ -2157,6 +2161,15 @@ function setupStaticBindings() {
     openModal("Add note", '<label class="field">Note</label><textarea data-field="text"></textarea>',
       (data) => Store.add("notesLog", { text: data.text, ts: new Date().toISOString() }, "n"));
   });
+  // Prep's "Hide completed" toggle -- unchecked (show everything) on every
+  // page load, purely a display filter, no persistence.
+  const prepHideDone = document.getElementById("prepHideDone");
+  if (prepHideDone) {
+    const prepListEl = document.getElementById("prepList");
+    prepHideDone.addEventListener("change", () => {
+      prepListEl.classList.toggle("hide-done", prepHideDone.checked);
+    });
+  }
   // Hero's "Trip overview" toggle -- closed on every page load (the
   // narrative blurb is nice-to-have, not something you need on every
   // visit), remembers whether you opened it only for the rest of this
