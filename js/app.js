@@ -813,6 +813,7 @@ function renderPlaceHotels(placeId, state) {
         '<div class="hotel-card-cost">' + esc(h.costLabel || fmtMoney(h.cost, "USD")) + (h.costLabel ? "" : "/night") + '</div>' +
         (existingForHotel ? '<div class="status-pill ' + esc(existingForHotel.status || "idea") + '" style="margin-top:.4rem">' + esc(existingForHotel.status || "idea") + '</div>' : "") +
         '<div class="foot">' +
+        '<button class="site" data-choose-hotel="' + h.id + '" onclick="event.stopPropagation()">' + (existingForHotel ? "Chosen -- edit dates" : "Choose this") + '</button>' +
         (h.url ? '<a class="site" href="' + esc(h.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Map</a>' : "") +
         '</div></div></div>';
     }).join("") + "</div>" +
