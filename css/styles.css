@@ -294,9 +294,16 @@ section[id]{scroll-margin-top:84px}
 /* Countdown card -- shared markup used inside the Today box (was formerly
    a standalone banner section between the hero and Today; folding it in
    there reclaims a full section of mobile scroll with no data lost). */
-.cd-card{display:flex;align-items:center;gap:1.2rem;background:var(--adriatic-deep);color:#fff;border-radius:14px;padding:1rem 1.5rem;box-shadow:0 10px 26px var(--shadow);margin:.2rem 0 .6rem}
+.cd-card{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;background:var(--adriatic-deep);color:#fff;border-radius:14px;padding:1rem 1.5rem;box-shadow:0 10px 26px var(--shadow);margin:.2rem 0 .6rem}
 .cd-num{font-family:'Fraunces';font-size:2.6rem;font-weight:600;line-height:1;color:var(--seaglass-soft);min-width:2.2ch;text-align:center}
 .cd-label{font-family:'Outfit';font-size:.86rem}
+/* Live days/hours/minutes timer for the pre-trip countdown -- three
+   compact stacked segments instead of one big number, small enough that
+   all three plus the label still fit next to each other on a phone. */
+.cd-timer{display:flex;gap:.7rem}
+.cd-seg{display:flex;flex-direction:column;align-items:center;min-width:2.3rem}
+.cd-seg .cd-num{font-size:1.6rem;min-width:0}
+.cd-seg .cd-unit{font-family:'Outfit';font-size:.56rem;letter-spacing:.08em;text-transform:uppercase;opacity:.8;margin-top:.1rem}
 .cd-sub{display:block;font-size:.68rem;opacity:.75;margin-top:.25rem;letter-spacing:.08em;text-transform:uppercase}
 .cd-card.cd-done{background:var(--seaglass)}
 .cd-card.cd-done .cd-num{color:#fff;font-size:2.1rem}

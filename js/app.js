@@ -1398,6 +1398,41 @@ function renderHero(state) {
 // section between the hero and Today; folding it in here reclaims a full
 // section of mobile scroll with no data lost. Returns "" if no trip start
 // date is set yet.
+// Days/hours/minutes segments for the pre-trip countdown, computed off the
+// real precise instant (not date-only) so it's a genuine live timer, not
+// just a day count. Shared by the initial render and by tickCountdowns(),
+// which recomputes this every 30s to keep it moving without a full re-render.
+function countdownParts(startD) {
+  const diff = Math.max(0, startD.getTime() - Date.now());
+  return {
+    days: Math.floor(diff / 86400000),
+    hours: Math.floor((diff % 86400000) / 3600000),
+    minutes: Math.floor((diff % 3600000) / 60000)
+  };
+}
+function countdownTimerHtml(startD) {
+  const p = countdownParts(startD);
+  return '<div class="cd-timer">' +
+    '<div class="cd-seg"><span class="cd-num">' + p.days + '</span><span class="cd-unit">' + (p.days === 1 ? "day" : "days") + '</span></div>' +
+    '<div class="cd-seg"><span class="cd-num">' + String(p.hours).padStart(2, "0") + '</span><span class="cd-unit">hrs</span></div>' +
+    '<div class="cd-seg"><span class="cd-num">' + String(p.minutes).padStart(2, "0") + '</span><span class="cd-unit">min</span></div>' +
+    "</div>";
+}
+// Ticks every live countdown card on the page in place -- no re-render, so
+// it doesn't disturb scroll position or any other Today-view state. No-op
+// if there's no upcoming-trip countdown card currently in the DOM.
+function tickCountdowns() {
+  document.querySelectorAll(".cd-card.cd-upcoming[data-countdown-start]").forEach((card) => {
+    const startD = new Date(card.dataset.countdownStart + "T00:00:00");
+    const p = countdownParts(startD);
+    const segs = card.querySelectorAll(".cd-seg");
+    if (segs.length !== 3) return;
+    segs[0].querySelector(".cd-num").textContent = p.days;
+    segs[0].querySelector(".cd-unit").textContent = p.days === 1 ? "day" : "days";
+    segs[1].querySelector(".cd-num").textContent = String(p.hours).padStart(2, "0");
+    segs[2].querySelector(".cd-num").textContent = String(p.minutes).padStart(2, "0");
+  });
+}
 function buildCountdownCardHtml() {
   const range = Store.getTripDateRange();
   if (!range.start) return "";
@@ -1407,9 +1442,8 @@ function buildCountdownCardHtml() {
   const startD = new Date(range.start + "T00:00:00");
   const endD = range.end ? new Date(range.end + "T00:00:00") : null;
   if (todayD < startD) {
-    const days = Math.round((startD - todayD) / msPerDay);
-    return '<div class="cd-card cd-upcoming"><div class="cd-num">' + days + '</div><div class="cd-label">' +
-      (days === 1 ? "day" : "days") + ' until departure<span class="cd-sub">' + esc(fmtDate(range.start)) + '</span></div></div>';
+    return '<div class="cd-card cd-upcoming" data-countdown-start="' + esc(range.start) + '">' + countdownTimerHtml(startD) +
+      '<div class="cd-label">until departure<span class="cd-sub">' + esc(fmtDate(range.start)) + '</span></div></div>';
   }
   if (endD && todayD >= endD) {
     return '<div class="cd-card cd-done"><div class="cd-num">&#10003;</div><div class="cd-label">Trip complete<span class="cd-sub">Hope it was unforgettable</span></div></div>';
@@ -2157,15 +2191,32 @@ function renderAll(state, syncStatus) {
 function setupScrollspy() {
   const links = Array.from(document.querySelectorAll(".tl, .bn-tab"));
   const sections = links.map((l) => document.getElementById(l.dataset.target)).filter(Boolean);
+  // A tap sets the highlight immediately (source of truth for the target
+  // you asked for), then the smooth scroll animation runs. While that
+  // animation is in flight, the IntersectionObserver's band can briefly
+  // land on a neighboring section -- e.g. Bookings is short enough that
+  // once its banner reaches the top of the viewport, Toolkit's banner is
+  // already inside the band underneath it -- which flipped the highlight
+  // away from what was just tapped a moment after landing. Suppress
+  // IO-driven highlighting until the triggered scroll actually finishes.
+  let suppressSpy = false;
+  let suppressTimer = null;
+  const clearSuppress = () => { suppressSpy = false; };
   links.forEach((l) => l.addEventListener("click", () => {
     const target = document.getElementById(l.dataset.target);
     if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    // Highlight immediately on tap. The IntersectionObserver's active band
-    // sits mid-viewport, so short sections near the top of the page (Today)
-    // never enter it when scrolled to -- the click is the source of truth.
     links.forEach((x) => x.classList.toggle("active", x.dataset.target === l.dataset.target));
+    suppressSpy = true;
+    clearTimeout(suppressTimer);
+    if ("onscrollend" in window) {
+      window.addEventListener("scrollend", clearSuppress, { once: true });
+      suppressTimer = setTimeout(clearSuppress, 1500); // safety net if scrollend never fires
+    } else {
+      suppressTimer = setTimeout(clearSuppress, 700);
+    }
   }));
   const io = new IntersectionObserver((entries) => {
+    if (suppressSpy) return;
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
         const id = entry.target.id;
@@ -2217,6 +2268,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupTotop();
   Store.subscribe(renderAll);
   await Store.init();
+  setInterval(tickCountdowns, 30000);
 });
 
 // ---- offline support: cache the app shell so it still works with patchy data ----
