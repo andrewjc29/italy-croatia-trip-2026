@@ -273,14 +273,11 @@ function isoDiffDays(a, b) {
   return Math.round((db - da) / 86400000);
 }
 
-// Activity row variant for the Today view: optional Now/Next pill and a
-// one-tap "→ tomorrow" reschedule button.
-function renderTodayActivityLine(a, nn, canMove) {
+// Activity row variant for the Today view: optional Now/Next pill.
+function renderTodayActivityLine(a, nn) {
   const pill = nn ? '<span class="nn-pill nn-' + nn + '">' + nn + '</span>' : "";
-  const moveBtn = canMove ? '<button class="move-tomorrow" data-move-tomorrow="' + a.id + '" title="Move to tomorrow">&rarr; tomorrow</button>' : "";
   return '<div class="item-line item-line-clickable' + (nn === "now" ? " is-now" : "") + '" data-view-activity="' + a.id + '">' +
-    '<span><span class="time">' + esc(a.time ? fmtTime12(a.time) : "") + '</span>' + esc(a.title) + pill + '</span>' +
-    '<span class="il-actions">' + moveBtn + '</span></div>';
+    '<span><span class="time">' + esc(a.time ? fmtTime12(a.time) : "") + '</span>' + esc(a.title) + pill + '</span></div>';
 }
 
 // "#rrggbb" -> "rgba(r,g,b,alpha)", for tinting a row's whole background
@@ -1349,8 +1346,6 @@ function renderTodayView(state) {
     const upcoming = timed.find((a) => a.time > nowHM);
     if (upcoming) nextId = upcoming.id;
   }
-  const tripEnd = days.length ? days[days.length - 1].date : null;
-  const canMove = tripEnd && today.date < tripEnd;
   // A live forecast is only meaningful once you're close to (or on) the
   // trip -- otherwise it's just today's weather at home. Gated on the
   // trip's real dates (not whatever day is being browsed via ‹ ›), so
@@ -1412,7 +1407,7 @@ function renderTodayView(state) {
   const anytimeActivities = today.activities.filter((a) => !a.time);
   const merged = timedActivities.map((a) => ({
     time: a.time,
-    html: renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)
+    html: renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null)
   })).concat(bkEvents.map((ev) => ({ time: ev.time, html: renderTvBookingEventLine(ev, eventAccent(ev)) })))
     .sort((x, y) => x.time.localeCompare(y.time)).map((x) => x.html).join("");
   const itinHtml = '<span class="tv-itin-label">Itinerary</span><div class="tv-itin">' +
@@ -1433,11 +1428,6 @@ function renderTodayView(state) {
   contentEl.querySelectorAll("[data-view-activity]").forEach((row) => row.addEventListener("click", () => {
     const a = Store.getState().activities.find((x) => x.id === row.dataset.viewActivity);
     if (a) openItemDetailCard("activity", a, place);
-  }));
-  contentEl.querySelectorAll("[data-move-tomorrow]").forEach((btn) => btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const a = Store.getState().activities.find((x) => x.id === btn.dataset.moveTomorrow);
-    if (a) Store.update("activities", a.id, { date: isoAddDays(a.date, 1) });
   }));
 }
 
