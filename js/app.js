@@ -272,13 +272,22 @@ function renderTodayActivityLine(a, nn, canMove) {
     '<span class="il-actions">' + moveBtn + '</span></div>';
 }
 
-// Today view "Bookings" card: hotel check-in/check-out and transport for
-// this specific day, as bordered rows -- distinct from renderDayHotelBar's
-// solid-fill treatment used in the main hourly-rail day boxes elsewhere.
-// Left accent matches the city that row belongs to (departure city for a
-// check-out, arrival city for a check-in), not a fixed color.
+// "#rrggbb" -> "rgba(r,g,b,alpha)", for tinting a row's whole background
+// with a soft wash of its own city accent color (not just the border).
+function accentTint(hex, alpha) {
+  const h = (hex || "#1d6a8c").replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16); const g = parseInt(h.substring(2, 4), 16); const b = parseInt(h.substring(4, 6), 16);
+  return "rgba(" + (isNaN(r) ? 29 : r) + "," + (isNaN(g) ? 106 : g) + "," + (isNaN(b) ? 140 : b) + "," + (alpha == null ? 0.08 : alpha) + ")";
+}
+
+// Today view "Bookings" card: every lodging booking active on this day
+// (Check-in / Staying at / Check-out) plus transport for the day, as
+// bordered rows tinted with that row's own city accent -- distinct from
+// renderDayHotelBar's solid-fill treatment used in the main hourly-rail
+// day boxes elsewhere. The whole row is highlighted (border + background
+// wash), not just the left edge.
 function renderTvBookingRow(bookingId, label, title, status, accentColor) {
-  return '<div class="tv-bk-row" style="--accent:' + accentColor + '" data-view-booking="' + bookingId + '">' +
+  return '<div class="tv-bk-row" style="--accent:' + accentColor + ';background:' + accentTint(accentColor, 0.08) + '" data-view-booking="' + bookingId + '">' +
     (label ? '<span class="tv-bk-label">' + esc(label) + '</span>' : "") +
     '<span class="tv-bk-title">' + esc(title) + '</span>' +
     '<span class="status-pill ' + esc(status || "idea") + '">' + esc(status || "idea") + '</span></div>';
@@ -292,6 +301,14 @@ function renderTvBookingEventLine(ev, accentColor) {
   return '<div class="item-line item-line-clickable rail-event" style="--accent:' + accentColor + '" data-view-booking="' + ev.booking.id + '">' +
     '<span><span class="time">' + esc(fmtTime12(ev.time)) + '</span><span class="rail-event-label">' + esc(ev.label) + '</span> ' + esc(ev.booking.title) + '</span>' +
     '<span class="il-actions"><span class="status-pill ' + esc(ev.booking.status || "idea") + '">' + esc(ev.booking.status || "idea") + '</span></span></div>';
+}
+
+// An untimed ("anytime") activity in the Today view -- listed separately
+// at the bottom of the Itinerary rather than mixed into the chronological
+// list. No time chip (there's no time to show) and no move-to-tomorrow
+// button (there's no specific time slot being freed up).
+function renderTvAnytimeLine(a) {
+  return '<div class="item-line item-line-clickable" data-view-activity="' + a.id + '"><span>' + esc(a.title) + '</span></div>';
 }
 
 let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
@@ -842,7 +859,7 @@ function renderPlaceHotels(placeId, state) {
     '<div class="hotel-cards">' +
     list.map((h) => {
       const existingForHotel = placeLodgings.find((b) => b.title === h.name);
-      return '<div class="card card-clickable hotel-card" data-view-hotel="' + h.id + '"><div class="body">' +
+      return '<div class="card card-clickable hotel-card" data-view-hotel="' + h.id + '"><div class="pic"></div><div class="body">' +
         '<h4>' + esc(h.name) + (h.splurge ? '<span class="pill">splurge</span>' : "") + '</h4>' +
         '<div class="kind">' + esc(h.area) + '</div>' +
         '<div class="hotel-card-cost">' + esc(h.costLabel || fmtMoney(h.cost, "USD")) + (h.costLabel ? "" : "/night") + '</div>' +
@@ -1333,49 +1350,71 @@ function renderTodayView(state) {
   const daysToTripFromNow = tripRangeNow.start ? Math.ceil((new Date(tripRangeNow.start) - new Date(realTodayISO)) / 86400000) : null;
   const tripUnderwayNow = tripRangeNow.start && tripRangeNow.end && realTodayISO >= tripRangeNow.start && realTodayISO <= tripRangeNow.end;
   const showLiveForecast = today.cityId && (tripUnderwayNow || (daysToTripFromNow !== null && daysToTripFromNow <= 10 && daysToTripFromNow >= 0));
+  // Jump-to-city: right-justified next to the day count, scrolls to this
+  // day's city section in the itinerary below (reuses the same
+  // scrollIntoView pattern as the itinerary editor's .ie-jump rows).
+  const jumpBtnHtml = place
+    ? '<button class="tv-jump-btn" data-jump="' + esc(today.placeId) + '" title="Jump to ' + esc(place.label) + ' in the itinerary">Jump to ' + esc(place.label) +
+      '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'
+    : "";
   const cityHtml = place
     ? '<div class="tv-city" style="color:' + accent + '">' + esc(place.label) +
       '<span class="tv-daynum">Day ' + dayNum + " of " + days.length + '</span>' +
+      '<span class="tv-city-right">' +
       (showLiveForecast ? '<span class="tv-forecast muted" id="todayForecastStrip">Loading forecast&hellip;</span>' : "") +
-      '</div>'
+      jumpBtnHtml + '</span></div>'
     : "";
-  // ---- Bookings: hotel check-in/check-out and transport for this exact
-  // day only, as a dedicated card of bordered rows -- a quick "what's
-  // booked today" reference, separate from the chronological plan below.
+  // ---- Bookings: every lodging booking active on this day -- shows on
+  // EVERY day it spans (Check-in on day one, Staying at on the nights in
+  // between, Check-out on the last day), not just the two boundary days --
+  // plus transport for the day. A quick "what's booked today" reference,
+  // separate from the chronological plan below. Each row's accent (border
+  // + background tint) matches that booking's OWN city, found by locating
+  // which stop range its check-in date falls in.
   const ranges = Store.computeStopRanges();
-  const arrIdx = ranges.findIndex((r, i) => i > 0 && r.dateStart === today.date);
-  const tHotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === today.date);
-  const tHotelIn = (state.bookings || []).find((b) => b.category === "lodging" && b.date === today.date);
-  const fromP = arrIdx > 0 ? getPlace(ranges[arrIdx - 1].placeId) : null;
-  const toP = arrIdx > 0 ? getPlace(ranges[arrIdx].placeId) : null;
-  const outAccent = getAccent((fromP && fromP.id) || today.placeId) || "#1d6a8c";
-  const inAccent = getAccent((toP && toP.id) || today.placeId) || "#1d6a8c";
-  const bkRows = [];
-  if (tHotelOut && tHotelIn && tHotelOut.id === tHotelIn.id) {
-    bkRows.push(renderTvBookingRow(tHotelOut.id, "Check-in & check-out", tHotelOut.title, tHotelOut.status, inAccent));
-  } else {
-    if (tHotelOut) bkRows.push(renderTvBookingRow(tHotelOut.id, "Check-out", tHotelOut.title, tHotelOut.status, outAccent));
-    if (tHotelIn) bkRows.push(renderTvBookingRow(tHotelIn.id, "Check-in", tHotelIn.title, tHotelIn.status, inAccent));
-  }
+  const placeIdForDate = (d) => {
+    const r = ranges.find((rr) => d >= rr.dateStart && d < rr.dateEnd);
+    return (r && r.placeId) || today.placeId;
+  };
+  const activeLodging = (state.bookings || []).filter((b) => b.category === "lodging" && b.date <= today.date && today.date <= b.endDate);
+  const bkRows = activeLodging.map((b) => {
+    const acc = getAccent(placeIdForDate(b.date)) || "#1d6a8c";
+    const label = b.date === today.date && b.endDate === today.date ? "Check-in & check-out"
+      : b.date === today.date ? "Check-in"
+      : b.endDate === today.date ? "Check-out"
+      : "Staying at";
+    return renderTvBookingRow(b.id, label, b.title, b.status, acc);
+  });
   today.transport.forEach((t) => bkRows.push(renderTvBookingRow(t.id, null, t.title, t.status, accent)));
   const bookingsHtml = bkRows.length
     ? '<div class="tv-bookings"><span class="tv-bookings-label">Bookings</span><div class="tv-bk-list">' + bkRows.join("") + '</div></div>'
     : "";
-  // ---- Itinerary: activities plus any timed booking moment (check-in/out
-  // with a time set, timed transport) merged into one chronological list.
-  // Booking-linked rows get the .rail-event colored-border treatment
-  // instead of a solid fill -- see renderTvBookingEventLine.
+  // ---- Itinerary: timed activities plus any timed booking moment
+  // (check-in/out with a time set, timed transport) merged into one
+  // chronological list. Booking-linked rows get the .rail-event
+  // colored-border treatment instead of a solid fill -- see
+  // renderTvBookingEventLine. Untimed activities are split out into a
+  // separate Anytime list below -- see renderTvAnytimeLine.
   const bkEvents = bookingEventsForDate(state, today.date);
-  const eventAccent = (ev) => ev.label === "Check-out" ? outAccent : ev.label === "Check-in" ? inAccent : accent;
-  const merged = today.activities.map((a) => ({
-    time: a.time || "99:99",
+  const eventAccent = (ev) => (ev.label === "Check-in" || ev.label === "Check-out") ? (getAccent(placeIdForDate(ev.booking.date)) || "#1d6a8c") : accent;
+  const timedActivities = today.activities.filter((a) => a.time);
+  const anytimeActivities = today.activities.filter((a) => !a.time);
+  const merged = timedActivities.map((a) => ({
+    time: a.time,
     html: renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)
   })).concat(bkEvents.map((ev) => ({ time: ev.time, html: renderTvBookingEventLine(ev, eventAccent(ev)) })))
     .sort((x, y) => x.time.localeCompare(y.time)).map((x) => x.html).join("");
   const itinHtml = '<span class="tv-itin-label">Itinerary</span><div class="tv-itin">' +
     (merged || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>') + '</div>';
-  contentEl.innerHTML = cityHtml + bookingsHtml + itinHtml;
+  const anytimeHtml = anytimeActivities.length
+    ? '<span class="tv-itin-label tv-anytime-label">Anytime</span><div class="tv-itin">' + anytimeActivities.map(renderTvAnytimeLine).join("") + '</div>'
+    : "";
+  contentEl.innerHTML = cityHtml + bookingsHtml + itinHtml + anytimeHtml;
   if (showLiveForecast) renderTodayForecastStrip(today.cityId, today.date);
+  contentEl.querySelectorAll("[data-jump]").forEach((btn) => btn.addEventListener("click", () => {
+    const target = document.getElementById(btn.dataset.jump);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
   contentEl.querySelectorAll("[data-view-booking]").forEach((row) => row.addEventListener("click", () => {
     const b = Store.getState().bookings.find((x) => x.id === row.dataset.viewBooking);
     if (b) openItemDetailCard("booking", b, place);
