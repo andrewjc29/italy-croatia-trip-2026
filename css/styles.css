@@ -72,10 +72,10 @@ section[id]{scroll-margin-top:84px}
    these transitions animate every affected property down together. See
    initHeroIntro() in app.js. */
 .hero{transition:height .55s cubic-bezier(.4,0,.2,1)}
-.hero.hero-collapsed{height:34vh;min-height:300px}
+.hero.hero-collapsed{height:34vh;min-height:280px}
 .hero.hero-collapsed .hero-inner{padding-bottom:3vh}
 .hero.hero-collapsed .eyebrow{opacity:0;max-height:0;margin-bottom:0;overflow:hidden}
-.hero.hero-collapsed h1{font-size:clamp(1.5rem,4.4vw,2.1rem)}
+.hero.hero-collapsed h1{font-size:clamp(1.5rem,4.4vw,2.1rem);font-weight:700}
 .hero.hero-collapsed .meta{margin-top:.6rem}
 .hero.hero-collapsed .hero-overview{margin-top:.5rem}
 .hero-overview summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:.5rem;font-family:'Outfit';font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;color:var(--seaglass-soft)}
@@ -449,7 +449,7 @@ section[id]{scroll-margin-top:84px}
 .tv-handle-slot{display:flex;justify-content:center;min-height:0;position:relative;z-index:2}
 .tv-handle-slot:has(.bn-today-ico){margin-bottom:-23px}
 .tv-handle-slot .bn-today-ico{border:3px solid var(--paper)}
-.tv-close{position:absolute;top:.65rem;right:.7rem;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.tv-close{position:absolute;top:50%;right:.7rem;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .tv-close:hover{background:rgba(255,255,255,.3)}
 body.tv-sheet-open{overflow:hidden}
 /* Desktop/tablet: a centered modal instead of a bottom sheet -- there's no
@@ -476,7 +476,7 @@ body.tv-sheet-open{overflow:hidden}
 .tv-badge:hover{background:rgba(255,255,255,.3)}
 .tv-badge.hidden{display:none}
 .tv-date-wrap{position:relative;display:inline-flex;align-items:center}
-.tv-date{font-family:'Fraunces';font-style:italic;font-size:1.1rem;color:inherit}
+.tv-date{font-family:'Fraunces';font-style:italic;font-weight:600;font-size:1.1rem;color:inherit}
 /* Calendar picker, prev/next: grouped together and pinned to the far right
    via margin-left:auto on this wrapper, so their position never shifts
    with the width of the date text next to them. */
@@ -494,8 +494,8 @@ body.tv-sheet-open{overflow:hidden}
 .tv-arrow{background:rgba(255,255,255,.14);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1.15rem;line-height:1;display:flex;align-items:center;justify-content:center;padding:0}
 .tv-arrow:hover{background:rgba(255,255,255,.3)}
 .tv-arrow:disabled{opacity:.3;cursor:default}
-#todayContent{background:var(--card);border:1px solid var(--line);border-radius:0 0 14px 14px;padding:1.1rem 1.3rem 1.3rem;box-shadow:0 10px 28px var(--shadow);overflow-y:auto;flex:1;min-height:0}
-.tv-city{font-family:'Fraunces';font-size:1.3rem;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin:.1rem 0 .7rem}
+#todayContent{background:var(--card);border:1px solid var(--line);border-radius:0 0 14px 14px;padding:1.1rem 1.3rem calc(1.6rem + env(safe-area-inset-bottom));box-shadow:0 10px 28px var(--shadow);overflow-y:auto;flex:1;min-height:0}
+.tv-city{font-family:'Fraunces';font-size:1.3rem;font-weight:600;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin:.1rem 0 .7rem}
 .tv-city .tv-daynum{font-family:'Outfit';font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
 /* Forecast strip + jump-to-city button, grouped together and pushed to the
    far right of the city row. */
@@ -692,11 +692,11 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
 
 @media(max-width:600px){
   body{font-size:16px}
-  /* The hero was sized for desktop (88vh + a 520px floor), which on a phone
-     eats almost the entire first screen before any real content shows.
-     Mobile gets a much shorter banner plus tighter internal spacing so the
-     itinerary is visible without scrolling past a wall of photo first. */
-  .hero{height:58vh;min-height:380px}
+  /* Mobile shares the same full-bleed-then-collapse hero behavior as
+     desktop (see initHeroIntro/.hero-collapsed) -- it used to get a fixed
+     58vh here instead, which fought with that intro (the hero never
+     actually reached full height before "collapsing" to 34vh, so the
+     morph barely read as a change at all). Just tighten inner spacing. */
   .hero-inner{padding-bottom:4.5vh}
   .eyebrow{margin-bottom:.7rem}
   .hero .meta{margin-top:.9rem;gap:1rem}
@@ -730,7 +730,10 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
      so it never fights the rest of the site's global transition:none
      rule under prefers-reduced-motion. */
   .bn-today-ico.tv-icon-flying{transition:transform .38s cubic-bezier(.4,0,.2,1)}
-  .bn-today .bn-today-ico svg{width:23px;height:23px;stroke:#fff}
+  /* Not scoped to .bn-today -- the icon itself relocates into the Today
+     sheet header when it opens (see moveTodayIcon in app.js), and needs to
+     stay white on its orange circle in either location. */
+  .bn-today-ico svg{width:23px;height:23px;stroke:#fff}
   .bn-today span{color:var(--terracotta);font-weight:600}
   .totop{bottom:calc(5.2rem + env(safe-area-inset-bottom))}
   body{padding-bottom:calc(4.6rem + env(safe-area-inset-bottom))}

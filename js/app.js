@@ -1298,6 +1298,10 @@ function renderTodayView(state) {
       if (!dateInput.value) return;
       todayViewOffset = isoDiffDays(baseISO, dateInput.value);
       renderTodayView(Store.getState());
+      // Some browsers leave the native picker UI open until the input
+      // actually loses focus -- blur it once a date's picked so it
+      // collapses right away instead of lingering over the sheet.
+      dateInput.blur();
     };
   }
   const prevBtn = document.getElementById("tvPrev");
@@ -1490,7 +1494,7 @@ function renderHero(state) {
 // prefers-reduced-motion (matches the site's existing reduced-motion
 // policy, which already turns off the CSS transition itself via the
 // global `*{transition:none!important}` rule -- this additionally skips
-// the ~1s full-bleed hold, so those users don't have to wait through a
+// the ~2s full-bleed hold, so those users don't have to wait through a
 // full-screen takeover just to land on an instant jump-cut).
 const HERO_TITLE_COMPACT = 'Italy <span class="hero-plus">+</span> Croatia <em>2026</em>';
 function initHeroIntro() {
@@ -1503,7 +1507,7 @@ function initHeroIntro() {
   };
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduceMotion) { collapse(); return; }
-  setTimeout(collapse, 1000);
+  setTimeout(collapse, 2000);
 }
 
 // Countdown card markup -- days-to-go before the trip, which day you're on
