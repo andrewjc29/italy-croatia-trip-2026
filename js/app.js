@@ -1502,7 +1502,7 @@ function renderBookingStatus(state) {
     const place = getPlace(r.placeId);
     const placeLabel = esc(place ? place.label : r.placeId);
     const placeDateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "dates not set";
-    const headHtml = '<div class="bs-city-head">' + placeLabel + '<span class="bs-place-nights muted">' + placeDateLabel + '</span></div>';
+    const headHtml = '<div class="bs-city-head" data-bs-city="' + esc(r.placeId) + '">' + placeLabel + '<span class="bs-place-nights muted">' + placeDateLabel + '</span></div>';
     if (!r.dateStart || !r.nights) {
       return headHtml + '<div class="bs-cards"><div class="muted">Set trip dates to track by night.</div></div>';
     }
@@ -1547,31 +1547,60 @@ function renderBookingStatus(state) {
     }).join("");
     return headHtml + '<div class="bs-cards">' + cards + '</div>';
   }).join("");
+  // ---- hotel status rollup, one chip per city (missing / partially
+  // booked / idea / booked-or-confirmed), for the at-a-glance summary
+  // above the Hotels collapsible (which itself defaults to closed) --
+  // walks the same per-night coverage a city's card list is built from,
+  // just condensed to a single status instead of a run-by-run list.
+  const chipHtml = (status, label, conflict, jumpAttr) =>
+    '<button type="button" class="bs-chip status-' + status + '" ' + jumpAttr + '>' +
+    '<span class="bs-chip-dot"></span>' + esc(label) +
+    (conflict ? '<span class="bs-chip-warn" title="Possible duplicate booking, check for a stray pick">!</span>' : "") +
+    '</button>';
+  const hotelRollups = ranges.map((r) => {
+    const place = getPlace(r.placeId);
+    const label = place ? place.label : r.placeId;
+    if (!r.dateStart || !r.nights) return { placeId: r.placeId, label, status: "missing", conflict: false };
+    const lodgings = state.bookings.filter((b) => b.category === "lodging" && (!place || place.cityIds.includes(b.city)));
+    let anyMissing = false, anyCovered = false, conflict = false;
+    const statuses = new Set();
+    for (let i = 0; i < r.nights; i++) {
+      const date = isoAddDays(r.dateStart, i);
+      const covering = lodgings.filter((b) => b.date <= date && b.endDate > date);
+      if (!covering.length) anyMissing = true; else anyCovered = true;
+      if (covering.length > 1) conflict = true;
+      covering.forEach((b) => statuses.add(b.status));
+    }
+    let status;
+    if (!anyCovered) status = "missing";
+    else if (anyMissing) status = "partial";
+    else if (statuses.has("idea") && (statuses.has("booked") || statuses.has("confirmed"))) status = "partial";
+    else if (statuses.has("confirmed") && !statuses.has("booked")) status = "confirmed";
+    else if (statuses.has("booked")) status = "booked";
+    else status = "idea";
+    return { placeId: r.placeId, label, status, conflict };
+  });
+  const hotelSummaryHtml = hotelRollups.length
+    ? '<div class="bs-summary">' + hotelRollups.map((h) => chipHtml(h.status, h.label, h.conflict, 'data-bs-jump-hotel-city="' + esc(h.placeId) + '"')).join("") + '</div>'
+    : "";
   const transportBookings = state.bookings.filter((b) => b.category !== "lodging").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-  const transportCardHtml = (t) => {
+  const transportCardHtml = (t, routeLabel, legKey) => {
     const dateLabel = t.date ? (t.endDate && t.endDate !== t.date ? esc(fmtDate(t.date)) + " &ndash; " + esc(fmtDate(t.endDate)) : esc(fmtDate(t.date))) : '<span class="muted">no date set</span>';
-    return '<div class="bs-card bs-card-clickable" data-bs-view-booking="' + t.id + '">' +
-      '<div class="bs-card-main"><span class="bs-date">' + dateLabel + '<span class="bs-sub muted">' + esc(t.category) + '</span></span>' +
+    const subLabel = (routeLabel ? routeLabel + " &middot; " : "") + esc(t.category);
+    return '<div class="bs-card bs-card-clickable" data-bs-view-booking="' + t.id + '"' + (legKey ? ' data-bs-leg-key="' + esc(legKey) + '"' : "") + '>' +
+      '<div class="bs-card-main"><span class="bs-date">' + dateLabel + '<span class="bs-sub muted">' + subLabel + '</span></span>' +
       '<span>' + esc(t.title) + '</span></div>' + statusCell(t.status) +
       '<button class="link danger bs-card-remove" data-bs-remove="' + t.id + '" onclick="event.stopPropagation()">remove</button></div>';
   };
-  // Grouped by leg (the transition between consecutive stops, plus the two
-  // "leg" that bookend the whole trip: home airport out to the first city,
-  // and the last city back home) so it's obvious at a glance whether every
-  // hop -- including the international flights -- actually has transport
-  // booked, the same way the Hotels group makes a missing hotel obvious. A
-  // stop-to-stop leg's transition date is stop i's checkout day, which
-  // always equals stop i+1's check-in day, so it's a single unambiguous
-  // date to match against (unlike stays, legs are point-in-time, so they
-  // never overlap each other); the home legs use the trip's own start/end
-  // date the same way. This whole list is derived fresh from the current
-  // stops + home airport on every render, so adding, removing, or
-  // reordering a stop updates which legs exist automatically. Anything that
-  // doesn't land on a leg date -- a day-trip ferry, any transport not tied
-  // to a city change -- still shows, as its own row. Everything (leg groups
-  // and standalone rows alike) is laid out in one chronological sequence
-  // rather than "all legs, then everything else at the bottom", so e.g. the
-  // SFO -> Rome flight naturally lands before the Rome -> Puglia leg.
+  // Legs: the transition between consecutive stops, plus the two legs
+  // bookending the whole trip (home airport out to the first city, last
+  // city back home). contextPlaceId is the city each leg is filed under --
+  // a stop-to-stop leg files under its origin city, and both home legs
+  // file under the trip-city end they touch (first city for the outbound
+  // flight, last city for the return flight), so every leg has exactly one
+  // home. That's also the exact grouping the detailed list below uses
+  // (rekeyed by city, matching Hotels) instead of the old "Rome -> Bari"
+  // leg-pair headers.
   const homeAirport = (state.meta && state.meta.homeAirport) || "Home";
   const legDefs = [];
   if (ranges.length) {
@@ -1591,32 +1620,65 @@ function renderBookingStatus(state) {
     legDefs.push({ fromLabel: lastPlace ? lastPlace.label : lastR.placeId, toLabel: homeAirport, legDate: lastR.dateEnd, contextPlaceId: lastR.placeId });
   }
   const matchedIds = new Set();
-  const legBlocks = legDefs.map((leg) => {
-    const legLabel = esc(leg.fromLabel) + ' &rarr; ' + esc(leg.toLabel);
-    const legDate = leg.legDate;
-    const headHtml = '<div class="bs-city-head">' + legLabel +
-      '<span class="bs-place-nights muted">' + (legDate ? esc(fmtDate(legDate)) : "date not set") + '</span></div>';
-    const matches = legDate ? transportBookings.filter((t) => t.date && t.date <= legDate && (t.endDate || t.date) >= legDate) : [];
-    matches.forEach((t) => matchedIds.add(t.id));
-    const html = !matches.length
-      ? headHtml + '<div class="bs-cards"><div class="bs-card bs-card-missing" data-bs-add-leg="' + esc(legDate || "") + '" data-bs-leg-place="' + esc(leg.contextPlaceId) + '">' +
-        '<div class="bs-card-main"><span class="bs-date">' + (legDate ? esc(fmtDate(legDate)) : "") + '</span>' +
-        '<span class="muted">No transport booked yet</span></div>' + statusCell("missing") + '</div></div>'
-      : headHtml + '<div class="bs-cards">' + matches.map(transportCardHtml).join("") + '</div>';
-    return { sortKey: legDate || "9999-99-99", html };
+  legDefs.forEach((leg, idx) => {
+    leg.key = "leg" + idx;
+    leg.routeLabel = esc(leg.fromLabel) + " &rarr; " + esc(leg.toLabel);
+    leg.matches = leg.legDate ? transportBookings.filter((t) => t.date && t.date <= leg.legDate && (t.endDate || t.date) >= leg.legDate) : [];
+    leg.matches.forEach((t) => matchedIds.add(t.id));
+    leg.conflict = leg.matches.length > 1;
+    if (!leg.matches.length) leg.status = "missing";
+    else {
+      const st = new Set(leg.matches.map((t) => t.status));
+      leg.status = st.has("confirmed") ? "confirmed" : (st.has("booked") ? "booked" : "idea");
+    }
   });
-  const standaloneBlocks = transportBookings.filter((t) => !matchedIds.has(t.id)).map((t) => ({ sortKey: t.date || "9999-99-99", html: '<div class="bs-cards">' + transportCardHtml(t) + '</div>' }));
-  const transportGroups = legBlocks.concat(standaloneBlocks)
-    .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-    .map((b) => b.html).join("") || '<div class="muted">Add a stop to start tracking transport.</div>';
+  // ---- intercity connection summary: one chip per leg (including the two
+  // home bookend legs), focused purely on "can I actually get from city to
+  // city" -- standalone transport (day-trip ferries etc., not tied to a
+  // city-to-city move) intentionally has no place here.
+  const legSummaryHtml = legDefs.length
+    ? '<div class="bs-summary">' + legDefs.map((leg) => chipHtml(leg.status, leg.fromLabel + " " + String.fromCharCode(8594) + " " + leg.toLabel, leg.conflict, 'data-bs-jump-leg="' + esc(leg.key) + '"')).join("") + '</div>'
+    : "";
+  const legsByCity = new Map();
+  legDefs.forEach((leg) => {
+    if (!legsByCity.has(leg.contextPlaceId)) legsByCity.set(leg.contextPlaceId, []);
+    legsByCity.get(leg.contextPlaceId).push(leg);
+  });
+  // ---- detailed transport list, grouped by city exactly like Hotels --
+  // each leg files under the city it originates from (contextPlaceId
+  // above already encodes that), and any standalone transport booking
+  // whose own city tag falls in this place and whose date falls inside
+  // this city's stay window is filed here too.
+  const transportGroups = ranges.map((r) => {
+    const place = getPlace(r.placeId);
+    const placeLabel = esc(place ? place.label : r.placeId);
+    const placeDateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "dates not set";
+    const headHtml = '<div class="bs-city-head" data-bs-city="' + esc(r.placeId) + '">' + placeLabel + '<span class="bs-place-nights muted">' + placeDateLabel + '</span></div>';
+    const legsHere = legsByCity.get(r.placeId) || [];
+    const legCards = legsHere.map((leg) => {
+      if (!leg.matches.length) {
+        return '<div class="bs-card bs-card-missing" data-bs-leg-key="' + esc(leg.key) + '" data-bs-add-leg="' + esc(leg.legDate || "") + '" data-bs-leg-place="' + esc(leg.contextPlaceId) + '">' +
+          '<div class="bs-card-main"><span class="bs-date">' + (leg.legDate ? esc(fmtDate(leg.legDate)) : "") + '<span class="bs-sub muted">' + leg.routeLabel + '</span></span>' +
+          '<span class="muted">No transport booked yet</span></div>' + statusCell("missing") + '</div>';
+      }
+      return leg.matches.map((t) => transportCardHtml(t, leg.routeLabel, leg.key)).join("");
+    }).join("");
+    const standalone = (r.dateStart ? transportBookings.filter((t) => !matchedIds.has(t.id) && place && place.cityIds.includes(t.city) && t.date >= r.dateStart && t.date <= r.dateEnd) : [])
+      .map((t) => transportCardHtml(t, null, null)).join("");
+    const cardsHtml = legCards + standalone;
+    if (!cardsHtml) return headHtml + '<div class="bs-cards"><div class="muted">Nothing tied to this city&rsquo;s dates yet.</div></div>';
+    return headHtml + '<div class="bs-cards">' + cardsHtml + '</div>';
+  }).join("");
   // Same collapsible-section chrome as Where to stay / See & do / Where to
   // eat (sub-h header, rule, a "+" to add a new booking, chevron), instead
   // of the plain <h4> these used before -- same visual language, same
   // open/closed persistence mechanism (the shared "planOpen" key).
   el2.innerHTML =
+    hotelSummaryHtml +
     '<details class="plan-collapse" data-collapse-key="bs-hotels">' +
     '<summary><div class="sub-h"><h3>Hotels</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-hotel" title="Add a hotel booking" aria-label="Add a hotel booking">+</button><span class="arw">&rsaquo;</span></div></summary>' +
     '<div class="plan-collapse-body bs-group">' + hotelGroups + '</div></details>' +
+    legSummaryHtml +
     '<details class="plan-collapse" data-collapse-key="bs-transport">' +
     '<summary><div class="sub-h"><h3>Transportation</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-transport" title="Add a transport booking" aria-label="Add a transport booking">+</button><span class="arw">&rsaquo;</span></div></summary>' +
     '<div class="plan-collapse-body bs-group">' + transportGroups + '</div></details>';
@@ -1661,6 +1723,23 @@ function renderBookingStatus(state) {
     if (b && confirm('Remove "' + b.title + '" (' + fmtDate(b.date) + ' - ' + fmtDate(b.endDate) + ')?')) {
       Store.remove("bookings", b.id);
     }
+  }));
+  // Summary chips jump straight to the matching city (Hotels) or leg
+  // (Transportation) card -- auto-opening that collapsible first if it's
+  // closed (both default closed on every load), then scrolling the target
+  // into view. A leg with multiple matched bookings shares one key, so
+  // this lands on the first card for that leg, which is enough context.
+  el2.querySelectorAll("[data-bs-jump-hotel-city]").forEach((chip) => chip.addEventListener("click", () => {
+    const det = el2.querySelector('[data-collapse-key="bs-hotels"]');
+    if (det && !det.open) { det.setAttribute("open", ""); SESSION_COLLAPSE_STATE["bs-hotels"] = true; }
+    const head = Array.from(el2.querySelectorAll(".bs-city-head")).find((h) => h.dataset.bsCity === chip.dataset.bsJumpHotelCity);
+    if (head) head.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  el2.querySelectorAll("[data-bs-jump-leg]").forEach((chip) => chip.addEventListener("click", () => {
+    const det = el2.querySelector('[data-collapse-key="bs-transport"]');
+    if (det && !det.open) { det.setAttribute("open", ""); SESSION_COLLAPSE_STATE["bs-transport"] = true; }
+    const card = Array.from(el2.querySelectorAll("[data-bs-leg-key]")).find((c) => c.dataset.bsLegKey === chip.dataset.bsJumpLeg);
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
   }));
 }
 
