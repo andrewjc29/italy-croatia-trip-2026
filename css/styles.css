@@ -307,8 +307,15 @@ section[id]{scroll-margin-top:84px}
    row jumps to + auto-opens the matching collapsible below rather than
    expanding inline -- one source of truth for the actual booking detail. */
 .bs-summary-list{border:1px solid var(--line);border-radius:var(--radius-card);background:var(--card);box-shadow:0 8px 24px var(--shadow);overflow:hidden;margin-top:.7rem;margin-bottom:.7rem}
-.bs-summary-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.4rem .7rem .4rem .6rem;border-top:1px solid var(--line);border-left:4px solid var(--adriatic-deep);cursor:pointer;transition:background .15s}
+.bs-summary-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.4rem .7rem .4rem calc(.6rem + 4px);border-top:1px solid var(--line);position:relative;cursor:pointer;transition:background .15s}
+/* The accent bar is a separate absolutely-positioned layer (not a
+   border-left) so it can (a) round its top/bottom corners to match the
+   list container's own curve on the first/last row, and (b) sit on top of
+   -- rather than being interrupted by -- the row-divider line above it. */
+.bs-summary-row::before{content:"";position:absolute;left:0;top:-1px;bottom:0;width:4px;background:var(--adriatic-deep)}
 .bs-summary-list>.bs-summary-row:first-child{border-top:none}
+.bs-summary-list>.bs-summary-row:first-child::before{top:0;border-top-left-radius:var(--radius-card)}
+.bs-summary-list>.bs-summary-row:last-child::before{border-bottom-left-radius:var(--radius-card)}
 .bs-summary-row:hover{background:#f5f8f7}
 .bs-summary-row.bs-conflict:hover{background:#fbe4e4}
 .bs-summary-label{font-size:.86rem;color:var(--ink);font-weight:500;padding-left:.4rem}
@@ -455,8 +462,14 @@ section[id]{scroll-margin-top:84px}
 .tv-bookings{margin-bottom:1.1rem}
 .tv-bookings-label,.tv-itin-label{display:block;font-family:'Outfit';font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:.5rem}
 .tv-bk-list{border:1px solid var(--line);border-radius:var(--radius-card);overflow:hidden}
-.tv-bk-row{display:flex;align-items:center;gap:.6rem;padding:.55rem .8rem;border-top:1px solid var(--line);border-left:4px solid var(--accent,var(--adriatic-deep));cursor:pointer;transition:background .15s}
+.tv-bk-row{display:flex;align-items:center;gap:.6rem;padding:.55rem .8rem .55rem calc(.8rem + 4px);border-top:1px solid var(--line);position:relative;cursor:pointer;transition:background .15s}
+/* Same reasoning as .bs-summary-row above: a separate layer, not a
+   border-left, so it can round to match the list's own curve on the
+   first/last row and isn't interrupted by the row-divider line. */
+.tv-bk-row::before{content:"";position:absolute;left:0;top:-1px;bottom:0;width:4px;background:var(--accent,var(--adriatic-deep))}
 .tv-bk-list>.tv-bk-row:first-child{border-top:none}
+.tv-bk-list>.tv-bk-row:first-child::before{top:0;border-top-left-radius:var(--radius-card)}
+.tv-bk-list>.tv-bk-row:last-child::before{border-bottom-left-radius:var(--radius-card)}
 /* Rows now carry an inline background tint (computed per-row from that
    row's own city accent, see renderTvBookingRow) so the WHOLE row reads as
    highlighted, not just the left accent bar -- inline styles beat a plain
