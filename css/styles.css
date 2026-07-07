@@ -60,7 +60,7 @@ section[id]{scroll-margin-top:84px}
    banner. Positioned directly on .hero (not .hero-inner), so it's
    centered on the whole screen, independent of the text block's own
    bottom-anchored layout. */
-.hero-logo{position:absolute;z-index:3;top:50%;left:50%;width:140px;height:140px;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));transition:top .55s cubic-bezier(.4,0,.2,1),left .55s cubic-bezier(.4,0,.2,1),width .55s cubic-bezier(.4,0,.2,1),height .55s cubic-bezier(.4,0,.2,1),transform .55s cubic-bezier(.4,0,.2,1)}
+.hero-logo{position:absolute;z-index:3;top:50%;left:50%;width:88px;height:88px;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));transition:top .55s cubic-bezier(.4,0,.2,1),left .55s cubic-bezier(.4,0,.2,1),width .55s cubic-bezier(.4,0,.2,1),height .55s cubic-bezier(.4,0,.2,1),transform .55s cubic-bezier(.4,0,.2,1)}
 .hero-logo img{display:block;width:100%;height:100%}
 .hero.hero-collapsed .hero-logo{top:1.1rem;left:calc(100% - 1.2rem - 44px);width:44px;height:44px;transform:translate(0,0)}
 .hero-inner{position:relative;z-index:2;padding:0 8vw 7vh;max-width:1100px;transition:padding-bottom .55s cubic-bezier(.4,0,.2,1)}
