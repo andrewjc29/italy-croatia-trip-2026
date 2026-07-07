@@ -1321,6 +1321,11 @@ function renderTodayView(state) {
     const range = Store.getTripDateRange();
     const cd = buildCountdownCardHtml();
     let msg = "";
+    // Header day-counter (top-right of row 1) otherwise sits empty on any
+    // date outside the itinerary -- fill it with the same days-to-go /
+    // wrapped-up framing as the countdown card below, so there's always
+    // something there instead of a blank corner.
+    let counterText = "";
     if (!range.start) {
       msg = "Add stops to your itinerary to see day-by-day plans here.";
     } else {
@@ -1334,9 +1339,15 @@ function renderTodayView(state) {
       if (!(viewD < startD) && !(endD && viewD >= endD)) {
         msg = "No itinerary set for " + fmtDate(viewISO) + " yet.";
       }
+      if (viewD < startD) {
+        const daysToGo = Math.round((startD - viewD) / 86400000);
+        counterText = daysToGo === 1 ? "1 day to go" : daysToGo + " days to go";
+      } else if (endD && viewD >= endD) {
+        counterText = "Trip complete";
+      }
     }
     contentEl.innerHTML = cd + (msg ? '<div class="muted" style="padding:.6rem 0">' + esc(msg) + '</div>' : "");
-    if (dayCounterEl) dayCounterEl.textContent = "";
+    if (dayCounterEl) dayCounterEl.textContent = counterText;
     return;
   }
   const place = getPlace(today.placeId);
@@ -1504,8 +1515,14 @@ function initHeroIntro() {
   const hero = document.getElementById("hero");
   const heroTitle = document.getElementById("heroTitle");
   if (!hero) return;
+  // The bottom tab bar has nothing to do while the hero is still the
+  // full-bleed splash (logo only, no nav-worthy content on screen yet) --
+  // hide it for that brief hold, same as the collapse itself skips
+  // straight through under reduced motion.
+  document.body.classList.add("hero-full-hold");
   const collapse = () => {
     hero.classList.add("hero-collapsed");
+    document.body.classList.remove("hero-full-hold");
     if (heroTitle) heroTitle.innerHTML = HERO_TITLE_COMPACT;
   };
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
