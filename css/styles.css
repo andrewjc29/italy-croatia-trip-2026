@@ -526,8 +526,9 @@ section[id]{scroll-margin-top:84px}
    Now a plain .wrap section like Bookings/Toolkit (light card background,
    dark text), sitting under the shared full-bleed .section-banner. */
 .prep-wrap{max-width:800px;margin:2.6rem auto 0}
-/* Each timeframe is its own card, each with its own "Hide completed"
-   toggle so filtering can be done section by section. */
+/* Each timeframe is its own card, each with its own "Show completed"
+   toggle so filtering can be done section by section -- completed to-dos
+   start hidden by default (.hide-done is the default state, see JS). */
 #prepList{display:flex;flex-direction:column;gap:1.2rem}
 .prep-phase{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:0 8px 24px var(--shadow);padding:1.3rem 1.5rem}
 .prep-phase-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:.3rem}

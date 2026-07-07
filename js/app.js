@@ -14,7 +14,9 @@ const SESSION_BS_FILTER = {};
 // Same idea, scoped to Prep: each timeframe card has its own "Hide
 // completed" checkbox, keyed by phase name. In-memory only, so every card
 // shows everything again on a fresh page load.
-const PREP_HIDE_DONE = {};
+// phase -> true once its "Show completed" box is checked. Absent/false is
+// the default on every page load, meaning completed to-dos start hidden.
+const PREP_SHOW_DONE = {};
 
 // ---- destination catalog accessor ----
 // The effective catalog is the built-in library (PLACES, authored in code)
@@ -2297,9 +2299,9 @@ function attachPrepToggleHandlers(container) {
     if (item) openPrepItemModal(state2, item);
   }));
   container.querySelectorAll("[data-prep-hide-phase]").forEach((cb) => cb.addEventListener("change", () => {
-    PREP_HIDE_DONE[cb.dataset.prepHidePhase] = cb.checked;
+    PREP_SHOW_DONE[cb.dataset.prepHidePhase] = cb.checked;
     const card = cb.closest(".prep-phase");
-    if (card) card.classList.toggle("hide-done", cb.checked);
+    if (card) card.classList.toggle("hide-done", !cb.checked);
   }));
 }
 
@@ -2340,17 +2342,18 @@ function prepItemHtml(item) {
     '<button class="prep-edit" data-prep-edit="' + item.id + '">edit</button></div>';
 }
 function prepPhaseBlock(phaseName, items) {
-  const hideOn = !!PREP_HIDE_DONE[phaseName];
-  return '<div class="prep-phase' + (hideOn ? " hide-done" : "") + '">' +
+  const showOn = !!PREP_SHOW_DONE[phaseName];
+  return '<div class="prep-phase' + (showOn ? "" : " hide-done") + '">' +
     '<div class="prep-phase-head"><h4>' + esc(phaseName) + '</h4>' +
-    '<label class="prep-hide-toggle"><input type="checkbox" data-prep-hide-phase="' + esc(phaseName) + '"' + (hideOn ? " checked" : "") + '> Hide completed</label></div>' +
+    '<label class="prep-hide-toggle"><input type="checkbox" data-prep-hide-phase="' + esc(phaseName) + '"' + (showOn ? " checked" : "") + '> Show completed</label></div>' +
     items.map(prepItemHtml).join("") +
     '<button class="prep-add" data-prep-add-phase="' + esc(phaseName) + '">+ Add to-do</button></div>';
 }
-// Each card's "Hide completed" checkbox filters just that card (not
-// persisted -- resets to unchecked, i.e. show everything, on every page
-// load, same as the collapsible sections). Toggling it adds/removes a
-// class on that .prep-phase card; CSS below hides rows already marked .done.
+// Each card's "Show completed" checkbox filters just that card (not
+// persisted -- resets to unchecked, i.e. completed to-dos start hidden, on
+// every page load, same as the collapsible sections). Toggling it adds/
+// removes a class on that .prep-phase card; CSS below hides rows already
+// marked .done unless that class is off.
 
 function renderPrep(state) {
   const items = state.prepChecklist || [];
