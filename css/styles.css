@@ -295,19 +295,26 @@ section[id]{scroll-margin-top:84px}
    expanding either section (both default closed on every load). Tapping a
    row jumps to + auto-opens the matching collapsible below rather than
    expanding inline -- one source of truth for the actual booking detail. */
-.bs-summary-list{border:1px solid var(--line);border-radius:var(--radius-card);background:var(--card);box-shadow:0 8px 24px var(--shadow);overflow:hidden;margin-bottom:1rem}
-.bs-summary-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.65rem .9rem;border-top:1px solid var(--line);cursor:pointer;transition:background .15s}
+.bs-summary-list{border:1px solid var(--line);border-radius:var(--radius-card);background:var(--card);box-shadow:0 8px 24px var(--shadow);overflow:hidden;margin-bottom:.7rem}
+.bs-summary-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.4rem .7rem;border-top:1px solid var(--line);cursor:pointer;transition:background .15s}
 .bs-summary-list>.bs-summary-row:first-child{border-top:none}
 .bs-summary-row:hover{background:#f5f8f7}
 .bs-summary-row.bs-conflict:hover{background:#fbe4e4}
-.bs-summary-label{font-size:.95rem;color:var(--ink);font-weight:500}
-.bs-summary-status{display:inline-flex;align-items:center;gap:.4rem;font-family:'Outfit';font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
-.bs-summary-status.status-confirmed{color:var(--good)}
-.bs-summary-status.status-booked{color:#7a5c00}
-.bs-summary-status.status-idea{color:#8a4a1c}
-.bs-summary-status.status-partial{color:#b0530c}
-.bs-summary-status.status-missing{color:var(--danger)}
+.bs-summary-label{font-size:.86rem;color:var(--ink);font-weight:500}
+.bs-summary-status{display:inline-flex;align-items:center;gap:.35rem;font-family:'Outfit';font-size:.62rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;padding:.2rem .55rem;border-radius:10px}
+.bs-summary-status svg{flex-shrink:0}
+.bs-summary-status.status-confirmed{background:#e0efe4;color:#276149}
+.bs-summary-status.status-booked{background:#fff3c4;color:#7a5c00}
+.bs-summary-status.status-idea{background:#f7e6d8;color:#8a4a1c}
+.bs-summary-status.status-partial{background:#fbe6d4;color:#8a3d09}
+.bs-summary-status.status-missing{background:#fbdede;color:#9c2b2b}
 .bs-summary-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0;margin-left:.4rem}
+/* Hotels/Transportation headers live inside #bookingStatusPanel only --
+   scoped here so the "+" and chevron pick up the header's own navy title
+   color instead of the terracotta default the per-city sections use. */
+#bookingStatusPanel .sec-add{background:var(--adriatic-deep)}
+#bookingStatusPanel .plan-collapse summary .arw{color:var(--adriatic-deep)}
+#bookingStatusPanel .sub-h{margin-top:1.4rem}
 
 /* ---- trip countdown banner ---- */
 /* Countdown card -- shared markup used inside the Today box (was formerly

@@ -5,6 +5,11 @@
 // load; toggling one open is remembered only for the rest of this visit, via
 // this plain object rather than localStorage.
 const SESSION_COLLAPSE_STATE = {};
+// Two-tier expand for the Bookings dashboard: null/unset means "show every
+// city's block" (the chevron/header always resets to this). A placeId
+// means "show only that one city's block, hide the rest entirely" (set by
+// tapping a specific summary row). Keyed by "bs-hotels" / "bs-transport".
+const SESSION_BS_FILTER = {};
 
 // Same idea, scoped to Prep: each timeframe card has its own "Hide
 // completed" checkbox, keyed by phase name. In-memory only, so every card
@@ -1504,7 +1509,7 @@ function renderBookingStatus(state) {
     const placeDateLabel = r.dateStart ? esc(fmtDate(r.dateStart)) + " &ndash; " + esc(fmtDate(r.dateEnd)) : "dates not set";
     const headHtml = '<div class="bs-city-head" data-bs-city="' + esc(r.placeId) + '">' + placeLabel + '<span class="bs-place-nights muted">' + placeDateLabel + '</span></div>';
     if (!r.dateStart || !r.nights) {
-      return headHtml + '<div class="bs-cards"><div class="muted">Set trip dates to track by night.</div></div>';
+      return '<div class="bs-block" data-bs-hotel-block="' + esc(r.placeId) + '">' + headHtml + '<div class="bs-cards"><div class="muted">Set trip dates to track by night.</div></div></div>';
     }
     const lodgings = state.bookings.filter((b) => b.category === "lodging" && (!place || place.cityIds.includes(b.city)));
     const nightList = [];
@@ -1545,7 +1550,7 @@ function renderBookingStatus(state) {
         '<span>' + esc(b.title) + '</span></div>' + statusCell(b.status) +
         '<button class="link danger bs-card-remove" data-bs-remove="' + b.id + '" onclick="event.stopPropagation()">remove</button></div>';
     }).join("");
-    return headHtml + '<div class="bs-cards">' + cards + '</div>';
+    return '<div class="bs-block" data-bs-hotel-block="' + esc(r.placeId) + '">' + headHtml + '<div class="bs-cards">' + cards + '</div></div>';
   }).join("");
   // ---- hotel status rollup, one chip per city (missing / partially
   // booked / idea / booked-or-confirmed), for the at-a-glance summary
@@ -1554,13 +1559,13 @@ function renderBookingStatus(state) {
   // just condensed to a single status instead of a run-by-run list.
   const statusWord = (status) => status.charAt(0).toUpperCase() + status.slice(1);
   const summaryIcon = (status) => {
-    const a = 'viewBox="0 0 24 24" width="16" height="16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
+    const a = 'viewBox="0 0 24 24" width="13" height="13" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"';
     const icons = {
-      confirmed: '<svg ' + a + ' stroke="var(--good)"><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6 4.8-5.8"/></svg>',
+      confirmed: '<svg ' + a + ' stroke="#276149"><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6 4.8-5.8"/></svg>',
       booked: '<svg ' + a + ' stroke="#7a5c00"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v4.8l3.2 1.8"/></svg>',
       idea: '<svg ' + a + ' stroke="#8a4a1c"><circle cx="12" cy="12" r="9" stroke-dasharray="2.4 3"/></svg>',
-      partial: '<svg ' + a + ' stroke="#b0530c"><circle cx="12" cy="12" r="9"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="#b0530c" stroke="none"/></svg>',
-      missing: '<svg ' + a + ' stroke="var(--danger)"><path d="M12 3.5l9.5 16.5h-19z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="17" r=".9" fill="var(--danger)" stroke="none"/></svg>'
+      partial: '<svg ' + a + ' stroke="#8a3d09"><circle cx="12" cy="12" r="9"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="#8a3d09" stroke="none"/></svg>',
+      missing: '<svg ' + a + ' stroke="#9c2b2b"><path d="M12 3.5l9.5 16.5h-19z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="17" r=".9" fill="#9c2b2b" stroke="none"/></svg>'
     };
     return icons[status] || icons.idea;
   };
@@ -1686,8 +1691,9 @@ function renderBookingStatus(state) {
     const standalone = (r.dateStart ? transportBookings.filter((t) => !matchedIds.has(t.id) && place && place.cityIds.includes(t.city) && t.date >= r.dateStart && t.date <= r.dateEnd) : [])
       .map((t) => transportCardHtml(t, null, null)).join("");
     const cardsHtml = legCards + standalone;
-    if (!cardsHtml) return headHtml + '<div class="bs-cards"><div class="muted">Nothing tied to this city&rsquo;s dates yet.</div></div>';
-    return headHtml + '<div class="bs-cards">' + cardsHtml + '</div>';
+    const blockOpen = '<div class="bs-block" data-bs-transport-block="' + esc(r.placeId) + '">';
+    if (!cardsHtml) return blockOpen + headHtml + '<div class="bs-cards"><div class="muted">Nothing tied to this city&rsquo;s dates yet.</div></div></div>';
+    return blockOpen + headHtml + '<div class="bs-cards">' + cardsHtml + '</div></div>';
   }).join("");
   // Same collapsible-section chrome as Where to stay / See & do / Where to
   // eat (sub-h header, rule, a "+" to add a new booking, chevron), instead
@@ -1700,14 +1706,38 @@ function renderBookingStatus(state) {
     '<details class="plan-collapse" data-collapse-key="bs-transport">' +
     '<summary><div class="sub-h"><h3>Transportation</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-transport" title="Add a transport booking" aria-label="Add a transport booking">+</button><span class="arw">&rsaquo;</span></div>' + legSummaryHtml + '</summary>' +
     '<div class="plan-collapse-body bs-group">' + transportGroups + '</div></details>';
+  // Two-tier expand: tapping the chevron/header (anywhere in <summary>
+  // that isn't a row or the "+" button, both of which stopPropagation)
+  // opens every city's block -- that's the SESSION_BS_FILTER reset below.
+  // Tapping a specific summary row instead filters down to just that
+  // city's block (see the [data-bs-jump-*] handlers further down), hiding
+  // the rest entirely rather than leaving them visible-but-collapsed.
+  const blockAttr = (key) => (key === "bs-hotels" ? "data-bs-hotel-block" : "data-bs-transport-block");
+  const applyBsFilter = (key) => {
+    const attr = blockAttr(key);
+    const filter = SESSION_BS_FILTER[key];
+    el2.querySelectorAll("[" + attr + "]").forEach((block) => {
+      block.style.display = filter && block.getAttribute(attr) !== filter ? "none" : "";
+    });
+  };
   // Same collapse-state handling as the per-city planning sections -- these
   // start closed on every page load, then remember whatever you left them
   // at only for the rest of this visit (in-memory state, not persisted).
   el2.querySelectorAll(".plan-collapse").forEach((det) => {
     if (SESSION_COLLAPSE_STATE[det.dataset.collapseKey]) det.setAttribute("open", "");
     else det.removeAttribute("open");
+    applyBsFilter(det.dataset.collapseKey);
     det.addEventListener("toggle", () => {
       SESSION_COLLAPSE_STATE[det.dataset.collapseKey] = det.open;
+      applyBsFilter(det.dataset.collapseKey);
+    });
+    det.querySelector("summary").addEventListener("click", () => {
+      // Applied here directly rather than left to the "toggle" listener
+      // above -- the native toggle event fires as a queued task per spec,
+      // not synchronously with the click, so waiting on it would leave a
+      // beat where the filter state and the visible DOM disagree.
+      SESSION_BS_FILTER[det.dataset.collapseKey] = null;
+      applyBsFilter(det.dataset.collapseKey);
     });
   });
   el2.querySelectorAll("[data-sec-add]").forEach((btn) => btn.addEventListener("click", (e) => {
@@ -1756,6 +1786,8 @@ function renderBookingStatus(state) {
     e.stopPropagation();
     const det = el2.querySelector('[data-collapse-key="bs-hotels"]');
     if (det && !det.open) { det.setAttribute("open", ""); SESSION_COLLAPSE_STATE["bs-hotels"] = true; }
+    SESSION_BS_FILTER["bs-hotels"] = chip.dataset.bsJumpHotelCity;
+    applyBsFilter("bs-hotels");
     const head = Array.from(el2.querySelectorAll(".bs-city-head")).find((h) => h.dataset.bsCity === chip.dataset.bsJumpHotelCity);
     if (head) head.scrollIntoView({ behavior: "smooth", block: "start" });
   }));
@@ -1764,6 +1796,14 @@ function renderBookingStatus(state) {
     e.stopPropagation();
     const det = el2.querySelector('[data-collapse-key="bs-transport"]');
     if (det && !det.open) { det.setAttribute("open", ""); SESSION_COLLAPSE_STATE["bs-transport"] = true; }
+    // The summary row is per-leg, but the detail list below groups by city
+    // (a city can hold two legs, e.g. an arrival + a departure) -- so this
+    // filters to that leg's city block rather than isolating the single
+    // leg card. Simpler and consistent with how Hotels filters, at the
+    // cost of occasionally showing one extra card alongside the tapped leg.
+    const leg = legDefs.find((l) => l.key === chip.dataset.bsJumpLeg);
+    SESSION_BS_FILTER["bs-transport"] = leg ? leg.contextPlaceId : null;
+    applyBsFilter("bs-transport");
     const card = Array.from(el2.querySelectorAll("[data-bs-leg-key]")).find((c) => c.dataset.bsLegKey === chip.dataset.bsJumpLeg);
     if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
   }));
