@@ -1221,38 +1221,35 @@ function renderTodayView(state) {
   const rel = todayViewOffset;
   const badge = section.querySelector(".tv-badge");
   if (badge) {
-    // Today/Tomorrow/Yesterday are genuinely useful shorthand. Beyond that
-    // range the date pill next to this badge already spells out the
-    // weekday (fmtDate = "Sat, Jul 4"), so repeating it here as "Saturday"
-    // would be redundant -- but the badge is also the only "back to today"
-    // control now that the date button opens a picker that can jump
-    // arbitrarily far away, so it still needs to show *something*
-    // clickable rather than disappear once you're more than a day out.
-    const relLabel = rel === 0 ? (previewDate ? "Today (preview)" : "Today")
-      : rel === 1 ? "Tomorrow" : rel === -1 ? "Yesterday" : "Today";
-    badge.textContent = relLabel;
-    badge.classList.remove("hidden");
-    badge.title = rel === 0 ? "" : "Tap to jump back to today";
-    badge.onclick = rel === 0 ? null : () => { todayViewOffset = 0; renderTodayView(Store.getState()); };
-    badge.style.cursor = rel === 0 ? "" : "pointer";
+    // Default state is today, so no badge at all there -- nothing to
+    // announce. The moment you're on any other date (via the arrows or
+    // the calendar picker below), this becomes a plain, clearly-labeled
+    // "Back to today" button rather than trying to double as a Today/
+    // Tomorrow/Yesterday indicator, which read ambiguously once it could
+    // also show up for dates far from today.
+    if (rel === 0) {
+      badge.classList.add("hidden");
+      badge.onclick = null;
+    } else {
+      badge.textContent = "Back to today";
+      badge.classList.remove("hidden");
+      badge.title = "";
+      badge.onclick = () => { todayViewOffset = 0; renderTodayView(Store.getState()); };
+    }
   }
   const dateBtn = document.getElementById("todayDate");
   const dateInput = document.getElementById("tvDateInput");
   if (dateBtn) {
     dateBtn.innerHTML = esc(fmtDate(viewISO)) +
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>';
-    // Tapping the date opens a native calendar picker to jump straight to
-    // any date, instead of only being able to page one day at a time with
-    // the arrows. Getting back to today is still just the badge (hidden
-    // once you're already on it, since it'd be redundant there).
-    dateBtn.onclick = () => {
-      if (!dateInput) return;
-      dateInput.value = viewISO;
-      if (dateInput.showPicker) dateInput.showPicker();
-      else dateInput.click();
-    };
   }
   if (dateInput) {
+    // The real <input type="date"> sits invisibly right on top of the
+    // .tv-date label (see CSS) -- tapping the label taps the input
+    // directly, which is what actually opens the native picker reliably.
+    // Keeping its value synced every render means whenever it's tapped,
+    // the picker already opens on the date currently being viewed.
+    dateInput.value = viewISO;
     dateInput.onchange = () => {
       if (!dateInput.value) return;
       todayViewOffset = isoDiffDays(baseISO, dateInput.value);
@@ -2378,6 +2375,14 @@ function setupScrollspy() {
   const clearSuppress = () => { suppressSpy = false; };
   links.forEach((l) => l.addEventListener("click", () => {
     const target = document.getElementById(l.dataset.target);
+    // Tapping Today in either nav should always land you on the actual
+    // current day, not wherever you last left the ‹ › arrows or the
+    // calendar picker pointed -- otherwise "Today" can silently show a
+    // stale date from an earlier browse.
+    if (l.dataset.target === "todayView" && todayViewOffset !== 0) {
+      todayViewOffset = 0;
+      renderTodayView(Store.getState());
+    }
     if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
     links.forEach((x) => x.classList.toggle("active", x.dataset.target === l.dataset.target));
     suppressSpy = true;
