@@ -43,7 +43,9 @@
   </div>
 </header>
 
+<div class="tv-backdrop" id="tvBackdrop"></div>
 <section class="today-view" id="todayView" style="display:none">
+  <div class="tv-handle-slot" id="tvIconSlot"></div>
   <div class="tv-head"><button class="tv-badge" id="tvBackToday" aria-label="Back to today"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Today</button>
     <span class="tv-date-wrap">
       <span class="tv-date" id="todayDate" aria-hidden="true"></span>
@@ -55,6 +57,7 @@
       </span>
       <span class="tv-arrows"><button class="tv-arrow" id="tvPrev" aria-label="Previous day"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><button class="tv-arrow" id="tvNext" aria-label="Next day"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></span>
     </span>
+    <button class="tv-close" id="tvClose" aria-label="Close today panel"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg></button>
   </div>
   <div id="todayContent"></div>
 </section>

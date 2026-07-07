@@ -427,11 +427,46 @@ section[id]{scroll-margin-top:84px}
 .bi-amt{font-family:'Fraunces';font-size:.95rem;color:var(--adriatic-deep);white-space:nowrap}
 .bi-meta{font-size:.74rem;width:100%}
 
-/* ---- today view: unmissable while actually traveling ---- */
-.today-view{max-width:760px;margin:1.6rem auto 0;padding:0 2rem}
+/* ---- today view: a bottom-sheet / centered-modal overlay, opened from
+   the "sun" tab (mobile) or the Today nav link (desktop) rather than
+   living inline in the page flow -- keeps the initial load clean (header,
+   then straight into the itinerary) with today's plan a tap away. ---- */
+.tv-backdrop{position:fixed;inset:0;background:rgba(18,34,44,.4);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:74}
+.tv-backdrop.tv-open{opacity:1;pointer-events:auto}
+.today-view{
+  position:fixed;left:0;right:0;bottom:0;z-index:75;
+  max-width:760px;margin:0 auto;padding:0 0 env(safe-area-inset-bottom);
+  max-height:88vh;display:flex;flex-direction:column;
+  transform:translateY(104%);transition:transform .38s cubic-bezier(.4,0,.2,1);
+  visibility:hidden;
+}
+.today-view.tv-open{transform:translateY(0);visibility:visible}
 .today-view + .intro{padding-top:.5rem}
 .today-view + .intro .itinerary-editor{margin-top:.8rem}
-.tv-head{background:var(--adriatic-deep);color:#fff;border-radius:14px 14px 0 0;padding:.7rem 1.3rem;display:flex;align-items:center;gap:.8rem}
+/* Docking slot for the bottom-nav "sun" icon on mobile -- empty and
+   collapsed by default, only takes up space once JS actually moves the
+   icon in here as the sheet opens (see moveTodayIcon in app.js). */
+.tv-handle-slot{display:flex;justify-content:center;min-height:0;position:relative;z-index:2}
+.tv-handle-slot:has(.bn-today-ico){margin-bottom:-23px}
+.tv-handle-slot .bn-today-ico{border:3px solid var(--paper)}
+.tv-close{position:absolute;top:.65rem;right:.7rem;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.tv-close:hover{background:rgba(255,255,255,.3)}
+body.tv-sheet-open{overflow:hidden}
+/* Desktop/tablet: a centered modal instead of a bottom sheet -- there's no
+   bottom nav or "sun" tab up here, so the Today link in the top nav is the
+   only trigger, and the panel scales/fades in rather than sliding up. */
+@media(min-width:601px){
+  .today-view{
+    left:50%;right:auto;bottom:auto;top:50%;
+    transform:translate(-50%,-46%) scale(.96);
+    width:92vw;max-width:560px;max-height:82vh;
+    border-radius:var(--radius-card);overflow:hidden;
+    opacity:0;transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s ease;
+  }
+  .today-view.tv-open{transform:translate(-50%,-50%) scale(1);opacity:1}
+  .tv-handle-slot{display:none}
+}
+.tv-head{position:relative;background:var(--adriatic-deep);color:#fff;border-radius:14px 14px 0 0;padding:.7rem 2.6rem .7rem 1.3rem;display:flex;align-items:center;gap:.8rem;flex-shrink:0}
 /* Compact "‹ Today" reset button -- only visible once you've paged away
    from today via the arrows or the calendar picker. Same translucent
    rounded-pill treatment as the itinerary editor's "Edit" button
@@ -459,7 +494,7 @@ section[id]{scroll-margin-top:84px}
 .tv-arrow{background:rgba(255,255,255,.14);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1.15rem;line-height:1;display:flex;align-items:center;justify-content:center;padding:0}
 .tv-arrow:hover{background:rgba(255,255,255,.3)}
 .tv-arrow:disabled{opacity:.3;cursor:default}
-#todayContent{background:var(--card);border:1px solid var(--line);border-radius:0 0 14px 14px;padding:1.1rem 1.3rem 1.3rem;box-shadow:0 10px 28px var(--shadow)}
+#todayContent{background:var(--card);border:1px solid var(--line);border-radius:0 0 14px 14px;padding:1.1rem 1.3rem 1.3rem;box-shadow:0 10px 28px var(--shadow);overflow-y:auto;flex:1;min-height:0}
 .tv-city{font-family:'Fraunces';font-size:1.3rem;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin:.1rem 0 .7rem}
 .tv-city .tv-daynum{font-family:'Outfit';font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
 /* Forecast strip + jump-to-city button, grouped together and pushed to the
@@ -689,7 +724,12 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .bn-tab.active{color:var(--terracotta)}
   .bn-tab.active svg{stroke:var(--terracotta)}
   /* Emphasized center Today tab -- raised filled accent circle. */
-  .bn-today-ico{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:var(--terracotta);margin-top:-22px;margin-bottom:1px;box-shadow:0 4px 12px rgba(207,125,84,.4)}
+  .bn-today-ico{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:var(--terracotta);margin-top:-22px;margin-bottom:1px;box-shadow:0 4px 12px rgba(207,125,84,.4);cursor:pointer}
+  /* Applied only while it's actually mid-flight between the nav bar and
+     the sheet header (see moveTodayIcon in app.js) -- left off by default
+     so it never fights the rest of the site's global transition:none
+     rule under prefers-reduced-motion. */
+  .bn-today-ico.tv-icon-flying{transition:transform .38s cubic-bezier(.4,0,.2,1)}
   .bn-today .bn-today-ico svg{width:23px;height:23px;stroke:#fff}
   .bn-today span{color:var(--terracotta);font-weight:600}
   .totop{bottom:calc(5.2rem + env(safe-area-inset-bottom))}

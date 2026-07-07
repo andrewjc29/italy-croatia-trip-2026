@@ -2432,6 +2432,109 @@ function renderAll(state, syncStatus) {
   renderBudget(state);
 }
 
+// ---- today sheet: bottom sheet on mobile, centered modal on desktop ----
+// Lives fixed/overlaid rather than inline in the page flow, so the page
+// loads straight into the header + itinerary. Opened from the "sun" tab
+// (mobile bottom nav) or the Today link in the top nav (desktop), closed
+// via the (x) button, a backdrop tap, or Escape.
+function isMobileTodayNav() {
+  return window.matchMedia && window.matchMedia("(max-width:600px)").matches;
+}
+
+function reduceMotionActive() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+// FLIP-moves the real "sun" icon element between its resting spot in the
+// bottom nav and a docking slot at the top of the sheet, so it visually
+// travels with the sheet rather than a generic drag-handle bar appearing
+// in its place -- only meaningful on mobile, where the bottom nav (and
+// therefore the icon) actually exists on screen.
+function moveTodayIcon(toSheet) {
+  if (!isMobileTodayNav()) return;
+  const icon = document.querySelector(".bn-today-ico");
+  const navBtn = document.querySelector(".bn-today");
+  const sheetSlot = document.getElementById("tvIconSlot");
+  if (!icon || !navBtn || !sheetSlot) return;
+  const dest = toSheet ? sheetSlot : navBtn;
+  if (icon.parentElement === dest) return;
+  if (reduceMotionActive()) {
+    dest.prepend(icon);
+    return;
+  }
+  const before = icon.getBoundingClientRect();
+  dest.prepend(icon);
+  const after = icon.getBoundingClientRect();
+  const dx = before.left - after.left;
+  const dy = before.top - after.top;
+  icon.classList.remove("tv-icon-flying");
+  icon.style.transform = "translate(" + dx + "px," + dy + "px)";
+  // Force layout before re-enabling the transition so the browser animates
+  // FROM the offset transform back to none, instead of jumping instantly.
+  void icon.offsetWidth;
+  icon.classList.add("tv-icon-flying");
+  icon.style.transform = "";
+  icon.addEventListener("transitionend", () => icon.classList.remove("tv-icon-flying"), { once: true });
+}
+
+function onTvKeydown(e) {
+  if (e.key === "Escape") closeTodaySheet();
+}
+
+function openTodaySheet() {
+  const section = document.getElementById("todayView");
+  const backdrop = document.getElementById("tvBackdrop");
+  if (!section || !backdrop) return;
+  todayViewOffset = 0;
+  renderTodayView(Store.getState());
+  moveTodayIcon(true);
+  document.body.classList.add("tv-sheet-open");
+  section.classList.add("tv-open");
+  backdrop.classList.add("tv-open");
+  document.addEventListener("keydown", onTvKeydown);
+}
+
+function closeTodaySheet() {
+  const section = document.getElementById("todayView");
+  const backdrop = document.getElementById("tvBackdrop");
+  if (!section || !backdrop) return;
+  section.classList.remove("tv-open");
+  backdrop.classList.remove("tv-open");
+  document.body.classList.remove("tv-sheet-open");
+  moveTodayIcon(false);
+  document.removeEventListener("keydown", onTvKeydown);
+  // Don't leave the Today tab looking active once its sheet is closed --
+  // whatever section is actually in view will pick up "active" again on
+  // the next scroll via the IntersectionObserver in setupScrollspy.
+  document.querySelectorAll(".tl, .bn-tab").forEach((l) => {
+    if (l.dataset.target === "todayView") l.classList.remove("active");
+  });
+}
+
+function isTodaySheetOpen() {
+  const section = document.getElementById("todayView");
+  return !!section && section.classList.contains("tv-open");
+}
+
+function setupTodaySheet() {
+  const backdrop = document.getElementById("tvBackdrop");
+  const closeBtn = document.getElementById("tvClose");
+  if (backdrop) backdrop.addEventListener("click", closeTodaySheet);
+  if (closeBtn) closeBtn.addEventListener("click", closeTodaySheet);
+  // The sun icon doubles as the sheet's own handle -- once it has flown up
+  // into the sheet header, tapping it again closes the sheet (the same
+  // gesture you'd use to drag a real bottom sheet back down).
+  const icon = document.querySelector(".bn-today-ico");
+  if (icon) {
+    icon.addEventListener("click", (e) => {
+      if (icon.closest("#todayView")) {
+        e.stopPropagation();
+        closeTodaySheet();
+      }
+    });
+  }
+}
+
 // ---- scrollspy ----
 // Drives both the top nav chips (.tl) and the mobile bottom tab bar
 // (.bn-tab) off the same click-to-jump + IntersectionObserver highlighting
@@ -2442,7 +2545,10 @@ function renderAll(state, syncStatus) {
 // jump to (see index.html).
 function setupScrollspy() {
   const links = Array.from(document.querySelectorAll(".tl, .bn-tab"));
-  const sections = links.map((l) => document.getElementById(l.dataset.target)).filter(Boolean);
+  // todayView is now an overlay sheet, not a scrollable section -- it's
+  // reachable via the same data-target links, but shouldn't be part of
+  // the IntersectionObserver's scroll-position band.
+  const sections = links.map((l) => document.getElementById(l.dataset.target)).filter((s) => s && s.id !== "todayView");
   // A tap sets the highlight immediately (source of truth for the target
   // you asked for), then the smooth scroll animation runs. While that
   // animation is in flight, the IntersectionObserver's band can briefly
@@ -2455,15 +2561,16 @@ function setupScrollspy() {
   let suppressTimer = null;
   const clearSuppress = () => { suppressSpy = false; };
   links.forEach((l) => l.addEventListener("click", () => {
-    const target = document.getElementById(l.dataset.target);
-    // Tapping Today in either nav should always land you on the actual
-    // current day, not wherever you last left the ‹ › arrows or the
-    // calendar picker pointed -- otherwise "Today" can silently show a
-    // stale date from an earlier browse.
-    if (l.dataset.target === "todayView" && todayViewOffset !== 0) {
-      todayViewOffset = 0;
-      renderTodayView(Store.getState());
+    // Today is an overlay sheet now, not a page section -- open it instead
+    // of scrolling, and always land on the actual current day rather than
+    // wherever the ‹ › arrows or calendar picker last left it, so "Today"
+    // never silently shows a stale date from an earlier browse.
+    if (l.dataset.target === "todayView") {
+      openTodaySheet();
+      links.forEach((x) => x.classList.toggle("active", x.dataset.target === l.dataset.target));
+      return;
     }
+    const target = document.getElementById(l.dataset.target);
     if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
     links.forEach((x) => x.classList.toggle("active", x.dataset.target === l.dataset.target));
     suppressSpy = true;
@@ -2526,6 +2633,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupStaticBindings();
   setupScrollspy();
   setupTotop();
+  setupTodaySheet();
   initHeroIntro();
   Store.subscribe(renderAll);
   await Store.init();
