@@ -268,8 +268,30 @@ function renderTodayActivityLine(a, nn, canMove) {
   const pill = nn ? '<span class="nn-pill nn-' + nn + '">' + nn + '</span>' : "";
   const moveBtn = canMove ? '<button class="move-tomorrow" data-move-tomorrow="' + a.id + '" title="Move to tomorrow">&rarr; tomorrow</button>' : "";
   return '<div class="item-line item-line-clickable' + (nn === "now" ? " is-now" : "") + '" data-view-activity="' + a.id + '">' +
-    '<span><span class="time">' + esc(a.time || "") + '</span>' + esc(a.title) + pill + '</span>' +
+    '<span><span class="time">' + esc(a.time ? fmtTime12(a.time) : "") + '</span>' + esc(a.title) + pill + '</span>' +
     '<span class="il-actions">' + moveBtn + '</span></div>';
+}
+
+// Today view "Bookings" card: hotel check-in/check-out and transport for
+// this specific day, as bordered rows -- distinct from renderDayHotelBar's
+// solid-fill treatment used in the main hourly-rail day boxes elsewhere.
+// Left accent matches the city that row belongs to (departure city for a
+// check-out, arrival city for a check-in), not a fixed color.
+function renderTvBookingRow(bookingId, label, title, status, accentColor) {
+  return '<div class="tv-bk-row" style="--accent:' + accentColor + '" data-view-booking="' + bookingId + '">' +
+    (label ? '<span class="tv-bk-label">' + esc(label) + '</span>' : "") +
+    '<span class="tv-bk-title">' + esc(title) + '</span>' +
+    '<span class="status-pill ' + esc(status || "idea") + '">' + esc(status || "idea") + '</span></div>';
+}
+
+// A timed booking moment (check-in/out, timed transport) inside the Today
+// view's merged chronological itinerary -- reuses the hourly rail's
+// .rail-event treatment (colored left border, not a solid-fill block),
+// accented to whichever city that specific moment belongs to.
+function renderTvBookingEventLine(ev, accentColor) {
+  return '<div class="item-line item-line-clickable rail-event" style="--accent:' + accentColor + '" data-view-booking="' + ev.booking.id + '">' +
+    '<span><span class="time">' + esc(fmtTime12(ev.time)) + '</span><span class="rail-event-label">' + esc(ev.label) + '</span> ' + esc(ev.booking.title) + '</span>' +
+    '<span class="il-actions"><span class="status-pill ' + esc(ev.booking.status || "idea") + '">' + esc(ev.booking.status || "idea") + '</span></span></div>';
 }
 
 let foodFilter = {}; // placeId -> "all" | "veg" | "nonveg"
@@ -1219,34 +1241,31 @@ function renderTodayView(state) {
   // date has an itinerary day.
   section.style.display = "";
   const rel = todayViewOffset;
-  const badge = section.querySelector(".tv-badge");
+  const badge = document.getElementById("tvBackToday");
   if (badge) {
-    // Default state is today, so no badge at all there -- nothing to
-    // announce. The moment you're on any other date (via the arrows or
-    // the calendar picker below), this becomes a plain, clearly-labeled
-    // "Back to today" button rather than trying to double as a Today/
-    // Tomorrow/Yesterday indicator, which read ambiguously once it could
-    // also show up for dates far from today.
+    // Default state is today, so no reset control at all there -- nothing
+    // to reset. The moment you're on any other date (via the arrows or
+    // the calendar picker), this becomes a compact "‹ Today" button.
     if (rel === 0) {
       badge.classList.add("hidden");
       badge.onclick = null;
     } else {
-      badge.textContent = "Back to today";
       badge.classList.remove("hidden");
-      badge.title = "";
       badge.onclick = () => { todayViewOffset = 0; renderTodayView(Store.getState()); };
     }
   }
   const dateBtn = document.getElementById("todayDate");
   const dateInput = document.getElementById("tvDateInput");
   if (dateBtn) {
-    dateBtn.innerHTML = esc(fmtDate(viewISO)) +
-      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>';
+    dateBtn.textContent = fmtDate(viewISO);
   }
   if (dateInput) {
     // The real <input type="date"> sits invisibly right on top of the
-    // .tv-date label (see CSS) -- tapping the label taps the input
-    // directly, which is what actually opens the native picker reliably.
+    // calendar icon button (see CSS, .tv-cal-btn), which now lives next to
+    // the ‹ › arrows instead of inline with the date text -- tapping the
+    // icon taps the input directly, which is what actually opens the
+    // native picker reliably, and its screen position no longer shifts
+    // as the date text next to it changes width.
     // Keeping its value synced every render means whenever it's tapped,
     // the picker already opens on the date currently being viewed.
     dateInput.value = viewISO;
@@ -1320,46 +1339,42 @@ function renderTodayView(state) {
       (showLiveForecast ? '<span class="tv-forecast muted" id="todayForecastStrip">Loading forecast&hellip;</span>' : "") +
       '</div>'
     : "";
-  // Schedule is activities only now -- hotel status and transport (timed
-  // or not) move into their own "Today's logistics" banner below, so the
-  // quick-glance bookings info is clearly separated from the hour-by-hour
-  // plan instead of interleaved into it.
-  const merged = today.activities.map((a) => ({
-    time: a.time || "99:99",
-    html: renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)
-  })).sort((x, y) => x.time.localeCompare(y.time)).map((x) => x.html).join("");
-  // On stop-boundary dates the logistics banner reads top-to-bottom: check
-  // out of the old hotel (top), travel banner, then check-in at the new
-  // hotel (bottom). Other days keep the single hotel-status line.
-  let topBar = "", bottomHtml = renderDayHotelBar(today.lodging, today.date, today.placeId);
+  // ---- Bookings: hotel check-in/check-out and transport for this exact
+  // day only, as a dedicated card of bordered rows -- a quick "what's
+  // booked today" reference, separate from the chronological plan below.
   const ranges = Store.computeStopRanges();
   const arrIdx = ranges.findIndex((r, i) => i > 0 && r.dateStart === today.date);
   const tHotelOut = (state.bookings || []).find((b) => b.category === "lodging" && b.endDate === today.date);
   const tHotelIn = (state.bookings || []).find((b) => b.category === "lodging" && b.date === today.date);
-  if (arrIdx > 0) {
-    const fromP = getPlace(ranges[arrIdx - 1].placeId);
-    const toP = getPlace(ranges[arrIdx].placeId);
-    if (fromP && toP) {
-      const acc = getAccent(toP.id) || "#1d6a8c";
-      topBar = renderDayHotelBar(tHotelOut, today.date, fromP.id, true);
-      bottomHtml = '<div class="travel-banner" style="border-color:' + acc + ';color:' + acc + '">' +
-        '<span class="tb-label" style="background:' + acc + '">Travel day</span>' +
-        esc(fromP.label) + ' &rarr; ' + esc(toP.label) + '</div>' +
-        renderDayHotelBar(tHotelIn, today.date, toP.id);
-    }
-  } else if (tHotelOut && tHotelIn && tHotelOut.id !== tHotelIn.id) {
-    // Hotel hop within the same city: wake-up hotel top, tonight's bottom.
-    topBar = renderDayHotelBar(tHotelOut, today.date, today.placeId, true);
-    bottomHtml = renderDayHotelBar(tHotelIn, today.date, today.placeId);
+  const fromP = arrIdx > 0 ? getPlace(ranges[arrIdx - 1].placeId) : null;
+  const toP = arrIdx > 0 ? getPlace(ranges[arrIdx].placeId) : null;
+  const outAccent = getAccent((fromP && fromP.id) || today.placeId) || "#1d6a8c";
+  const inAccent = getAccent((toP && toP.id) || today.placeId) || "#1d6a8c";
+  const bkRows = [];
+  if (tHotelOut && tHotelIn && tHotelOut.id === tHotelIn.id) {
+    bkRows.push(renderTvBookingRow(tHotelOut.id, "Check-in & check-out", tHotelOut.title, tHotelOut.status, inAccent));
+  } else {
+    if (tHotelOut) bkRows.push(renderTvBookingRow(tHotelOut.id, "Check-out", tHotelOut.title, tHotelOut.status, outAccent));
+    if (tHotelIn) bkRows.push(renderTvBookingRow(tHotelIn.id, "Check-in", tHotelIn.title, tHotelIn.status, inAccent));
   }
-  const transportHtml = today.transport.map(renderTransportLine).join("");
-  const logisticsInner = topBar + transportHtml + bottomHtml;
-  const logisticsHtml = logisticsInner
-    ? '<div class="tv-logistics"><span class="tv-logistics-label">Today\'s logistics</span>' + logisticsInner + '</div>'
+  today.transport.forEach((t) => bkRows.push(renderTvBookingRow(t.id, null, t.title, t.status, accent)));
+  const bookingsHtml = bkRows.length
+    ? '<div class="tv-bookings"><span class="tv-bookings-label">Bookings</span><div class="tv-bk-list">' + bkRows.join("") + '</div></div>'
     : "";
-  contentEl.innerHTML =
-    cityHtml + logisticsHtml +
-    (merged || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>');
+  // ---- Itinerary: activities plus any timed booking moment (check-in/out
+  // with a time set, timed transport) merged into one chronological list.
+  // Booking-linked rows get the .rail-event colored-border treatment
+  // instead of a solid fill -- see renderTvBookingEventLine.
+  const bkEvents = bookingEventsForDate(state, today.date);
+  const eventAccent = (ev) => ev.label === "Check-out" ? outAccent : ev.label === "Check-in" ? inAccent : accent;
+  const merged = today.activities.map((a) => ({
+    time: a.time || "99:99",
+    html: renderTodayActivityLine(a, a.id === nowId ? "now" : a.id === nextId ? "next" : null, canMove)
+  })).concat(bkEvents.map((ev) => ({ time: ev.time, html: renderTvBookingEventLine(ev, eventAccent(ev)) })))
+    .sort((x, y) => x.time.localeCompare(y.time)).map((x) => x.html).join("");
+  const itinHtml = '<span class="tv-itin-label">Itinerary</span><div class="tv-itin">' +
+    (merged || '<div class="muted" style="padding:.4rem 0">Nothing scheduled yet for this day.</div>') + '</div>';
+  contentEl.innerHTML = cityHtml + bookingsHtml + itinHtml;
   if (showLiveForecast) renderTodayForecastStrip(today.cityId, today.date);
   contentEl.querySelectorAll("[data-view-booking]").forEach((row) => row.addEventListener("click", () => {
     const b = Store.getState().bookings.find((x) => x.id === row.dataset.viewBooking);

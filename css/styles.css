@@ -400,18 +400,28 @@ section[id]{scroll-margin-top:84px}
 .today-view + .intro{padding-top:.5rem}
 .today-view + .intro .itinerary-editor{margin-top:.8rem}
 .tv-head{background:var(--adriatic-deep);color:#fff;border-radius:14px 14px 0 0;padding:.7rem 1.3rem;display:flex;align-items:center;gap:.8rem}
-.tv-badge{font-family:'Outfit';font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;background:var(--terracotta);color:#fff;padding:.25rem .6rem;border-radius:var(--radius-pill)}
+/* Compact "‹ Today" reset button -- only visible once you've paged away
+   from today via the arrows or the calendar picker. Icon + word, not a
+   loud pill, since it's a quiet reset action rather than a status badge. */
+.tv-badge{font-family:'Outfit';font-size:.74rem;font-weight:600;background:none;border:none;color:#fff;opacity:.85;padding:0;display:inline-flex;align-items:center;gap:.2rem;cursor:pointer}
+.tv-badge:hover{opacity:1}
+.tv-badge.hidden{display:none}
 .tv-date-wrap{position:relative;display:inline-flex;align-items:center}
-.tv-date{font-family:'Fraunces';font-style:italic;font-size:1.1rem;color:inherit;display:inline-flex;align-items:center;gap:.35rem;pointer-events:none}
-.tv-date svg{opacity:.7;flex-shrink:0}
-.tv-date-wrap:hover .tv-date svg{opacity:1}
-/* Sits directly on top of the visible .tv-date label, fully transparent --
-   tapping the label taps the real native date input underneath, which is
-   the only reliable cross-browser way to guarantee the native picker
-   opens (calling .showPicker()/.click() from a separate button was
-   inconsistent). */
+.tv-date{font-family:'Fraunces';font-style:italic;font-size:1.1rem;color:inherit}
+/* Calendar picker, prev/next: grouped together and pinned to the far right
+   via margin-left:auto on this wrapper, so their position never shifts
+   with the width of the date text next to them. */
+.tv-controls{margin-left:auto;display:flex;align-items:center;gap:.35rem}
+.tv-cal-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.14);flex-shrink:0}
+.tv-cal-btn svg{opacity:.85;pointer-events:none}
+.tv-cal-btn:hover{background:rgba(255,255,255,.3)}
+.tv-cal-btn:hover svg{opacity:1}
+/* Sits directly on top of the calendar icon, fully transparent -- tapping
+   the icon taps the real native date input underneath, which is the only
+   reliable cross-browser way to guarantee the native picker opens (calling
+   .showPicker()/.click() from a separate button was inconsistent). */
 .tv-date-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;cursor:pointer;-webkit-appearance:none}
-.tv-arrows{margin-left:auto;display:flex;gap:.35rem}
+.tv-arrows{display:flex;gap:.35rem}
 .tv-arrow{background:rgba(255,255,255,.14);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1.15rem;line-height:1;display:flex;align-items:center;justify-content:center;padding:0}
 .tv-arrow:hover{background:rgba(255,255,255,.3)}
 .tv-arrow:disabled{opacity:.3;cursor:default}
@@ -419,11 +429,29 @@ section[id]{scroll-margin-top:84px}
 .tv-city{font-family:'Fraunces';font-size:1.3rem;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin:.1rem 0 .7rem}
 .tv-city .tv-daynum{font-family:'Outfit';font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .tv-forecast{font-family:'Outfit';font-size:.72rem;margin-left:auto}
-/* Today's logistics -- hotel status + transport for the day, pulled out of
-   the hour-by-hour schedule into its own clearly bordered block so the two
-   read as distinct at a glance (quick bookings reference vs. the plan). */
-.tv-logistics{border:1px dashed var(--line);border-radius:var(--radius-card);padding:.7rem .9rem .3rem;margin-bottom:1rem;background:#fbfaf7}
-.tv-logistics-label{display:block;font-family:'Outfit';font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:.5rem}
+/* Today's Bookings -- hotel check-in/check-out and transport for the day,
+   as a dedicated card of bordered rows (not solid-fill blocks), each row's
+   left accent matching that row's own city color. Separate from the
+   chronological schedule below so the quick bookings reference and the
+   hour-by-hour plan read as clearly distinct areas. */
+.tv-bookings{margin-bottom:1.1rem}
+.tv-bookings-label,.tv-itin-label{display:block;font-family:'Outfit';font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:.5rem}
+.tv-bk-list{border:1px solid var(--line);border-radius:var(--radius-card);overflow:hidden}
+.tv-bk-row{display:flex;align-items:center;gap:.6rem;padding:.55rem .8rem;border-top:1px solid var(--line);border-left:4px solid var(--accent,var(--adriatic-deep));cursor:pointer;transition:background .15s}
+.tv-bk-list>.tv-bk-row:first-child{border-top:none}
+.tv-bk-row:hover{background:#f5f8f7}
+.tv-bk-label{font-family:'Outfit';font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--accent,var(--adriatic-deep));white-space:nowrap;flex-shrink:0}
+.tv-bk-title{font-size:.86rem;color:var(--ink);font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Simplified chronological itinerary -- every row (activity or timed
+   booking moment) sits in its own bordered box now instead of a bare list
+   line, so it reads as a clear sequence of stops through the day. Rows
+   tied to a booking (check-in/out, timed transport) add a colored left
+   accent -- matching that moment's own city color, not a flat status fill
+   -- so at-a-glance you can tell "this is a booking" from "this is an
+   activity" without a solid block of color.  */
+.tv-itin .item-line{border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem;margin:0 0 .4rem;background:#fff}
+.tv-itin .item-line:last-child{margin-bottom:0}
+.tv-itin .item-line.rail-event{border-left:4px solid var(--accent,var(--adriatic-deep))}
 .nn-pill{font-size:.56rem;font-family:'Outfit';letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:.14rem .5rem;border-radius:var(--radius-pill);margin-left:.5rem;vertical-align:1px}
 .nn-now{background:var(--terracotta);color:#fff}
 .nn-next{background:#e3f0ec;color:#2c6b56}

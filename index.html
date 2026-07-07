@@ -44,12 +44,17 @@
 </header>
 
 <section class="today-view" id="todayView" style="display:none">
-  <div class="tv-head"><span class="tv-badge">Today</span>
+  <div class="tv-head"><button class="tv-badge" id="tvBackToday" aria-label="Back to today"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Today</button>
     <span class="tv-date-wrap">
       <span class="tv-date" id="todayDate" aria-hidden="true"></span>
-      <input type="date" id="tvDateInput" class="tv-date-input" aria-label="Choose a date">
     </span>
-    <span class="tv-arrows"><button class="tv-arrow" id="tvPrev" aria-label="Previous day"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><button class="tv-arrow" id="tvNext" aria-label="Next day"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></span>
+    <span class="tv-controls">
+      <span class="tv-cal-btn" aria-hidden="false">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>
+        <input type="date" id="tvDateInput" class="tv-date-input" aria-label="Choose a date">
+      </span>
+      <span class="tv-arrows"><button class="tv-arrow" id="tvPrev" aria-label="Previous day"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><button class="tv-arrow" id="tvNext" aria-label="Next day"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></span>
+    </span>
   </div>
   <div id="todayContent"></div>
 </section>
