@@ -1510,7 +1510,7 @@ function renderHero(state) {
 // global `*{transition:none!important}` rule -- this additionally skips
 // the ~2s full-bleed hold, so those users don't have to wait through a
 // full-screen takeover just to land on an instant jump-cut).
-const HERO_TITLE_COMPACT = 'Italy <span class="hero-plus">+</span> Croatia <em>2026</em>';
+const HERO_TITLE_COMPACT = 'Italy <span class="hero-plus">&amp;</span> Croatia <em>2026</em>';
 function initHeroIntro() {
   const hero = document.getElementById("hero");
   const heroTitle = document.getElementById("heroTitle");

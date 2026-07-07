@@ -69,14 +69,14 @@ section[id]{scroll-margin-top:84px}
    collapses to its banner -- the eyebrow stays hidden even then, since
    it'd just repeat the trip name now sitting next to the logo. */
 .eyebrow{font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:.72rem;opacity:0;max-height:0;margin-bottom:0;overflow:hidden;transition:opacity .3s,max-height .45s,margin-bottom .45s}
-.hero h1{font-size:clamp(2.4rem,7vw,5.2rem);font-weight:300;letter-spacing:-.01em;text-wrap:balance;opacity:0;transition:font-size .55s cubic-bezier(.4,0,.2,1),opacity .4s ease}
+.hero h1{font-size:clamp(2.4rem,7vw,5.2rem);font-weight:300;letter-spacing:-.01em;text-wrap:balance;opacity:0;transition:font-size .55s cubic-bezier(.4,0,.2,1),opacity .4s ease .5s}
 .hero h1 em{color:var(--seaglass-soft);padding-bottom:.15em;display:inline-block}
 .hero-plus{opacity:.5;font-weight:300}
 .hero .sub{margin-top:1.3rem;font-size:clamp(1rem,2vw,1.2rem);max-width:600px;opacity:.95}
-.hero .meta{margin-top:1.3rem;display:flex;gap:1.6rem;flex-wrap:wrap;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;opacity:0;transition:margin-top .55s,opacity .4s ease}
+.hero .meta{margin-top:1.3rem;display:flex;gap:1.6rem;flex-wrap:wrap;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;opacity:0;transition:margin-top .55s,opacity .4s ease .5s}
 .hero .meta span{border-left:2px solid var(--seaglass);padding-left:.7rem}
 .hero .meta strong{font-weight:600;color:var(--seaglass-soft)}
-.hero-overview{margin-top:1.2rem;max-width:620px;opacity:0;transition:margin-top .55s,opacity .4s ease}
+.hero-overview{margin-top:1.2rem;max-width:620px;opacity:0;transition:margin-top .55s,opacity .4s ease .5s}
 /* ---- Hero intro: loads full-bleed, then morphs down to a compact
    top-of-page banner after a short beat. Full-bleed (100dvh) is the
    default state (not JS-added) so there's no flash of the small version
