@@ -1694,13 +1694,11 @@ function renderBookingStatus(state) {
   // of the plain <h4> these used before -- same visual language, same
   // open/closed persistence mechanism (the shared "planOpen" key).
   el2.innerHTML =
-    hotelSummaryHtml +
     '<details class="plan-collapse" data-collapse-key="bs-hotels">' +
-    '<summary><div class="sub-h"><h3>Hotels</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-hotel" title="Add a hotel booking" aria-label="Add a hotel booking">+</button><span class="arw">&rsaquo;</span></div></summary>' +
+    '<summary><div class="sub-h"><h3>Hotels</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-hotel" title="Add a hotel booking" aria-label="Add a hotel booking">+</button><span class="arw">&rsaquo;</span></div>' + hotelSummaryHtml + '</summary>' +
     '<div class="plan-collapse-body bs-group">' + hotelGroups + '</div></details>' +
-    legSummaryHtml +
     '<details class="plan-collapse" data-collapse-key="bs-transport">' +
-    '<summary><div class="sub-h"><h3>Transportation</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-transport" title="Add a transport booking" aria-label="Add a transport booking">+</button><span class="arw">&rsaquo;</span></div></summary>' +
+    '<summary><div class="sub-h"><h3>Transportation</h3><span class="rule"></span><button class="sec-add" data-sec-add="bs-transport" title="Add a transport booking" aria-label="Add a transport booking">+</button><span class="arw">&rsaquo;</span></div>' + legSummaryHtml + '</summary>' +
     '<div class="plan-collapse-body bs-group">' + transportGroups + '</div></details>';
   // Same collapse-state handling as the per-city planning sections -- these
   // start closed on every page load, then remember whatever you left them
@@ -1744,18 +1742,26 @@ function renderBookingStatus(state) {
       Store.remove("bookings", b.id);
     }
   }));
-  // Summary chips jump straight to the matching city (Hotels) or leg
-  // (Transportation) card -- auto-opening that collapsible first if it's
-  // closed (both default closed on every load), then scrolling the target
-  // into view. A leg with multiple matched bookings shares one key, so
-  // this lands on the first card for that leg, which is enough context.
-  el2.querySelectorAll("[data-bs-jump-hotel-city]").forEach((chip) => chip.addEventListener("click", () => {
+  // Summary rows live inside the <summary> itself (so they stay visible
+  // while the section is collapsed, right under the header) -- which means
+  // a plain click would also fire the native summary toggle, same as the
+  // "+" add button above. preventDefault + stopPropagation there, then
+  // drive the open/closed state ourselves: auto-open the collapsible if
+  // it's closed (never toggle an already-open one closed), scroll to the
+  // matching city (Hotels) or leg (Transportation) card. A leg with
+  // multiple matched bookings shares one key, so this lands on the first
+  // card for that leg, which is enough context.
+  el2.querySelectorAll("[data-bs-jump-hotel-city]").forEach((chip) => chip.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     const det = el2.querySelector('[data-collapse-key="bs-hotels"]');
     if (det && !det.open) { det.setAttribute("open", ""); SESSION_COLLAPSE_STATE["bs-hotels"] = true; }
     const head = Array.from(el2.querySelectorAll(".bs-city-head")).find((h) => h.dataset.bsCity === chip.dataset.bsJumpHotelCity);
     if (head) head.scrollIntoView({ behavior: "smooth", block: "start" });
   }));
-  el2.querySelectorAll("[data-bs-jump-leg]").forEach((chip) => chip.addEventListener("click", () => {
+  el2.querySelectorAll("[data-bs-jump-leg]").forEach((chip) => chip.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     const det = el2.querySelector('[data-collapse-key="bs-transport"]');
     if (det && !det.open) { det.setAttribute("open", ""); SESSION_COLLAPSE_STATE["bs-transport"] = true; }
     const card = Array.from(el2.querySelectorAll("[data-bs-leg-key]")).find((c) => c.dataset.bsLegKey === chip.dataset.bsJumpLeg);
