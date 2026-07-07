@@ -253,6 +253,14 @@ function isoAddDays(iso, n) {
   const p = (x) => String(x).padStart(2, "0");
   return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
 }
+// Signed day count from a to b (noon-anchored, same DST-safe parsing as
+// isoAddDays) -- used to turn a date picked from the calendar into a
+// todayViewOffset relative to the Today view's base date.
+function isoDiffDays(a, b) {
+  const da = new Date(a + "T12:00:00");
+  const db = new Date(b + "T12:00:00");
+  return Math.round((db - da) / 86400000);
+}
 
 // Activity row variant for the Today view: optional Now/Next pill and a
 // one-tap "→ tomorrow" reschedule button.
@@ -1216,16 +1224,41 @@ function renderTodayView(state) {
     // Today/Tomorrow/Yesterday are genuinely useful shorthand. Beyond that
     // range the date pill next to this badge already spells out the
     // weekday (fmtDate = "Sat, Jul 4"), so repeating it here as "Saturday"
-    // was pure redundancy -- just hide the badge for those days instead.
+    // would be redundant -- but the badge is also the only "back to today"
+    // control now that the date button opens a picker that can jump
+    // arbitrarily far away, so it still needs to show *something*
+    // clickable rather than disappear once you're more than a day out.
     const relLabel = rel === 0 ? (previewDate ? "Today (preview)" : "Today")
-      : rel === 1 ? "Tomorrow" : rel === -1 ? "Yesterday" : "";
+      : rel === 1 ? "Tomorrow" : rel === -1 ? "Yesterday" : "Today";
     badge.textContent = relLabel;
-    badge.classList.toggle("hidden", !relLabel);
+    badge.classList.remove("hidden");
     badge.title = rel === 0 ? "" : "Tap to jump back to today";
     badge.onclick = rel === 0 ? null : () => { todayViewOffset = 0; renderTodayView(Store.getState()); };
     badge.style.cursor = rel === 0 ? "" : "pointer";
   }
-  document.getElementById("todayDate").textContent = fmtDate(viewISO);
+  const dateBtn = document.getElementById("todayDate");
+  const dateInput = document.getElementById("tvDateInput");
+  if (dateBtn) {
+    dateBtn.innerHTML = esc(fmtDate(viewISO)) +
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>';
+    // Tapping the date opens a native calendar picker to jump straight to
+    // any date, instead of only being able to page one day at a time with
+    // the arrows. Getting back to today is still just the badge (hidden
+    // once you're already on it, since it'd be redundant there).
+    dateBtn.onclick = () => {
+      if (!dateInput) return;
+      dateInput.value = viewISO;
+      if (dateInput.showPicker) dateInput.showPicker();
+      else dateInput.click();
+    };
+  }
+  if (dateInput) {
+    dateInput.onchange = () => {
+      if (!dateInput.value) return;
+      todayViewOffset = isoDiffDays(baseISO, dateInput.value);
+      renderTodayView(Store.getState());
+    };
+  }
   const prevBtn = document.getElementById("tvPrev");
   const nextBtn = document.getElementById("tvNext");
   if (prevBtn && nextBtn) {
@@ -1577,7 +1610,7 @@ function renderBookingStatus(state) {
   // red tint as a duplicate hotel card uses (.bs-conflict), plus a small
   // dot pinned to the row's far edge as its own separate signal.
   const chipHtml = (status, label, conflict, jumpAttr) =>
-    '<div class="bs-summary-row' + (conflict ? " bs-conflict" : "") + '" ' + jumpAttr + '>' +
+    '<div class="bs-summary-row status-' + status + (conflict ? " bs-conflict" : "") + '" ' + jumpAttr + '>' +
     '<span class="bs-summary-label">' + label + '</span>' +
     '<span class="bs-summary-status status-' + status + '">' + summaryIcon(status) + statusWord(status) + '</span>' +
     (conflict ? '<span class="bs-summary-dot" title="Possible duplicate booking, check for a stray pick"></span>' : "") +
@@ -1777,10 +1810,10 @@ function renderBookingStatus(state) {
   // a plain click would also fire the native summary toggle, same as the
   // "+" add button above. preventDefault + stopPropagation there, then
   // drive the open/closed state ourselves: auto-open the collapsible if
-  // it's closed (never toggle an already-open one closed), scroll to the
-  // matching city (Hotels) or leg (Transportation) card. A leg with
-  // multiple matched bookings shares one key, so this lands on the first
-  // card for that leg, which is enough context.
+  // it's closed (never toggle an already-open one closed), filter the
+  // detail list down to just the tapped city/leg. No scroll-to-target --
+  // the filter itself already surfaces the right block right under the
+  // summary, so jumping the page as well felt redundant/jarring.
   el2.querySelectorAll("[data-bs-jump-hotel-city]").forEach((chip) => chip.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1788,8 +1821,6 @@ function renderBookingStatus(state) {
     if (det && !det.open) { det.setAttribute("open", ""); SESSION_COLLAPSE_STATE["bs-hotels"] = true; }
     SESSION_BS_FILTER["bs-hotels"] = chip.dataset.bsJumpHotelCity;
     applyBsFilter("bs-hotels");
-    const head = Array.from(el2.querySelectorAll(".bs-city-head")).find((h) => h.dataset.bsCity === chip.dataset.bsJumpHotelCity);
-    if (head) head.scrollIntoView({ behavior: "smooth", block: "start" });
   }));
   el2.querySelectorAll("[data-bs-jump-leg]").forEach((chip) => chip.addEventListener("click", (e) => {
     e.preventDefault();
@@ -1804,8 +1835,6 @@ function renderBookingStatus(state) {
     const leg = legDefs.find((l) => l.key === chip.dataset.bsJumpLeg);
     SESSION_BS_FILTER["bs-transport"] = leg ? leg.contextPlaceId : null;
     applyBsFilter("bs-transport");
-    const card = Array.from(el2.querySelectorAll("[data-bs-leg-key]")).find((c) => c.dataset.bsLegKey === chip.dataset.bsJumpLeg);
-    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
   }));
 }
 

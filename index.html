@@ -44,7 +44,9 @@
 </header>
 
 <section class="today-view" id="todayView" style="display:none">
-  <div class="tv-head"><span class="tv-badge">Today</span><span class="tv-date" id="todayDate"></span>
+  <div class="tv-head"><span class="tv-badge">Today</span>
+    <button class="tv-date" id="todayDate" type="button" aria-label="Choose a date"></button>
+    <input type="date" id="tvDateInput" class="tv-date-input" aria-hidden="true" tabindex="-1">
     <span class="tv-arrows"><button class="tv-arrow" id="tvPrev" aria-label="Previous day"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><button class="tv-arrow" id="tvNext" aria-label="Next day"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></span>
   </div>
   <div id="todayContent"></div>
