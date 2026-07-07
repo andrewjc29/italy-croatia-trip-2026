@@ -289,20 +289,25 @@ section[id]{scroll-margin-top:84px}
 .bs-conflict-note{background:#fbdede;color:#8a2626;font-size:.78rem;padding:.5rem .9rem;border-top:1px solid var(--line)}
 .bs-conflict{background:#fdf0f0}
 .bs-conflict:hover{background:#fbe4e4}
-/* At-a-glance status strips above the Hotels / Transportation collapsibles
-   -- one chip per city (hotels) or per intercity leg (transport), so the
-   coverage gaps that matter are visible without expanding either section
-   (both default closed on every load). */
-.bs-summary{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
-.bs-chip{position:relative;display:inline-flex;align-items:center;gap:.4rem;font-family:'Outfit';font-size:.74rem;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:var(--radius-pill);padding:.4rem .8rem;cursor:pointer;transition:border-color .15s,background .15s}
-.bs-chip:hover{border-color:var(--adriatic);background:#eef4f2}
-.bs-chip-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--muted)}
-.bs-chip.status-missing .bs-chip-dot{background:var(--danger)}
-.bs-chip.status-partial .bs-chip-dot{background:#b0530c}
-.bs-chip.status-idea .bs-chip-dot{background:#8a4a1c}
-.bs-chip.status-booked .bs-chip-dot{background:#7a5c00}
-.bs-chip.status-confirmed .bs-chip-dot{background:var(--good)}
-.bs-chip-warn{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--danger);color:#fff;font-size:.62rem;font-weight:700;line-height:1;flex-shrink:0}
+/* At-a-glance status summary above the Hotels / Transportation collapsibles
+   -- one cohesive tile, a row per city (hotels) or per intercity leg
+   (transport), so the coverage gaps that matter are visible without
+   expanding either section (both default closed on every load). Tapping a
+   row jumps to + auto-opens the matching collapsible below rather than
+   expanding inline -- one source of truth for the actual booking detail. */
+.bs-summary-list{border:1px solid var(--line);border-radius:var(--radius-card);background:var(--card);box-shadow:0 8px 24px var(--shadow);overflow:hidden;margin-bottom:1rem}
+.bs-summary-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.65rem .9rem;border-top:1px solid var(--line);cursor:pointer;transition:background .15s}
+.bs-summary-list>.bs-summary-row:first-child{border-top:none}
+.bs-summary-row:hover{background:#f5f8f7}
+.bs-summary-row.bs-conflict:hover{background:#fbe4e4}
+.bs-summary-label{font-size:.95rem;color:var(--ink);font-weight:500}
+.bs-summary-status{display:inline-flex;align-items:center;gap:.4rem;font-family:'Outfit';font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.bs-summary-status.status-confirmed{color:var(--good)}
+.bs-summary-status.status-booked{color:#7a5c00}
+.bs-summary-status.status-idea{color:#8a4a1c}
+.bs-summary-status.status-partial{color:#b0530c}
+.bs-summary-status.status-missing{color:var(--danger)}
+.bs-summary-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0;margin-left:.4rem}
 
 /* ---- trip countdown banner ---- */
 /* Countdown card -- shared markup used inside the Today box (was formerly

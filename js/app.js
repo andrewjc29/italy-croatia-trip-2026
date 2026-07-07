@@ -1552,11 +1552,31 @@ function renderBookingStatus(state) {
   // above the Hotels collapsible (which itself defaults to closed) --
   // walks the same per-night coverage a city's card list is built from,
   // just condensed to a single status instead of a run-by-run list.
+  const statusWord = (status) => status.charAt(0).toUpperCase() + status.slice(1);
+  const summaryIcon = (status) => {
+    const a = 'viewBox="0 0 24 24" width="16" height="16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
+    const icons = {
+      confirmed: '<svg ' + a + ' stroke="var(--good)"><circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6 4.8-5.8"/></svg>',
+      booked: '<svg ' + a + ' stroke="#7a5c00"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v4.8l3.2 1.8"/></svg>',
+      idea: '<svg ' + a + ' stroke="#8a4a1c"><circle cx="12" cy="12" r="9" stroke-dasharray="2.4 3"/></svg>',
+      partial: '<svg ' + a + ' stroke="#b0530c"><circle cx="12" cy="12" r="9"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="#b0530c" stroke="none"/></svg>',
+      missing: '<svg ' + a + ' stroke="var(--danger)"><path d="M12 3.5l9.5 16.5h-19z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="17" r=".9" fill="var(--danger)" stroke="none"/></svg>'
+    };
+    return icons[status] || icons.idea;
+  };
+  // One cohesive tile per summary (row per city / per leg) instead of
+  // floating chips -- tapping a row still jumps + auto-expands the
+  // matching collapsible below, it just no longer expands inline itself,
+  // so there's one source of truth for the actual booking detail. A
+  // conflict (stale duplicate booking) highlights the whole row the same
+  // red tint as a duplicate hotel card uses (.bs-conflict), plus a small
+  // dot pinned to the row's far edge as its own separate signal.
   const chipHtml = (status, label, conflict, jumpAttr) =>
-    '<button type="button" class="bs-chip status-' + status + '" ' + jumpAttr + '>' +
-    '<span class="bs-chip-dot"></span>' + esc(label) +
-    (conflict ? '<span class="bs-chip-warn" title="Possible duplicate booking, check for a stray pick">!</span>' : "") +
-    '</button>';
+    '<div class="bs-summary-row' + (conflict ? " bs-conflict" : "") + '" ' + jumpAttr + '>' +
+    '<span class="bs-summary-label">' + label + '</span>' +
+    '<span class="bs-summary-status status-' + status + '">' + summaryIcon(status) + statusWord(status) + '</span>' +
+    (conflict ? '<span class="bs-summary-dot" title="Possible duplicate booking, check for a stray pick"></span>' : "") +
+    '</div>';
   const hotelRollups = ranges.map((r) => {
     const place = getPlace(r.placeId);
     const label = place ? place.label : r.placeId;
@@ -1581,7 +1601,7 @@ function renderBookingStatus(state) {
     return { placeId: r.placeId, label, status, conflict };
   });
   const hotelSummaryHtml = hotelRollups.length
-    ? '<div class="bs-summary">' + hotelRollups.map((h) => chipHtml(h.status, h.label, h.conflict, 'data-bs-jump-hotel-city="' + esc(h.placeId) + '"')).join("") + '</div>'
+    ? '<div class="bs-summary-list">' + hotelRollups.map((h) => chipHtml(h.status, esc(h.label), h.conflict, 'data-bs-jump-hotel-city="' + esc(h.placeId) + '"')).join("") + '</div>'
     : "";
   const transportBookings = state.bookings.filter((b) => b.category !== "lodging").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   const transportCardHtml = (t, routeLabel, legKey) => {
@@ -1637,7 +1657,7 @@ function renderBookingStatus(state) {
   // city" -- standalone transport (day-trip ferries etc., not tied to a
   // city-to-city move) intentionally has no place here.
   const legSummaryHtml = legDefs.length
-    ? '<div class="bs-summary">' + legDefs.map((leg) => chipHtml(leg.status, leg.fromLabel + " " + String.fromCharCode(8594) + " " + leg.toLabel, leg.conflict, 'data-bs-jump-leg="' + esc(leg.key) + '"')).join("") + '</div>'
+    ? '<div class="bs-summary-list">' + legDefs.map((leg) => chipHtml(leg.status, leg.routeLabel, leg.conflict, 'data-bs-jump-leg="' + esc(leg.key) + '"')).join("") + '</div>'
     : "";
   const legsByCity = new Map();
   legDefs.forEach((leg) => {
