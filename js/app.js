@@ -108,12 +108,21 @@ function renderLodgingLine(b) {
     (bits.length ? ' <span class="muted">(' + bits.join(" · ") + ')</span>' : "") + '</span>' +
     '<span class="il-actions"><span class="status-pill ' + b.status + '">' + b.status + '</span></span></div>';
 }
+// Maps a booking's category to the short label shown in front of it in the
+// Today view Bookings card and the itinerary (e.g. "Flight", "Train") --
+// so it's clear what kind of transportation it is at a glance, the same
+// way Check-in/Staying at/Check-out labels work for hotels. Unrecognized
+// or "other" categories fall back to the generic "Transport".
+const TRANSPORT_CATEGORY_LABELS = { flight: "Flight", train: "Train", ferry: "Ferry", catamaran: "Catamaran", bus: "Bus" };
+function transportCategoryLabel(category) {
+  return TRANSPORT_CATEGORY_LABELS[category] || "Transport";
+}
 function renderTransportLine(t) {
   const bits = [];
   if (t.provider) bits.push(esc(t.provider));
   if (t.confirmation) bits.push("Conf# " + esc(t.confirmation));
   if (t.time) bits.push(esc(t.time));
-  return '<div class="item-line item-line-clickable" data-view-booking="' + t.id + '"><span>' + esc(t.title) +
+  return '<div class="item-line item-line-clickable" data-view-booking="' + t.id + '"><span><span class="cat-label">' + esc(transportCategoryLabel(t.category)) + '</span> ' + esc(t.title) +
     (bits.length ? ' <span class="muted">(' + bits.join(" · ") + ')</span>' : "") + '</span>' +
     '<span class="il-actions"><span class="status-pill ' + t.status + '">' + t.status + '</span></span></div>';
 }
@@ -196,7 +205,7 @@ function bookingEventsForDate(state, dateStr) {
       if (b.date === dateStr && b.checkinTime) evs.push({ time: b.checkinTime, label: "Check-in", booking: b, field: "checkinTime", date: dateStr });
       if (b.endDate === dateStr && b.checkoutTime) evs.push({ time: b.checkoutTime, label: "Check-out", booking: b, field: "checkoutTime", date: dateStr });
     } else if (b.time && (b.date === dateStr || b.endDate === dateStr)) {
-      evs.push({ time: b.time, label: b.type || "Transport", booking: b, field: "time", date: dateStr });
+      evs.push({ time: b.time, label: transportCategoryLabel(b.category), booking: b, field: "time", date: dateStr });
     }
   });
   return evs.sort((a, b2) => a.time.localeCompare(b2.time));
@@ -1387,7 +1396,7 @@ function renderTodayView(state) {
       : "Staying at";
     return renderTvBookingRow(b.id, label, b.title, b.status, acc);
   });
-  today.transport.forEach((t) => bkRows.push(renderTvBookingRow(t.id, null, t.title, t.status, accent)));
+  today.transport.forEach((t) => bkRows.push(renderTvBookingRow(t.id, transportCategoryLabel(t.category), t.title, t.status, accent)));
   const bookingsHtml = bkRows.length
     ? '<div class="tv-bookings"><span class="tv-bookings-label">Bookings</span><div class="tv-bk-list">' + bkRows.join("") + '</div></div>'
     : "";

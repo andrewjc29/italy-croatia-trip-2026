@@ -218,6 +218,10 @@ section[id]{scroll-margin-top:84px}
 .day-row .day-date{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;font-weight:600}
 .item-line{display:flex;justify-content:space-between;gap:.6rem;padding:.3rem 0;font-size:.92rem}
 .item-line .time{color:var(--muted);font-size:.78rem;min-width:3.4rem;display:inline-block}
+/* Transport-type prefix (Flight, Train, Ferry...) on plain (non-rail-event)
+   transport rows -- same idea as .rail-event-label, just not tied to a
+   colored left border since these rows don't have one. */
+.item-line .cat-label{font-family:'Outfit';font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--accent,var(--adriatic-deep));margin-right:.35rem}
 .il-actions{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
 .il-actions .link{font-size:.72rem}
 .day-add-row{display:flex;gap:1.2rem;flex-wrap:wrap;margin-top:.2rem;padding-top:.3rem;border-top:1px dashed var(--line)}
