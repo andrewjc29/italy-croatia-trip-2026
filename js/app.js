@@ -1491,6 +1491,31 @@ function renderHero(state) {
     '<span>' + esc(dateLabel) + '</span><span>' + totalDays + ' days</span><span>' + stopCount + ' destinations</span>';
 }
 
+// Hero intro: loads full-bleed (100dvh, set as the default in CSS so
+// there's no flash of the small version before this runs), holds for a
+// beat, then morphs down to a compact top-of-page banner. There's no
+// client-side routing on this site, so every page load already is a
+// "fresh load" -- no session tracking needed to make this a one-time-per-
+// visit flourish. Skips straight to the collapsed state for
+// prefers-reduced-motion (matches the site's existing reduced-motion
+// policy, which already turns off the CSS transition itself via the
+// global `*{transition:none!important}` rule -- this additionally skips
+// the ~1s full-bleed hold, so those users don't have to wait through a
+// full-screen takeover just to land on an instant jump-cut).
+const HERO_TITLE_COMPACT = 'Italy <span class="hero-plus">+</span> Croatia <em>2026</em>';
+function initHeroIntro() {
+  const hero = document.getElementById("hero");
+  const heroTitle = document.getElementById("heroTitle");
+  if (!hero) return;
+  const collapse = () => {
+    hero.classList.add("hero-collapsed");
+    if (heroTitle) heroTitle.innerHTML = HERO_TITLE_COMPACT;
+  };
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) { collapse(); return; }
+  setTimeout(collapse, 1000);
+}
+
 // Countdown card markup -- days-to-go before the trip, which day you're on
 // while traveling, or a wrap-up message afterward. Rendered inside the
 // Today box (see renderTodayView) in place of its old plain-text
@@ -2511,6 +2536,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupStaticBindings();
   setupScrollspy();
   setupTotop();
+  initHeroIntro();
   Store.subscribe(renderAll);
   await Store.init();
   setInterval(tickCountdowns, 30000);

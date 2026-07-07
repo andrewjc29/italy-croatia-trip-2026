@@ -52,18 +52,32 @@ section[id]{scroll-margin-top:84px}
 @keyframes syncspin{to{transform:rotate(360deg)}}
 
 /* ---- hero ---- */
-.hero{position:relative;height:88vh;min-height:520px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;overflow:hidden;background:var(--adriatic-deep)}
+.hero{position:relative;height:100vh;height:100dvh;min-height:520px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;overflow:hidden;background:var(--adriatic-deep)}
 .hero .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center}
 .hero .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,60,82,.30),rgba(18,60,82,.80))}
-.hero-inner{position:relative;z-index:2;padding:0 8vw 7vh;max-width:1100px}
-.eyebrow{font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:.72rem;opacity:.92;margin-bottom:1.2rem}
-.hero h1{font-size:clamp(2.4rem,7vw,5.2rem);font-weight:300;letter-spacing:-.01em;text-wrap:balance}
+.hero-inner{position:relative;z-index:2;padding:0 8vw 7vh;max-width:1100px;transition:padding-bottom .55s cubic-bezier(.4,0,.2,1)}
+.eyebrow{font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:.72rem;opacity:.92;margin-bottom:1.2rem;max-height:2rem;transition:opacity .3s,max-height .45s,margin-bottom .45s}
+.hero h1{font-size:clamp(2.4rem,7vw,5.2rem);font-weight:300;letter-spacing:-.01em;text-wrap:balance;transition:font-size .55s cubic-bezier(.4,0,.2,1)}
 .hero h1 em{color:var(--seaglass-soft);padding-bottom:.15em;display:inline-block}
+.hero-plus{opacity:.5;font-weight:300}
 .hero .sub{margin-top:1.3rem;font-size:clamp(1rem,2vw,1.2rem);max-width:600px;opacity:.95}
-.hero .meta{margin-top:1.3rem;display:flex;gap:1.6rem;flex-wrap:wrap;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;opacity:.94}
+.hero .meta{margin-top:1.3rem;display:flex;gap:1.6rem;flex-wrap:wrap;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;opacity:.94;transition:margin-top .55s}
 .hero .meta span{border-left:2px solid var(--seaglass);padding-left:.7rem}
 .hero .meta strong{font-weight:600;color:var(--seaglass-soft)}
-.hero-overview{margin-top:1.2rem;max-width:620px}
+.hero-overview{margin-top:1.2rem;max-width:620px;transition:margin-top .55s}
+/* ---- Hero intro: loads full-bleed, then morphs down to a compact
+   top-of-page banner after a short beat. Full-bleed (100dvh) is the
+   default state (not JS-added) so there's no flash of the small version
+   before the boot script runs; JS adds .hero-collapsed after ~1s, and
+   these transitions animate every affected property down together. See
+   initHeroIntro() in app.js. */
+.hero{transition:height .55s cubic-bezier(.4,0,.2,1)}
+.hero.hero-collapsed{height:34vh;min-height:300px}
+.hero.hero-collapsed .hero-inner{padding-bottom:3vh}
+.hero.hero-collapsed .eyebrow{opacity:0;max-height:0;margin-bottom:0;overflow:hidden}
+.hero.hero-collapsed h1{font-size:clamp(1.5rem,4.4vw,2.1rem)}
+.hero.hero-collapsed .meta{margin-top:.6rem}
+.hero.hero-collapsed .hero-overview{margin-top:.5rem}
 .hero-overview summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:.5rem;font-family:'Outfit';font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;color:var(--seaglass-soft)}
 .hero-overview summary::-webkit-details-marker{display:none}
 .hero-overview summary .arw{font-family:'Outfit';font-size:1rem;font-weight:400;transition:transform .25s}
