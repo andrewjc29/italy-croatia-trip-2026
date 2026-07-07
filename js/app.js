@@ -1281,6 +1281,7 @@ function renderTodayView(state) {
   }
   const dateBtn = document.getElementById("todayDate");
   const dateInput = document.getElementById("tvDateInput");
+  const dayCounterEl = document.getElementById("tvDayCounter");
   if (dateBtn) {
     dateBtn.textContent = fmtDate(viewISO);
   }
@@ -1335,10 +1336,12 @@ function renderTodayView(state) {
       }
     }
     contentEl.innerHTML = cd + (msg ? '<div class="muted" style="padding:.6rem 0">' + esc(msg) + '</div>' : "");
+    if (dayCounterEl) dayCounterEl.textContent = "";
     return;
   }
   const place = getPlace(today.placeId);
   const dayNum = days.indexOf(today) + 1;
+  if (dayCounterEl) dayCounterEl.textContent = "Day " + dayNum + " of " + days.length;
   const accent = getAccent(today.placeId) || "#1d6a8c";
   // Now/Next markers only make sense on the actual current day.
   let nowId = null, nextId = null;
@@ -2574,8 +2577,16 @@ function setupScrollspy() {
       links.forEach((x) => x.classList.toggle("active", x.dataset.target === l.dataset.target));
       return;
     }
-    const target = document.getElementById(l.dataset.target);
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Itinerary sits right under the hero -- jumping straight to its
+    // section (rather than the very top of the page) would skip past the
+    // hero entirely, so this one scrolls to the page top instead to show
+    // it off on the way down.
+    if (l.dataset.target === "itineraryTop") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      const target = document.getElementById(l.dataset.target);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     links.forEach((x) => x.classList.toggle("active", x.dataset.target === l.dataset.target));
     suppressSpy = true;
     clearTimeout(suppressTimer);

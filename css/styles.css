@@ -466,7 +466,13 @@ body.tv-sheet-open{overflow:hidden}
   .today-view.tv-open{transform:translate(-50%,-50%) scale(1);opacity:1}
   .tv-handle-slot{display:none}
 }
-.tv-head{position:relative;background:var(--adriatic-deep);color:#fff;border-radius:14px 14px 0 0;padding:.7rem 2.6rem .7rem 1.3rem;display:flex;align-items:center;gap:.8rem;flex-shrink:0}
+.tv-head{position:relative;background:var(--adriatic-deep);color:#fff;border-radius:14px 14px 0 0;padding:.65rem 2.6rem .6rem 1.3rem;display:flex;flex-direction:column;gap:.45rem;flex-shrink:0}
+/* Two stacked rows -- date + day counter up top, "‹ Today" + the
+   calendar/arrow controls underneath -- instead of cramming badge, date,
+   3 icon buttons and the close (x) all onto one line. */
+.tv-head-row{display:flex;align-items:center;gap:.6rem}
+.tv-head-row1{justify-content:space-between}
+.tv-daycounter{font-family:'Outfit';font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.65);white-space:nowrap}
 /* Compact "‹ Today" reset button -- only visible once you've paged away
    from today via the arrows or the calendar picker. Same translucent
    rounded-pill treatment as the itinerary editor's "Edit" button
@@ -692,6 +698,12 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
 
 @media(max-width:600px){
   body{font-size:16px}
+  /* No mouse/keyboard-driven modal on mobile -- the sheet is dismissed via
+     the sun handle, a backdrop tap, or a swipe, so the (x) close button
+     (which only really makes sense for the desktop centered modal) is
+     hidden here, and the header regains the space it was reserving. */
+  .tv-close{display:none}
+  .tv-head{padding-right:1.3rem}
   /* Mobile shares the same full-bleed-then-collapse hero behavior as
      desktop (see initHeroIntro/.hero-collapsed) -- it used to get a fixed
      58vh here instead, which fought with that intro (the hero never
