@@ -586,8 +586,8 @@ function openPlaceDetailCard(type, item, place) {
   document.getElementById("pmClose").addEventListener("click", () => { root.innerHTML = ""; });
   document.getElementById("pmAdd").addEventListener("click", () => {
     closeModal();
-    if (isRest) openAddToDayModal(item.name + " (" + item.kind + ")", item.city, item.description, "meal", place);
-    else openAddToDayModal(item.name, item.city, item.description, "sight", place);
+    if (isRest) openAddToDayModal(item.name + " (" + item.kind + ")", item.city, item.description, "meal", place, item.id);
+    else openAddToDayModal(item.name, item.city, item.description, "sight", place, item.id);
   });
   document.getElementById("pmEdit").addEventListener("click", () => {
     if (isRest) openRestForm(Store.getState(), item, place);
@@ -979,7 +979,8 @@ function openHotelChooseConfirm(state, h, place, current, placeLodgings) {
       category: "lodging", title: h.name, city: h.placeId === "puglia" ? "bari" : place.cityIds[0],
       provider: h.area, cost: h.cost, currency: "USD", link: h.url, notes: h.pros,
       date: data.date, endDate: data.endDate || data.date,
-      checkinTime: data.checkinTime || "", checkoutTime: data.checkoutTime || ""
+      checkinTime: data.checkinTime || "", checkoutTime: data.checkoutTime || "",
+      sourceId: h.id
     };
     if (current) Store.update("bookings", current.id, payload);
     else Store.add("bookings", Object.assign({ status: "idea", confirmation: "" }, payload), "bk");
@@ -1022,7 +1023,7 @@ function renderPlaceSee(placeId, state) {
   el2.querySelectorAll("[data-add-day-see]").forEach((btn) => btn.addEventListener("click", (e) => {
     e.stopPropagation();
     const s = state.thingsToDo.find((x) => x.id === btn.dataset.addDaySee);
-    openAddToDayModal(s.name, s.city, s.description, "sight", place);
+    openAddToDayModal(s.name, s.city, s.description, "sight", place, s.id);
   }));
   el2.querySelectorAll(".card[data-view-see]").forEach((card) => card.addEventListener("click", (e) => {
     if (e.target.closest(".foot")) return;
@@ -1075,7 +1076,7 @@ function renderPlaceFood(placeId, state) {
   el2.querySelectorAll("[data-add-day]").forEach((btn) => btn.addEventListener("click", (e) => {
     e.stopPropagation();
     const r = state.restaurants.find((x) => x.id === btn.dataset.addDay);
-    openAddToDayModal(r.name + " (" + r.kind + ")", r.city, r.description, "meal", place);
+    openAddToDayModal(r.name + " (" + r.kind + ")", r.city, r.description, "meal", place, r.id);
   }));
   el2.querySelectorAll(".card[data-view-rest]").forEach((card) => card.addEventListener("click", (e) => {
     if (e.target.closest(".foot")) return;
@@ -1088,7 +1089,7 @@ function renderPlaceFood(placeId, state) {
 // a real calendar date (bounded to the trip's date range) plus an optional
 // time, so a dinner reservation can carry its time. Feeds straight into the
 // day-by-day itinerary via a new activity.
-function openAddToDayModal(title, cityId, notes, type, place) {
+function openAddToDayModal(title, cityId, notes, type, place, sourceId) {
   const range = place ? Store.getStopRangeForPlace(place.id) : null;
   const tripRange = Store.getTripDateRange();
   const defaultDate = (range && range.dateStart) || tripRange.start || "";
@@ -1100,7 +1101,7 @@ function openAddToDayModal(title, cityId, notes, type, place) {
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person (optional)</label><input data-field="cost" type="number"></div>' +
     '<div><label class="field">Currency</label><select data-field="currency"><option value="USD">USD</option><option value="EUR">EUR</option></select></div></div>';
   openModal('Add "' + title + '" to your itinerary', body, (data) => {
-    Store.add("activities", { date: data.date || "", time: data.time || "", city: cityId, title: title, type: type, notes: notes, status: "idea", cost: parseFloat(data.cost) || 0, currency: data.currency || "USD", placeId: place ? place.id : "" }, "a");
+    Store.add("activities", { date: data.date || "", time: data.time || "", city: cityId, title: title, type: type, notes: notes, status: "idea", cost: parseFloat(data.cost) || 0, currency: data.currency || "USD", placeId: place ? place.id : "", sourceId: sourceId || "" }, "a");
   }, "Add to itinerary");
 }
 
@@ -1161,11 +1162,13 @@ function openActivityForm(state, date, existing, place) {
   const currencyOpts = ["USD", "EUR"].map((c) => '<option value="' + c + '"' + ((existing ? existing.currency : "USD") === c ? " selected" : "") + ">" + c + "</option>").join("");
   const tripRange = Store.getTripDateRange();
   const dateVal = existing ? existing.date : date;
+  const REQ = ' <span style="color:var(--danger)">*</span>';
   const body =
-    '<label class="field">Title (a dinner spot, a sight, a tour)</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
+    '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required</div>' +
+    '<label class="field">Title (a dinner spot, a sight, a tour)' + REQ + '</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
     '<label class="field">Date</label><input type="date" data-field="date" value="' + esc(dateVal || "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
     '<label class="field">Time (optional)</label><input type="time" step="900" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
-    '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
+    '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Type</label><select data-field="type">' + typeOpts + '</select>' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person (optional)</label><input data-field="cost" type="number" value="' + (existing && existing.cost ? existing.cost : "") + '"></div>' +
     '<div><label class="field">Currency</label><select data-field="currency">' + currencyOpts + '</select></div></div>' +
@@ -1174,7 +1177,7 @@ function openActivityForm(state, date, existing, place) {
     (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteActBtn">Remove this item</button></div>' : "");
   openModal(existing ? "Edit itinerary item" : "Add to " + (dateVal ? fmtDate(dateVal) : "your itinerary"), body, (data) => {
     const payload = { date: data.date, title: data.title, time: data.time, city: data.city, type: data.type, notes: data.notes, status: data.status || (existing ? existing.status : "idea"), cost: parseFloat(data.cost) || 0, currency: data.currency || "USD" };
-    if (existing) Store.update("activities", existing.id, payload);
+    if (existing) Store.update("activities", existing.id, Object.assign({}, existing, payload));
     else Store.add("activities", payload, "a");
   }, "Save");
   if (existing) setTimeout(() => {
