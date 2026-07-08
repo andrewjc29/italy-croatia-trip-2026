@@ -710,6 +710,13 @@ body.hero-full-hold .bottom-nav{display:none}
 
 /* ---- shared form / modal (unchanged mechanics, restyled) ---- */
 input,select,textarea{font-family:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-input);width:100%;min-width:0;background:#fff;color:var(--ink)}
+/* iOS Safari auto-zooms the page on focus for any input/select/textarea
+   with a computed font-size under 16px, then leaves the page zoomed in
+   after the keyboard closes. 16px is the minimum that suppresses it, so
+   bump just the mobile font-size (desktop keeps the more compact 14px). */
+@media(max-width:600px){
+  input,select,textarea{font-size:16px}
+}
 /* Grid children default to min-width:auto, which lets a native date/time
    input's own intrinsic width win over the width:100% above and overflow
    its column -- confirmed on iPhone at 402pt logical width, well inside

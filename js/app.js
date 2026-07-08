@@ -2521,9 +2521,11 @@ function openTodaySheet() {
   const section = document.getElementById("todayView");
   const backdrop = document.getElementById("tvBackdrop");
   if (!section || !backdrop) return;
-  // Only one overlay (this sheet or a page panel) should ever be showing
-  // at once.
-  closePage();
+  // Today is a lightweight overlay (bottom sheet / centered modal, its own
+  // blurred backdrop) meant to sit on top of whatever's currently showing,
+  // not replace it -- so opening it deliberately leaves any open page
+  // panel (Bookings/Toolkit/Prep) mounted underneath. Closing Today just
+  // reveals that page again, same as it reveals Home.
   todayViewOffset = 0;
   renderTodayView(Store.getState());
   moveTodayIcon(true);
@@ -2596,9 +2598,10 @@ function openPage(name) {
   document.querySelectorAll(".page-panel.pp-open").forEach((p) => {
     if (p !== panel) closePage(p.id);
   });
-  // Same reasoning for the Today sheet -- it's a different overlay
-  // (bottom sheet vs. full page, higher z-index) but only one of any kind
-  // should ever be showing at once.
+  // Opening a full page is a real navigation, so it also dismisses Today
+  // if it happened to be open on top of whatever page/Home you were on.
+  // (The reverse isn't true -- see openTodaySheet -- Today is allowed to
+  // sit on top of an open page panel rather than closing it.)
   closeTodaySheet();
   panel.classList.add("pp-open");
   panel.setAttribute("aria-hidden", "false");
