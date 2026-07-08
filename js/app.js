@@ -988,8 +988,10 @@ function openHotelChooseConfirm(state, h, place, current, placeLodgings) {
 }
 
 function openHotelForm(state, existing, place) {
+  const REQ = ' <span style="color:var(--danger)">*</span>';
   const body =
-    '<label class="field">Hotel name</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
+    '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required</div>' +
+    '<label class="field">Hotel name' + REQ + '</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
     '<label class="field">Area / neighborhood</label><input data-field="area" value="' + esc(existing ? existing.area : "") + '">' +
     '<label class="field">Nightly cost (label, e.g. "~$180-260")</label><input data-field="costLabel" value="' + esc(existing ? existing.costLabel : "") + '">' +
     '<label class="field">Why it works</label><textarea data-field="pros">' + esc(existing ? existing.pros : "") + '</textarea>' +
@@ -1034,13 +1036,16 @@ function renderPlaceSee(placeId, state) {
 
 function openSeeForm(state, existing, place) {
   const cityOpts = place.cityIds.map((id) => '<option value="' + id + '"' + ((existing ? existing.city : place.cityIds[0]) === id ? " selected" : "") + ">" + cityName(id) + "</option>").join("");
+  const REQ = ' <span style="color:var(--danger)">*</span>';
+  const SPARK = ' <span title="auto-fillable">✨</span>';
   const body =
-    '<label class="field">Name</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
+    '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required &middot; ✨ auto-fillable</div>' +
+    '<label class="field">Name' + REQ + '</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
     '<div class="autofill-row"><button type="button" class="link" id="autoFillBtn">✨ Auto-fill from Google</button><span id="autoFillStatus" class="autofill-status"></span></div>' +
     '<input type="hidden" data-field="placeUrl" value="' + esc(existing ? existing.url || "" : "") + '">' +
-    '<label class="field">Kind / category</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
-    '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
-    '<label class="field">Notes (optional, brief)</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
+    '<label class="field">Kind / category' + SPARK + '</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
+    '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>' +
+    '<label class="field">Notes (optional, brief)' + SPARK + '</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
     (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteSeeBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add a thing to do", body, (data) => {
     const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), placeId: place.id };
@@ -1338,12 +1343,15 @@ function openBookingForm(state, existing, place, defaultDate) {
 
 function openRestForm(state, existing, place) {
   const cityOpts = place.cityIds.map((id) => '<option value="' + id + '"' + ((existing ? existing.city : place.cityIds[0]) === id ? " selected" : "") + ">" + cityName(id) + "</option>").join("");
-  const body = '<label class="field">Name</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
+  const REQ = ' <span style="color:var(--danger)">*</span>';
+  const SPARK = ' <span title="auto-fillable">✨</span>';
+  const body = '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required &middot; ✨ auto-fillable</div>' +
+    '<label class="field">Name' + REQ + '</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
     '<div class="autofill-row"><button type="button" class="link" id="autoFillBtn">✨ Auto-fill from Google</button><span id="autoFillStatus" class="autofill-status"></span></div>' +
     '<input type="hidden" data-field="placeUrl" value="' + esc(existing ? existing.url || "" : "") + '">' +
-    '<label class="field">Kind / specialty</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
-    '<label class="field">City</label><select data-field="city">' + cityOpts + '</select>' +
-    '<label class="field">Notes (optional -- reservation info, tips)</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
+    '<label class="field">Kind / specialty' + SPARK + '</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
+    '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>' +
+    '<label class="field">Notes (optional -- reservation info, tips)' + SPARK + '</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
     '<label class="field">Vegetarian friendly?</label><select data-field="vegetarian"><option value="true"' + (existing && existing.vegetarian ? " selected" : "") + '>Yes</option><option value="false"' + (existing && !existing.vegetarian ? " selected" : "") + '>No</option></select>' +
     (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteRestBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add restaurant", body, (data) => {
