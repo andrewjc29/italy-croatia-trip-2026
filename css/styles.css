@@ -380,6 +380,10 @@ body.pp-open-lock{overflow:hidden}
 #bookingStatusPanel .sec-add{background:var(--adriatic-deep)}
 #bookingStatusPanel .plan-collapse summary .arw{color:var(--adriatic-deep)}
 #bookingStatusPanel .sub-h{margin-top:1.4rem}
+/* First section (Hotels) sits flush against .pp-body's own top padding,
+   same as Toolkit's first card (.tk-collapse:first-child) -- only
+   Transportation below it keeps the 1.4rem gap above. */
+#bookingStatusPanel .plan-collapse:first-child .sub-h{margin-top:0}
 
 /* ---- trip countdown banner ---- */
 /* Countdown card -- shared markup used inside the Today box (was formerly
@@ -652,8 +656,19 @@ body.tv-sheet-open{overflow:hidden}
 .prep-phase-head .arw{font-family:'Outfit';font-size:1.2rem;color:var(--terracotta);transition:transform .25s;flex-shrink:0}
 .prep-phase[open] .prep-phase-head .arw{transform:rotate(45deg)}
 .prep-phase-body{margin-top:.9rem}
-.prep-hide-toggle{display:flex;align-items:center;gap:.35rem;font-family:'Outfit';font-size:.7rem;color:var(--muted);cursor:pointer;flex-shrink:0;margin-bottom:.3rem}
-.prep-hide-toggle input{accent-color:var(--seaglass);width:14px;height:14px}
+/* A real switch (track + thumb), not another checkbox -- deliberately
+   distinct from the to-do checkboxes above it so "Show completed" reads
+   as a view filter, not one more item in the list. The <input> itself
+   stays in the DOM (visually hidden, not display:none) so it's still
+   keyboard-focusable and toggled by clicking the label as normal; the
+   visible switch is its sibling <span>, driven purely by :checked. */
+.prep-hide-toggle{display:flex;align-items:center;gap:.5rem;font-family:'Outfit';font-size:.7rem;color:var(--muted);cursor:pointer;flex-shrink:0;margin-bottom:.3rem}
+.prep-hide-toggle input{position:absolute;opacity:0;width:1px;height:1px;overflow:hidden;white-space:nowrap;clip:rect(0,0,0,0)}
+.prep-switch{position:relative;display:inline-block;width:34px;height:20px;border-radius:999px;background:var(--line);flex-shrink:0;transition:background .2s ease}
+.prep-switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s ease}
+.prep-hide-toggle input:checked+.prep-switch{background:var(--seaglass)}
+.prep-hide-toggle input:checked+.prep-switch::after{transform:translateX(14px)}
+.prep-hide-toggle input:focus-visible+.prep-switch{outline:2px solid var(--seaglass);outline-offset:2px}
 .prep-item-row{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 0;border-top:1px dashed var(--line)}
 .prep-hide-toggle + .prep-item-row{border-top:none}
 .prep-phase.hide-done .prep-item-row.done{display:none}

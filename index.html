@@ -14,7 +14,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<!-- hero-full-hold starts on the body tag itself (not added by JS) so the
+     bottom tab bar is hidden from the very first paint -- waiting for
+     initHeroIntro() to add this class left a real gap between first paint
+     and script execution where the bottom nav (Prep/Bookings/etc.) could
+     flash into view over the full-bleed hero on slower loads. JS removes
+     it once the hero collapses (or immediately under reduced motion). -->
+<body class="hero-full-hold">
 
 <nav class="nav">
   <div class="nav-inner">

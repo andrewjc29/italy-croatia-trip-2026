@@ -1517,8 +1517,11 @@ function initHeroIntro() {
   if (!hero) return;
   // The bottom tab bar has nothing to do while the hero is still the
   // full-bleed splash (logo only, no nav-worthy content on screen yet) --
-  // hide it for that brief hold, same as the collapse itself skips
-  // straight through under reduced motion.
+  // hidden for that brief hold, same as the collapse itself skips
+  // straight through under reduced motion. The class actually starts on
+  // <body> in the HTML itself (not added here) so it's in effect from
+  // the very first paint, before this script even runs -- this call is
+  // just a defensive no-op in case anything else ever clears it early.
   document.body.classList.add("hero-full-hold");
   const collapse = () => {
     hero.classList.add("hero-collapsed");
@@ -2440,7 +2443,7 @@ function prepPhaseBlock(phaseName, items) {
     (status ? '<span class="prep-phase-status' + (incomplete === 0 ? " all-done" : "") + '">' + esc(status) + '</span>' : "") +
     '<span class="arw">+</span></summary>' +
     '<div class="prep-phase-body">' +
-    '<label class="prep-hide-toggle"><input type="checkbox" data-prep-hide-phase="' + esc(phaseName) + '"' + (showOn ? " checked" : "") + '> Show completed</label>' +
+    '<label class="prep-hide-toggle"><input type="checkbox" data-prep-hide-phase="' + esc(phaseName) + '"' + (showOn ? " checked" : "") + '><span class="prep-switch"></span> Show completed</label>' +
     items.map(prepItemHtml).join("") +
     '<div class="prep-phase-actions">' +
     '<button class="prep-add" data-prep-add-phase="' + esc(phaseName) + '">+ Add to-do</button>' +
