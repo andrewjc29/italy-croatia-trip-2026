@@ -2586,6 +2586,19 @@ function onPagePanelKeydown(e) {
   if (e.key === "Escape") closePage();
 }
 
+// Removes a page panel's own open state without touching the shared
+// body scroll-lock or the Escape-key listener -- used when a still-open
+// panel is being replaced by a new one (see openPage), where the lock/
+// listener need to stay live for the incoming panel, not get torn down
+// and re-added.
+function hidePanelOnly(panel) {
+  panel.classList.remove("pp-open");
+  panel.setAttribute("aria-hidden", "true");
+  document.querySelectorAll(".tl, .bn-tab").forEach((l) => {
+    if (l.dataset.target === panel.id) l.classList.remove("active");
+  });
+}
+
 function openPage(name) {
   const panel = document.getElementById(name);
   if (!panel || !panel.classList.contains("page-panel")) return;
@@ -2595,9 +2608,13 @@ function openPage(name) {
   // wins the paint order), so tapping back to Bookings did nothing except
   // via its back button, which was the only path that actually cleared a
   // panel's pp-open class.
-  document.querySelectorAll(".page-panel.pp-open").forEach((p) => {
-    if (p !== panel) closePage(p.id);
-  });
+  const others = Array.from(document.querySelectorAll(".page-panel.pp-open")).filter((p) => p !== panel);
+  // Always paint the panel being opened on top of any panel it's
+  // replacing: same z-index across all page panels means stacking falls
+  // back to DOM order, so move the incoming one to the end of its parent
+  // every time (not just once) rather than relying on how they happened
+  // to be ordered in the HTML.
+  panel.parentNode.appendChild(panel);
   // Opening a full page is a real navigation, so it also dismisses Today
   // if it happened to be open on top of whatever page/Home you were on.
   // (The reverse isn't true -- see openTodaySheet -- Today is allowed to
@@ -2607,6 +2624,25 @@ function openPage(name) {
   panel.setAttribute("aria-hidden", "false");
   document.body.classList.add("pp-open-lock");
   document.addEventListener("keydown", onPagePanelKeydown);
+  // Keep any previously-open panel fully in place, underneath, until the
+  // new one has completely finished sliding up over it -- switching both
+  // at once (old fading out while new fades in) let Home peek through
+  // the gap where neither panel was fully opaque yet. Only hide the old
+  // one once the new one's slide-up transition has actually finished.
+  if (others.length) {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      panel.removeEventListener("transitionend", onTransEnd);
+      others.forEach(hidePanelOnly);
+    };
+    const onTransEnd = (e) => { if (e.target === panel && e.propertyName === "transform") finish(); };
+    panel.addEventListener("transitionend", onTransEnd);
+    // Fallback for prefers-reduced-motion (transitions disabled globally,
+    // so transitionend never fires) or any other edge case.
+    setTimeout(finish, 350);
+  }
 }
 
 // With no name, closes whichever page panel is currently open (used by

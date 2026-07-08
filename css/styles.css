@@ -170,9 +170,13 @@ section[id]{scroll-margin-top:84px}
    clears the bottom for the bottom tab bar, since .nav is hidden there. */
 /* Quick slide up from the nav, matching the Today sheet's bottom-sheet
    feel rather than a side-fade -- the page reads as surfacing from the
-   tab bar you just tapped, just snappier since it's a plain page swap. */
-.page-panel{position:fixed;top:84px;left:0;right:0;bottom:0;z-index:70;background:var(--paper);display:flex;flex-direction:column;opacity:0;transform:translateY(100%);pointer-events:none;transition:opacity .22s ease,transform .28s cubic-bezier(.4,0,.2,1)}
-.page-panel.pp-open{opacity:1;transform:translateY(0);pointer-events:auto}
+   tab bar you just tapped, just snappier since it's a plain page swap.
+   Only transform animates (no opacity fade), same as the Today sheet's
+   own element -- staying fully opaque the whole time means Home never
+   shows through a translucent panel mid-slide, it's only ever covered
+   or uncovered by the panel's own opaque edge as it moves. */
+.page-panel{position:fixed;top:84px;left:0;right:0;bottom:0;z-index:70;background:var(--paper);display:flex;flex-direction:column;transform:translateY(100%);pointer-events:none;transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.page-panel.pp-open{transform:translateY(0);pointer-events:auto}
 body.pp-open-lock{overflow:hidden}
 .pp-head{flex-shrink:0;background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta));box-shadow:0 6px 20px var(--shadow);padding:calc(1.4rem + env(safe-area-inset-top)) 1.4rem 1.4rem;display:flex;flex-wrap:wrap;align-items:center;gap:.7rem;position:relative}
 .pp-back{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
