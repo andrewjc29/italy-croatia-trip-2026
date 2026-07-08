@@ -2508,6 +2508,9 @@ function openTodaySheet() {
   const section = document.getElementById("todayView");
   const backdrop = document.getElementById("tvBackdrop");
   if (!section || !backdrop) return;
+  // Only one overlay (this sheet or a page panel) should ever be showing
+  // at once.
+  closePage();
   todayViewOffset = 0;
   renderTodayView(Store.getState());
   moveTodayIcon(true);
@@ -2580,6 +2583,10 @@ function openPage(name) {
   document.querySelectorAll(".page-panel.pp-open").forEach((p) => {
     if (p !== panel) closePage(p.id);
   });
+  // Same reasoning for the Today sheet -- it's a different overlay
+  // (bottom sheet vs. full page, higher z-index) but only one of any kind
+  // should ever be showing at once.
+  closeTodaySheet();
   panel.classList.add("pp-open");
   panel.setAttribute("aria-hidden", "false");
   document.body.classList.add("pp-open-lock");
@@ -2655,8 +2662,11 @@ function setupScrollspy() {
     // Itinerary sits right under the hero -- jumping straight to its
     // section (rather than the very top of the page) would skip past the
     // hero entirely, so this one scrolls to the page top instead to show
-    // it off on the way down.
+    // it off on the way down. It's also how you get back to Home from any
+    // open page panel, so close whichever one is open first.
     if (l.dataset.target === "itineraryTop") {
+      closePage();
+      closeTodaySheet();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       const target = document.getElementById(l.dataset.target);

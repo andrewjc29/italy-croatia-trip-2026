@@ -182,6 +182,11 @@ body.pp-open-lock{overflow:hidden}
 /* ---- collapsible toolkit sections (Documents, Emergency, Notes -- checked
    less often than Map/Weather/Budget, so they stay tucked away by default) ---- */
 .tk-collapse{margin-top:2.4rem}
+/* The gap between collapsibles is fine, but on the first one it stacked
+   on top of the Toolkit page's own top padding, leaving a much bigger gap
+   above Budget than the equivalent space above "Hotels" on the Bookings
+   page. Flush against the page padding to match. */
+.tk-collapse:first-child{margin-top:0}
 .tk-collapse summary{display:flex;align-items:baseline;gap:1rem;cursor:pointer;list-style:none}
 .tk-collapse summary::-webkit-details-marker{display:none}
 .tk-collapse summary h3{font-size:1.6rem;color:var(--adriatic-deep);margin:0}
@@ -750,7 +755,7 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .bottom-nav{
     display:flex;align-items:flex-end;position:fixed;left:0;right:0;bottom:0;z-index:55;
     background:rgba(247,244,237,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);
-    padding:.5rem .4rem 1rem;
+    padding:.5rem .4rem 1rem;height:6rem;box-sizing:border-box;
   }
   /* No top .nav on mobile (it's hidden entirely, see above), so the page
      panel reclaims that space -- instead it clears the bottom tab bar.
