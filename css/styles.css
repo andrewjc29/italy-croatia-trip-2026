@@ -164,7 +164,11 @@ section[id]{scroll-margin-top:84px}
    are destinations you navigate TO rather than a quick peek. Home (hero +
    itinerary) stays mounted underneath the whole time. Opened/closed via
    openPage()/closePage() in app.js, triggered by the existing nav taps. */
-.page-panel{position:fixed;inset:0;z-index:70;background:var(--paper);display:flex;flex-direction:column;opacity:0;transform:translateX(14px);pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+/* Reserves space for the persistent nav rather than covering it: the top
+   84px (matching section[id]'s scroll-margin-top, i.e. the sticky .nav's
+   own height) stays clear on desktop; the mobile override below instead
+   clears the bottom for the bottom tab bar, since .nav is hidden there. */
+.page-panel{position:fixed;top:84px;left:0;right:0;bottom:0;z-index:70;background:var(--paper);display:flex;flex-direction:column;opacity:0;transform:translateX(14px);pointer-events:none;transition:opacity .2s ease,transform .2s ease}
 .page-panel.pp-open{opacity:1;transform:translateX(0);pointer-events:auto}
 body.pp-open-lock{overflow:hidden}
 .pp-head{flex-shrink:0;background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta));box-shadow:0 6px 20px var(--shadow);padding:calc(1.4rem + env(safe-area-inset-top)) 1.4rem 1.4rem;display:flex;flex-wrap:wrap;align-items:center;gap:.7rem;position:relative}
@@ -516,7 +520,7 @@ body.tv-sheet-open{overflow:hidden}
 .tv-arrow{background:rgba(255,255,255,.14);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1.15rem;line-height:1;display:flex;align-items:center;justify-content:center;padding:0}
 .tv-arrow:hover{background:rgba(255,255,255,.3)}
 .tv-arrow:disabled{opacity:.3;cursor:default}
-#todayContent{background:var(--card);border:1px solid var(--line);border-radius:0 0 14px 14px;padding:1.1rem 1.3rem calc(2.6rem + env(safe-area-inset-bottom));box-shadow:0 10px 28px var(--shadow);overflow-y:auto;flex:1;min-height:0}
+#todayContent{background:var(--card);border:1px solid var(--line);border-radius:0 0 14px 14px;padding:1.1rem 1.3rem calc(1.3rem + env(safe-area-inset-bottom));box-shadow:0 10px 28px var(--shadow);overflow-y:auto;flex:1;min-height:0}
 .tv-city{font-family:'Fraunces';font-size:1.3rem;font-weight:600;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin:.1rem 0 .7rem}
 .tv-city .tv-daynum{font-family:'Outfit';font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
 /* Forecast strip + jump-to-city button, grouped together and pushed to the
@@ -744,6 +748,9 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
     background:rgba(247,244,237,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);
     padding:.5rem .4rem 1rem;
   }
+  /* No top .nav on mobile (it's hidden entirely, see above), so the page
+     panel reclaims that space -- instead it clears the bottom tab bar. */
+  .page-panel{top:0;bottom:4.6rem}
   .bn-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.2rem .1rem;border:none;background:none;cursor:pointer;color:var(--muted);font-family:'Outfit'}
   .bn-tab span{font-size:.6rem;letter-spacing:.02em;white-space:nowrap}
   .bn-tab svg{width:19px;height:19px}
