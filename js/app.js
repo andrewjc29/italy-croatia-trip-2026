@@ -2556,6 +2556,47 @@ function setupTodaySheet() {
   }
 }
 
+// ---- full-page overlays: Bookings, Toolkit, Prep ----
+// Same in-memory-overlay approach as the Today sheet -- no URL change, no
+// router. Home (hero + itinerary) stays mounted the whole time; opening a
+// page just slides this panel in over it. Panel ids match the nav's
+// existing data-target values (see index.html), so no separate id-mapping
+// is needed here.
+const PAGE_PANEL_IDS = ["bookings", "toolkit", "prep"];
+
+function onPagePanelKeydown(e) {
+  if (e.key === "Escape") closePage();
+}
+
+function openPage(name) {
+  const panel = document.getElementById(name);
+  if (!panel || !panel.classList.contains("page-panel")) return;
+  panel.classList.add("pp-open");
+  panel.setAttribute("aria-hidden", "false");
+  document.body.classList.add("pp-open-lock");
+  document.addEventListener("keydown", onPagePanelKeydown);
+}
+
+// With no name, closes whichever page panel is currently open (used by
+// each panel's own back button and by Escape).
+function closePage(name) {
+  const panel = name ? document.getElementById(name) : document.querySelector(".page-panel.pp-open");
+  if (!panel) return;
+  panel.classList.remove("pp-open");
+  panel.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("pp-open-lock");
+  document.removeEventListener("keydown", onPagePanelKeydown);
+  document.querySelectorAll(".tl, .bn-tab").forEach((l) => {
+    if (l.dataset.target === panel.id) l.classList.remove("active");
+  });
+}
+
+function setupPagePanels() {
+  document.querySelectorAll(".page-panel .pp-back").forEach((btn) => {
+    btn.addEventListener("click", () => closePage(btn.closest(".page-panel").id));
+  });
+}
+
 // ---- scrollspy ----
 // Drives both the top nav chips (.tl) and the mobile bottom tab bar
 // (.bn-tab) off the same click-to-jump + IntersectionObserver highlighting
@@ -2566,10 +2607,12 @@ function setupTodaySheet() {
 // jump to (see index.html).
 function setupScrollspy() {
   const links = Array.from(document.querySelectorAll(".tl, .bn-tab"));
-  // todayView is now an overlay sheet, not a scrollable section -- it's
-  // reachable via the same data-target links, but shouldn't be part of
-  // the IntersectionObserver's scroll-position band.
-  const sections = links.map((l) => document.getElementById(l.dataset.target)).filter((s) => s && s.id !== "todayView");
+  // todayView and the Bookings/Toolkit/Prep page panels are all overlays
+  // now, not scrollable sections -- they're reachable via the same
+  // data-target links, but shouldn't be part of the IntersectionObserver's
+  // scroll-position band.
+  const OVERLAY_IDS = ["todayView", ...PAGE_PANEL_IDS];
+  const sections = links.map((l) => document.getElementById(l.dataset.target)).filter((s) => s && !OVERLAY_IDS.includes(s.id));
   // A tap sets the highlight immediately (source of truth for the target
   // you asked for), then the smooth scroll animation runs. While that
   // animation is in flight, the IntersectionObserver's band can briefly
@@ -2588,6 +2631,15 @@ function setupScrollspy() {
     // never silently shows a stale date from an earlier browse.
     if (l.dataset.target === "todayView") {
       openTodaySheet();
+      links.forEach((x) => x.classList.toggle("active", x.dataset.target === l.dataset.target));
+      return;
+    }
+    // Bookings/Toolkit/Prep are full-page overlays -- open the page
+    // instead of scrolling to a section that no longer lives in the Home
+    // scroll. Tapping the tab for the page you're already on is a no-op
+    // (openPage just re-adds a class that's already there).
+    if (PAGE_PANEL_IDS.includes(l.dataset.target)) {
+      openPage(l.dataset.target);
       links.forEach((x) => x.classList.toggle("active", x.dataset.target === l.dataset.target));
       return;
     }
@@ -2651,6 +2703,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupScrollspy();
   setupTotop();
   setupTodaySheet();
+  setupPagePanels();
   initHeroIntro();
   Store.subscribe(renderAll);
   await Store.init();

@@ -158,10 +158,21 @@ section[id]{scroll-margin-top:84px}
    .wrap max-width), the .sb-inner div re-applies the same max-width/padding
    as .wrap so the title lines up with the content below it. Sits directly
    against the section above/below it -- no divider lines, no double-margins. */
-.section-banner{box-shadow:0 6px 20px var(--shadow);background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta));margin-top:3rem}
-.section-banner .sb-inner{max-width:1080px;margin:0 auto;padding:2.6rem 2rem 1.5rem;display:flex;flex-direction:column;align-items:flex-start;gap:.35rem}
-.section-banner h3{color:#fff;font-size:1.7rem;margin:0}
-.section-banner .tag{color:var(--seaglass-soft);font-size:.72rem}
+/* ---- full-page overlays: Bookings, Toolkit, Prep ----
+   Same in-memory-overlay approach as the Today sheet (no URL change, no
+   router), but full-viewport instead of a bottom sheet/modal, since these
+   are destinations you navigate TO rather than a quick peek. Home (hero +
+   itinerary) stays mounted underneath the whole time. Opened/closed via
+   openPage()/closePage() in app.js, triggered by the existing nav taps. */
+.page-panel{position:fixed;inset:0;z-index:70;background:var(--paper);display:flex;flex-direction:column;opacity:0;transform:translateX(14px);pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+.page-panel.pp-open{opacity:1;transform:translateX(0);pointer-events:auto}
+body.pp-open-lock{overflow:hidden}
+.pp-head{flex-shrink:0;background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta));box-shadow:0 6px 20px var(--shadow);padding:calc(1.4rem + env(safe-area-inset-top)) 1.4rem 1.4rem;display:flex;flex-wrap:wrap;align-items:center;gap:.7rem;position:relative}
+.pp-back{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.pp-back:hover{background:rgba(255,255,255,.32)}
+.pp-head h2{color:#fff;font-family:'Fraunces';font-size:1.5rem;font-weight:500;margin:0}
+.pp-tag{color:var(--seaglass-soft);font-size:.72rem;flex-basis:100%}
+.pp-body{flex:1;overflow-y:auto;max-width:1080px;width:100%;margin:0 auto;padding:1.6rem 2rem calc(2.4rem + env(safe-area-inset-bottom))}
 .sub-sub{margin:-1rem 0 1.2rem;font-size:.82rem;color:var(--muted);font-family:'Outfit'}
 
 /* ---- collapsible toolkit sections (Documents, Emergency, Notes -- checked
@@ -281,7 +292,7 @@ section[id]{scroll-margin-top:84px}
 .divider{height:1px;background:var(--line);max-width:1080px;margin:4rem auto 0}
 
 /* ---- toolkit (map / weather / documents / notes) ---- */
-.toolkit-block{margin:2.6rem 0}
+.toolkit-block{margin:0}
 .doc-grid,.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.2rem}
 .util-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:1.1rem 1.3rem;box-shadow:0 8px 24px var(--shadow)}
 .util-card h4{font-family:'Fraunces';font-size:1.15rem;color:var(--adriatic-deep);margin-bottom:.3rem}
@@ -600,9 +611,9 @@ body.tv-sheet-open{overflow:hidden}
 .note-row time{display:block;font-size:.68rem;letter-spacing:.06em;color:var(--muted);margin-top:.25rem}
 
 /* ---- prep checklist ----
-   Now a plain .wrap section like Bookings/Toolkit (light card background,
-   dark text), sitting under the shared full-bleed .section-banner. */
-.prep-wrap{max-width:800px;margin:2.6rem auto 0}
+   Lives inside the Prep page-panel's .pp-body now (see page-panel styles
+   above), not a .wrap section in the Home scroll. */
+.prep-wrap{max-width:800px;margin:0 auto}
 /* Each timeframe is its own card, each with its own "Show completed"
    toggle so filtering can be done section by section -- completed to-dos
    start hidden by default (.hide-done is the default state, see JS). */
