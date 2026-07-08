@@ -58,17 +58,17 @@ section[id]{scroll-margin-top:84px}
 /* App mark -- two instances. The splash version is large, centered on
    the whole screen (positioned on .hero itself, not .hero-inner, so it's
    independent of the text block's bottom-anchored layout) and simply
-   fades out once collapsed. The inline version lives next to the title
-   text and fades in at the same time -- it has no explicit size of its
-   own; align-items:stretch on .hero-titlerow stretches it to match the
-   title+meta stack's own height, and its img fills that at height:100%
-   with width:auto, so it's always exactly as tall as those two lines. */
+   fades out once collapsed. The inline version sits at a small, fixed
+   size to the left of the title+stats text, vertically centered next to
+   it with a bit of gap -- fixed dimensions on both the <img> attributes
+   and the CSS so it can never fall back to a native/huge intrinsic size
+   before or without the stylesheet. */
 .hero-logo{position:absolute;z-index:3;top:50%;left:50%;width:88px;height:88px;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));transition:opacity .4s ease}
 .hero-logo img{display:block;width:100%;height:100%}
 .hero.hero-collapsed .hero-logo-splash{opacity:0;pointer-events:none}
-.hero-titlerow{display:flex;align-items:stretch;gap:.9rem}
-.hero-logo-inline{position:static;width:auto;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));transition:opacity .4s ease .5s}
-.hero-logo-inline img{height:100%;width:auto;display:block;border-radius:22%}
+.hero-titlerow{display:flex;align-items:center;gap:.7rem}
+.hero-logo-inline{position:static;width:40px;height:40px;flex:0 0 auto;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));transition:opacity .4s ease .5s}
+.hero-logo-inline img{width:100%;height:100%;display:block;border-radius:22%}
 .hero.hero-collapsed .hero-logo-inline{opacity:1}
 .hero-inner{position:relative;z-index:2;padding:0 8vw 7vh;max-width:1100px;transition:padding-bottom .55s cubic-bezier(.4,0,.2,1)}
 /* The eyebrow, title and stats are all hidden during the full-bleed
