@@ -168,8 +168,11 @@ section[id]{scroll-margin-top:84px}
    84px (matching section[id]'s scroll-margin-top, i.e. the sticky .nav's
    own height) stays clear on desktop; the mobile override below instead
    clears the bottom for the bottom tab bar, since .nav is hidden there. */
-.page-panel{position:fixed;top:84px;left:0;right:0;bottom:0;z-index:70;background:var(--paper);display:flex;flex-direction:column;opacity:0;transform:translateX(14px);pointer-events:none;transition:opacity .2s ease,transform .2s ease}
-.page-panel.pp-open{opacity:1;transform:translateX(0);pointer-events:auto}
+/* Quick slide up from the nav, matching the Today sheet's bottom-sheet
+   feel rather than a side-fade -- the page reads as surfacing from the
+   tab bar you just tapped, just snappier since it's a plain page swap. */
+.page-panel{position:fixed;top:84px;left:0;right:0;bottom:0;z-index:70;background:var(--paper);display:flex;flex-direction:column;opacity:0;transform:translateY(100%);pointer-events:none;transition:opacity .22s ease,transform .28s cubic-bezier(.4,0,.2,1)}
+.page-panel.pp-open{opacity:1;transform:translateY(0);pointer-events:auto}
 body.pp-open-lock{overflow:hidden}
 .pp-head{flex-shrink:0;background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta));box-shadow:0 6px 20px var(--shadow);padding:calc(1.4rem + env(safe-area-inset-top)) 1.4rem 1.4rem;display:flex;flex-wrap:wrap;align-items:center;gap:.7rem;position:relative}
 .pp-back{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
@@ -632,12 +635,23 @@ body.tv-sheet-open{overflow:hidden}
    start hidden by default (.hide-done is the default state, see JS). */
 #prepList{display:flex;flex-direction:column;gap:1.2rem}
 .prep-phase{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:0 8px 24px var(--shadow);padding:1.3rem 1.5rem}
-.prep-phase-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:.3rem}
+/* Each phase is a native <details> now -- collapsed by default, with the
+   incomplete-item count visible in the summary so you can scan progress
+   without opening every section. Open/closed state is remembered across
+   re-renders in JS (PREP_OPEN_PHASES), since the whole list re-renders on
+   every sync poll. */
+.prep-phase-head{display:flex;align-items:baseline;gap:.8rem;cursor:pointer;list-style:none}
+.prep-phase-head::-webkit-details-marker{display:none}
 .prep-phase h4{font-family:'Outfit';font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--seaglass);font-weight:600;margin:0}
-.prep-hide-toggle{display:flex;align-items:center;gap:.35rem;font-family:'Outfit';font-size:.7rem;color:var(--muted);cursor:pointer;flex-shrink:0}
+.prep-phase-status{margin-left:auto;font-family:'Outfit';font-size:.72rem;color:var(--terracotta);flex-shrink:0}
+.prep-phase-status.all-done{color:var(--seaglass)}
+.prep-phase-head .arw{font-family:'Outfit';font-size:1.2rem;color:var(--terracotta);transition:transform .25s;flex-shrink:0}
+.prep-phase[open] .prep-phase-head .arw{transform:rotate(45deg)}
+.prep-phase-body{margin-top:.9rem}
+.prep-hide-toggle{display:flex;align-items:center;gap:.35rem;font-family:'Outfit';font-size:.7rem;color:var(--muted);cursor:pointer;flex-shrink:0;margin-bottom:.3rem}
 .prep-hide-toggle input{accent-color:var(--seaglass);width:14px;height:14px}
 .prep-item-row{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 0;border-top:1px dashed var(--line)}
-.prep-phase-head + .prep-item-row{border-top:none}
+.prep-hide-toggle + .prep-item-row{border-top:none}
 .prep-phase.hide-done .prep-item-row.done{display:none}
 .prep-item{display:flex;align-items:flex-start;gap:.8rem;flex:1;min-width:0}
 .prep-item input[type=checkbox]{margin-top:.3rem;width:16px;height:16px;accent-color:var(--seaglass);flex-shrink:0}
