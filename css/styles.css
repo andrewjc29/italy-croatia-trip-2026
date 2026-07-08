@@ -85,7 +85,7 @@ section[id]{scroll-margin-top:84px}
    these transitions animate every affected property down together. See
    initHeroIntro() in app.js. */
 .hero{transition:height .55s cubic-bezier(.4,0,.2,1)}
-.hero.hero-collapsed{height:34vh;min-height:280px}
+.hero.hero-collapsed{height:calc(34vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:280px}
 .hero.hero-collapsed .hero-inner{padding-bottom:3vh}
 .hero.hero-collapsed h1{font-size:clamp(1.5rem,4.4vw,2.1rem);font-weight:700;opacity:1}
 .hero.hero-collapsed .meta{margin-top:.6rem;opacity:.94}
@@ -441,7 +441,7 @@ section[id]{scroll-margin-top:84px}
 .tv-backdrop.tv-open{opacity:1;pointer-events:auto}
 .today-view{
   position:fixed;left:0;right:0;bottom:0;z-index:75;
-  max-width:760px;margin:0 auto;padding:0 0 env(safe-area-inset-bottom);
+  max-width:760px;margin:0 auto;padding:0;
   max-height:88vh;display:flex;flex-direction:column;
   transform:translateY(104%);transition:transform .38s cubic-bezier(.4,0,.2,1);
   visibility:hidden;
@@ -731,7 +731,7 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .bottom-nav{
     display:flex;align-items:flex-end;position:fixed;left:0;right:0;bottom:0;z-index:55;
     background:rgba(247,244,237,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);
-    padding:.5rem .4rem calc(1rem + env(safe-area-inset-bottom));
+    padding:.5rem .4rem 1rem;
   }
   .bn-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.2rem .1rem;border:none;background:none;cursor:pointer;color:var(--muted);font-family:'Outfit'}
   .bn-tab span{font-size:.6rem;letter-spacing:.02em;white-space:nowrap}
@@ -750,8 +750,8 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
      stay white on its orange circle in either location. */
   .bn-today-ico svg{width:23px;height:23px;stroke:#fff}
   .bn-today span{color:var(--terracotta);font-weight:600}
-  .totop{bottom:calc(5.2rem + env(safe-area-inset-bottom))}
-  body{padding-bottom:calc(4.6rem + env(safe-area-inset-bottom))}
+  .totop{bottom:5.2rem}
+  body{padding-bottom:4.6rem}
   /* Right-justify the + and collapse arrow in the per-city planning
      section headers on mobile (the divider rule wraps to its own line). */
   .plan-collapse summary .sec-add{margin-left:auto}
