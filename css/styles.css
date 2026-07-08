@@ -55,27 +55,21 @@ section[id]{scroll-margin-top:84px}
 .hero{position:relative;height:100vh;height:100dvh;min-height:520px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;overflow:hidden;background:var(--adriatic-deep)}
 .hero .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center}
 .hero .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,60,82,.30),rgba(18,60,82,.80))}
-/* App mark -- two instances. The splash version is large, centered on
-   the whole screen (positioned on .hero itself, not .hero-inner, so it's
-   independent of the text block's bottom-anchored layout) and simply
-   fades out once collapsed. The inline version sits to the left of the
-   title+stats text at a fixed size, vertically centered next to it with
-   a bit of gap. (A stretch-to-match-text-height approach was tried twice
-   here and produced an oversized icon both times -- browsers didn't
-   settle the percentage-height/flex-stretch interaction the way the spec
-   suggests. A fixed size is simple and can't regress.) */
+/* App mark -- the splash version only now (the inline version next to
+   the title was tried twice and reverted both times: a stretch-to-match-
+   text-height approach overflowed off-screen, and a fixed-size version
+   still looked wrong and threw off the header's layout/height, so the
+   logo idea is dropped from the collapsed banner entirely). Large,
+   centered on the whole screen -- positioned on .hero itself, not
+   .hero-inner, so it's independent of the text block's bottom-anchored
+   layout -- and simply fades out once the hero collapses. */
 .hero-logo{position:absolute;z-index:3;top:50%;left:50%;width:88px;height:88px;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));transition:opacity .4s ease}
 .hero-logo img{display:block;width:100%;height:100%}
 .hero.hero-collapsed .hero-logo-splash{opacity:0;pointer-events:none}
-.hero-titlerow{display:flex;align-items:center;gap:.7rem}
-.hero-logo-inline{position:static;width:52px;height:52px;flex:0 0 auto;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));transition:opacity .4s ease .5s}
-.hero-logo-inline img{width:100%;height:100%;display:block;border-radius:22%}
-.hero.hero-collapsed .hero-logo-inline{opacity:1}
 .hero-inner{position:relative;z-index:2;padding:0 8vw 7vh;max-width:1100px;transition:padding-bottom .55s cubic-bezier(.4,0,.2,1)}
 /* The eyebrow, title and stats are all hidden during the full-bleed
    splash (the logo alone carries it) and fade in once the hero collapses
-   to its banner -- the eyebrow stays hidden even then, since it'd just
-   repeat the trip name now sitting next to the logo. */
+   to its banner. */
 .eyebrow{font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:.72rem;opacity:0;max-height:0;margin-bottom:0;overflow:hidden;transition:opacity .3s,max-height .45s,margin-bottom .45s}
 .hero h1{font-size:clamp(2.4rem,7vw,5.2rem);font-weight:300;letter-spacing:-.01em;text-wrap:balance;opacity:0;transition:font-size .55s cubic-bezier(.4,0,.2,1),opacity .4s ease .5s}
 .hero h1 em{color:var(--seaglass-soft);padding-bottom:.15em;display:inline-block}
