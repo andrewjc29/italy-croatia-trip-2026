@@ -2386,6 +2386,41 @@ function openPrepItemModal(state, existing, forcedPhase) {
   }, 0);
 }
 
+// Edits a whole phase/section rather than a single to-do: rename it (moves
+// every item currently in that phase to the new name -- if the new name
+// matches another existing phase, they simply merge) or remove the whole
+// section (deletes every to-do in it). Opened from the "Edit section"
+// button in that phase's expanded body.
+function openPrepPhaseModal(state, phaseName) {
+  const items = (state.prepChecklist || []).filter((it) => it.phase === phaseName);
+  const count = items.length + " to-do" + (items.length === 1 ? "" : "s");
+  const body =
+    '<label class="field">Section title</label><input data-field="title" value="' + esc(phaseName) + '">' +
+    '<div style="margin-top:8px"><button class="link danger" id="removePrepPhaseBtn">Remove this section (' + count + ')</button></div>';
+  openModal("Edit section", body, (data) => {
+    const newName = (data.title || "").trim();
+    if (!newName || newName === phaseName) return;
+    items.forEach((it) => Store.update("prepChecklist", it.id, { phase: newName }));
+    // Carry the expanded/show-completed state over to the new name so the
+    // section you were just editing doesn't collapse or re-hide completed
+    // items out from under you.
+    PREP_OPEN_PHASES[newName] = true;
+    PREP_SHOW_DONE[newName] = PREP_SHOW_DONE[phaseName];
+    delete PREP_OPEN_PHASES[phaseName];
+    delete PREP_SHOW_DONE[phaseName];
+  }, "Save");
+  setTimeout(() => {
+    const d = document.getElementById("removePrepPhaseBtn");
+    if (d) d.addEventListener("click", () => {
+      if (!confirm('Remove the "' + phaseName + '" section and its ' + count + "?")) return;
+      items.forEach((it) => Store.remove("prepChecklist", it.id));
+      delete PREP_OPEN_PHASES[phaseName];
+      delete PREP_SHOW_DONE[phaseName];
+      closeModal();
+    });
+  }, 0);
+}
+
 // One merged Prep checklist: "Before you book" first, then the full phased
 // plan (Now / 3-4mo / 2-3mo / 1-2mo / 1-2wk), then a catch-all "General"
 // section, all in the same dark section. Every section gets its own
@@ -2407,7 +2442,10 @@ function prepPhaseBlock(phaseName, items) {
     '<div class="prep-phase-body">' +
     '<label class="prep-hide-toggle"><input type="checkbox" data-prep-hide-phase="' + esc(phaseName) + '"' + (showOn ? " checked" : "") + '> Show completed</label>' +
     items.map(prepItemHtml).join("") +
-    '<button class="prep-add" data-prep-add-phase="' + esc(phaseName) + '">+ Add to-do</button></div></details>';
+    '<div class="prep-phase-actions">' +
+    '<button class="prep-add" data-prep-add-phase="' + esc(phaseName) + '">+ Add to-do</button>' +
+    '<button class="prep-edit-phase" data-prep-edit-phase="' + esc(phaseName) + '">Edit section</button>' +
+    '</div></div></details>';
 }
 // Each card's "Show completed" checkbox filters just that card (not
 // persisted -- resets to unchecked, i.e. completed to-dos start hidden, on
@@ -2428,6 +2466,8 @@ function renderPrep(state) {
   attachPrepToggleHandlers(container);
   container.querySelectorAll("[data-prep-add-phase]").forEach((btn) => btn.addEventListener("click", () =>
     openPrepItemModal(Store.getState(), null, btn.dataset.prepAddPhase)));
+  container.querySelectorAll("[data-prep-edit-phase]").forEach((btn) => btn.addEventListener("click", () =>
+    openPrepPhaseModal(Store.getState(), btn.dataset.prepEditPhase)));
 }
 
 // Compact sync-status icon in the nav: spinning arrows while syncing, a
