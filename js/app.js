@@ -2571,6 +2571,15 @@ function onPagePanelKeydown(e) {
 function openPage(name) {
   const panel = document.getElementById(name);
   if (!panel || !panel.classList.contains("page-panel")) return;
+  // Only one page panel should ever be open at a time -- without this,
+  // switching straight from e.g. Bookings to Toolkit left Bookings' own
+  // pp-open class in place underneath (same z-index, later markup always
+  // wins the paint order), so tapping back to Bookings did nothing except
+  // via its back button, which was the only path that actually cleared a
+  // panel's pp-open class.
+  document.querySelectorAll(".page-panel.pp-open").forEach((p) => {
+    if (p !== panel) closePage(p.id);
+  });
   panel.classList.add("pp-open");
   panel.setAttribute("aria-hidden", "false");
   document.body.classList.add("pp-open-lock");

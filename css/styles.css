@@ -520,7 +520,11 @@ body.tv-sheet-open{overflow:hidden}
 .tv-arrow{background:rgba(255,255,255,.14);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1.15rem;line-height:1;display:flex;align-items:center;justify-content:center;padding:0}
 .tv-arrow:hover{background:rgba(255,255,255,.3)}
 .tv-arrow:disabled{opacity:.3;cursor:default}
-#todayContent{background:var(--card);border:1px solid var(--line);border-radius:0 0 14px 14px;padding:1.1rem 1.3rem calc(1.3rem + env(safe-area-inset-bottom));box-shadow:0 10px 28px var(--shadow);overflow-y:auto;flex:1;min-height:0}
+/* The env(safe-area-inset-bottom) term alone is ~34px on notched phones
+   (clearing the home-indicator bar) -- that's necessary and not something
+   to trim further, but our own flat cushion on top of it kept feeling
+   like too much, so it's down to a token .4rem here. */
+#todayContent{background:var(--card);border:1px solid var(--line);border-radius:0 0 14px 14px;padding:1.1rem 1.3rem calc(.4rem + env(safe-area-inset-bottom));box-shadow:0 10px 28px var(--shadow);overflow-y:auto;flex:1;min-height:0}
 .tv-city{font-family:'Fraunces';font-size:1.3rem;font-weight:600;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin:.1rem 0 .7rem}
 .tv-city .tv-daynum{font-family:'Outfit';font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
 /* Forecast strip + jump-to-city button, grouped together and pushed to the
@@ -749,8 +753,13 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
     padding:.5rem .4rem 1rem;
   }
   /* No top .nav on mobile (it's hidden entirely, see above), so the page
-     panel reclaims that space -- instead it clears the bottom tab bar. */
-  .page-panel{top:0;bottom:4.6rem}
+     panel reclaims that space -- instead it clears the bottom tab bar.
+     4.6rem matches the tab bar's own box (see body's padding-bottom
+     above), plus another ~22px so the panel's edge doesn't creep over the
+     raised "sun" icon, which pokes up above the tab bar's own top edge
+     via a negative margin (see .bn-today-ico) and was getting its top
+     sliced off by the panel's opaque background otherwise. */
+  .page-panel{top:0;bottom:6rem}
   .bn-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.2rem .1rem;border:none;background:none;cursor:pointer;color:var(--muted);font-family:'Outfit'}
   .bn-tab span{font-size:.6rem;letter-spacing:.02em;white-space:nowrap}
   .bn-tab svg{width:19px;height:19px}
