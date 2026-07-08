@@ -175,7 +175,15 @@ section[id]{scroll-margin-top:84px}
    own element -- staying fully opaque the whole time means Home never
    shows through a translucent panel mid-slide, it's only ever covered
    or uncovered by the panel's own opaque edge as it moves. */
-.page-panel{position:fixed;top:84px;left:0;right:0;bottom:0;z-index:70;background:var(--paper);display:flex;flex-direction:column;transform:translateY(100%);pointer-events:none;transition:transform .28s cubic-bezier(.4,0,.2,1)}
+/* translateY(100%) is relative to the element's OWN box height, not the
+   viewport -- and this box is deliberately shorter than the viewport
+   (bottom:4.6rem/top:84px carve out room for the nav), so translating by
+   100% of ITS height only moves it down by that shorter amount, leaving
+   the reserved nav-clearance strip's worth of the panel's top edge (the
+   header) still inside the viewport at the very bottom. translateY(100vh)
+   moves it by the full viewport height instead, guaranteeing it clears
+   the screen entirely regardless of the panel's own top/bottom insets. */
+.page-panel{position:fixed;top:84px;left:0;right:0;bottom:0;z-index:70;background:var(--paper);display:flex;flex-direction:column;transform:translateY(100vh);pointer-events:none;transition:transform .28s cubic-bezier(.4,0,.2,1)}
 .page-panel.pp-open{transform:translateY(0);pointer-events:auto}
 body.pp-open-lock{overflow:hidden}
 .pp-head{flex-shrink:0;background:linear-gradient(135deg,var(--adriatic-deep),var(--seaglass) 60%,var(--terracotta));box-shadow:0 6px 20px var(--shadow);padding:calc(1.4rem + env(safe-area-inset-top)) 1.4rem 1.4rem;display:flex;flex-wrap:wrap;align-items:center;gap:.7rem;position:relative}
