@@ -2708,6 +2708,24 @@ function setupPagePanels() {
   });
 }
 
+// Closes any open page panel or the Today sheet the instant this tab/app
+// is backgrounded. This is aimed at a specific iOS Home Screen web-app
+// quirk: iOS snapshots whatever's on screen when a standalone web app is
+// backgrounded and briefly shows that stale screenshot again on the next
+// launch, layered under the fresh page load -- if a page panel happened
+// to be open at that moment, its header flashes back into view (e.g.
+// "Trip prep" appearing at the bottom of the screen) right as the hero
+// intro is replaying on the new load underneath it. Making sure nothing
+// is ever left open when the app goes to the background means that
+// stale snapshot is always just the plain Home view.
+function setupBackgroundClose() {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "hidden") return;
+    closePage();
+    closeTodaySheet();
+  });
+}
+
 // ---- scrollspy ----
 // Drives both the top nav chips (.tl) and the mobile bottom tab bar
 // (.bn-tab) off the same click-to-jump + IntersectionObserver highlighting
@@ -2818,6 +2836,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupTotop();
   setupTodaySheet();
   setupPagePanels();
+  setupBackgroundClose();
   initHeroIntro();
   Store.subscribe(renderAll);
   await Store.init();
