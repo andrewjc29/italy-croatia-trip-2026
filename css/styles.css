@@ -753,18 +753,18 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
      two-up grid overlaps them on narrow screens. Stack modal field pairs. */
   .grid2{grid-template-columns:1fr!important}
   .bottom-nav{
-    display:flex;align-items:flex-end;position:fixed;left:0;right:0;bottom:0;z-index:55;
+    display:flex;align-items:flex-end;position:fixed;left:0;right:0;bottom:0;z-index:72;
     background:rgba(247,244,237,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);
-    padding:.5rem .4rem 1rem;height:6rem;box-sizing:border-box;
+    padding:.5rem .4rem 1rem;
   }
   /* No top .nav on mobile (it's hidden entirely, see above), so the page
      panel reclaims that space -- instead it clears the bottom tab bar.
-     4.6rem matches the tab bar's own box (see body's padding-bottom
-     above), plus another ~22px so the panel's edge doesn't creep over the
-     raised "sun" icon, which pokes up above the tab bar's own top edge
-     via a negative margin (see .bn-today-ico) and was getting its top
-     sliced off by the panel's opaque background otherwise. */
-  .page-panel{top:0;bottom:6rem}
+     4.6rem matches the tab bar's own natural box. The raised "sun" icon
+     pokes up above the tab bar's own top edge via a negative margin (see
+     .bn-today-ico); rather than reserving extra clearance for it, .bottom-nav
+     itself carries a z-index above .page-panel's (70) so the nav's whole
+     paint layer, icon included, always renders on top where they overlap. */
+  .page-panel{top:0;bottom:4.6rem}
   .bn-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.2rem .1rem;border:none;background:none;cursor:pointer;color:var(--muted);font-family:'Outfit'}
   .bn-tab span{font-size:.6rem;letter-spacing:.02em;white-space:nowrap}
   .bn-tab svg{width:19px;height:19px}
