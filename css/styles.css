@@ -58,17 +58,21 @@ section[id]{scroll-margin-top:84px}
 /* App mark -- two instances. The splash version is large, centered on
    the whole screen (positioned on .hero itself, not .hero-inner, so it's
    independent of the text block's bottom-anchored layout) and simply
-   fades out once collapsed. The inline version sits at a small, fixed
-   size to the left of the title+stats text, vertically centered next to
-   it with a bit of gap -- fixed dimensions on both the <img> attributes
-   and the CSS so it can never fall back to a native/huge intrinsic size
-   before or without the stylesheet. */
+   fades out once collapsed. The inline version sits to the left of the
+   title+stats text, spanning the full height of that two-line block
+   (align-items:stretch on the row) -- its <img> keeps width=40/height=40
+   HTML attributes purely so the browser has a sane 1:1 intrinsic aspect
+   ratio and a small hypothetical size before stretch is applied (that's
+   what overflowed last time: no attributes meant an indeterminate/huge
+   fallback size fed into the row's own height calculation). The CSS
+   height:100% then grows the already-correctly-proportioned box to
+   match the actual text height, with width:auto preserving the 1:1 ratio. */
 .hero-logo{position:absolute;z-index:3;top:50%;left:50%;width:88px;height:88px;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));transition:opacity .4s ease}
 .hero-logo img{display:block;width:100%;height:100%}
 .hero.hero-collapsed .hero-logo-splash{opacity:0;pointer-events:none}
-.hero-titlerow{display:flex;align-items:center;gap:.7rem}
-.hero-logo-inline{position:static;width:40px;height:40px;flex:0 0 auto;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));transition:opacity .4s ease .5s}
-.hero-logo-inline img{width:100%;height:100%;display:block;border-radius:22%}
+.hero-titlerow{display:flex;align-items:stretch;gap:.7rem}
+.hero-logo-inline{position:static;width:auto;flex:0 0 auto;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));transition:opacity .4s ease .5s}
+.hero-logo-inline img{height:100%;width:auto;display:block;border-radius:22%}
 .hero.hero-collapsed .hero-logo-inline{opacity:1}
 .hero-inner{position:relative;z-index:2;padding:0 8vw 7vh;max-width:1100px;transition:padding-bottom .55s cubic-bezier(.4,0,.2,1)}
 /* The eyebrow, title and stats are all hidden during the full-bleed
@@ -460,8 +464,7 @@ section[id]{scroll-margin-top:84px}
 .tv-handle-slot{display:flex;justify-content:center;min-height:0;position:relative;z-index:2}
 .tv-handle-slot:has(.bn-today-ico){margin-bottom:-23px}
 .tv-handle-slot .bn-today-ico{border:3px solid var(--paper)}
-.tv-close{position:absolute;top:50%;right:.7rem;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.tv-close:hover{background:rgba(255,255,255,.3)}
+
 body.tv-sheet-open{overflow:hidden}
 /* Desktop/tablet: a centered modal instead of a bottom sheet -- there's no
    bottom nav or "sun" tab up here, so the Today link in the top nav is the
@@ -477,7 +480,7 @@ body.tv-sheet-open{overflow:hidden}
   .today-view.tv-open{transform:translate(-50%,-50%) scale(1);opacity:1}
   .tv-handle-slot{display:none}
 }
-.tv-head{position:relative;background:var(--adriatic-deep);color:#fff;border-radius:14px 14px 0 0;padding:.65rem 2.6rem .6rem 1.3rem;display:flex;flex-direction:column;gap:.45rem;flex-shrink:0}
+.tv-head{position:relative;background:var(--adriatic-deep);color:#fff;border-radius:14px 14px 0 0;padding:.65rem 1.3rem .6rem;display:flex;flex-direction:column;gap:.45rem;flex-shrink:0}
 /* Two stacked rows -- date + day counter up top, "‹ Today" + the
    calendar/arrow controls underneath -- instead of cramming badge, date,
    3 icon buttons and the close (x) all onto one line. */
@@ -714,12 +717,6 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
 
 @media(max-width:600px){
   body{font-size:16px}
-  /* No mouse/keyboard-driven modal on mobile -- the sheet is dismissed via
-     the sun handle, a backdrop tap, or a swipe, so the (x) close button
-     (which only really makes sense for the desktop centered modal) is
-     hidden here, and the header regains the space it was reserving. */
-  .tv-close{display:none}
-  .tv-head{padding-right:1.3rem}
   /* Mobile shares the same full-bleed-then-collapse hero behavior as
      desktop (see initHeroIntro/.hero-collapsed) -- it used to get a fixed
      58vh here instead, which fought with that intro (the hero never

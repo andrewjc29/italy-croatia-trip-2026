@@ -2541,9 +2541,7 @@ function isTodaySheetOpen() {
 
 function setupTodaySheet() {
   const backdrop = document.getElementById("tvBackdrop");
-  const closeBtn = document.getElementById("tvClose");
   if (backdrop) backdrop.addEventListener("click", closeTodaySheet);
-  if (closeBtn) closeBtn.addEventListener("click", closeTodaySheet);
   // The sun icon doubles as the sheet's own handle -- once it has flown up
   // into the sheet header, tapping it again closes the sheet (the same
   // gesture you'd use to drag a real bottom sheet back down).
