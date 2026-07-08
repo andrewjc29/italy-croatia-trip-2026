@@ -1157,7 +1157,7 @@ function renderPlaces(state) {
 function openActivityForm(state, date, existing, place) {
   const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (existing && existing.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
   const typeOpts = ["sight", "meal", "experience", "free"].map((t) => '<option value="' + t + '"' + (existing && existing.type === t ? " selected" : "") + ">" + t + "</option>").join("");
-  const statusOpts = ["idea", "booked", "confirmed"].map((s) => '<option value="' + s + '"' + ((existing ? existing.status : "idea") === s ? " selected" : "") + ">" + s + "</option>").join("");
+  const statusOpts = STATUS_OPTIONS.map((s) => '<option value="' + s + '"' + ((existing ? existing.status : "idea") === s ? " selected" : "") + ">" + s + "</option>").join("");
   const currencyOpts = ["USD", "EUR"].map((c) => '<option value="' + c + '"' + ((existing ? existing.currency : "USD") === c ? " selected" : "") + ">" + c + "</option>").join("");
   const tripRange = Store.getTripDateRange();
   const dateVal = existing ? existing.date : date;
@@ -1183,45 +1183,154 @@ function openActivityForm(state, date, existing, place) {
   }, 0);
 }
 
+// ---- Bookings: config-driven form (Rev 3.2 migration, step 1) ----
+// Single source of truth for the bookings collection. Keyed by the exact
+// category tokens stored on records (lodging/flight/train/ferry/catamaran/
+// bus/other) so CATEGORY_CONFIG[booking.category] can never miss. Anything
+// unrecognized falls back to `other` via configFor().
+const STATUS_OPTIONS = ["idea", "booked", "confirmed"];
+const BOOKING_CATEGORIES = ["lodging", "flight", "train", "ferry", "catamaran", "bus", "other"];
+const CATEGORY_CONFIG = {
+  lodging:   { location: "single", schedule: { startLabel: "Check-in", endLabel: "Check-out", startTimeKey: "checkinTime", endTimeKey: "checkoutTime" }, booking: { nameLabel: "Hotel name", providerLabel: "Booked through", bookingLink: "generated" } },
+  flight:    { location: "route",  schedule: { startLabel: "Departure", endLabel: "Arrival", startTimeKey: "time", endTimeKey: "arrivalTime" }, booking: { nameLabel: "Route", providerLabel: "Airline",  bookingLink: "manual" } },
+  train:     { location: "route",  schedule: { startLabel: "Departure", endLabel: "Arrival", startTimeKey: "time", endTimeKey: "arrivalTime" }, booking: { nameLabel: "Route", providerLabel: "Operator", bookingLink: "manual" } },
+  ferry:     { location: "route",  schedule: { startLabel: "Departure", endLabel: "Arrival", startTimeKey: "time", endTimeKey: "arrivalTime" }, booking: { nameLabel: "Route", providerLabel: "Operator", bookingLink: "manual" } },
+  catamaran: { location: "route",  schedule: { startLabel: "Departure", endLabel: "Arrival", startTimeKey: "time", endTimeKey: "arrivalTime" }, booking: { nameLabel: "Route", providerLabel: "Operator", bookingLink: "manual" } },
+  bus:       { location: "route",  schedule: { startLabel: "Departure", endLabel: "Arrival", startTimeKey: "time", endTimeKey: "arrivalTime" }, booking: { nameLabel: "Route", providerLabel: "Operator", bookingLink: "manual" } },
+  other:     { location: "single", schedule: { startLabel: "Start", endLabel: "End", startTimeKey: "time", endTimeKey: "endTime" }, booking: { nameLabel: "Item name", providerLabel: "Provider", bookingLink: "generated" } }
+};
+function configFor(category) { return CATEGORY_CONFIG[category] || CATEGORY_CONFIG.other; }
+
 function openBookingForm(state, existing, place, defaultDate) {
-  const cats = ["lodging", "flight", "train", "ferry", "catamaran", "bus", "other"];
-  const catOpts = cats.map((c) => '<option value="' + c + '"' + (existing && existing.category === c ? " selected" : "") + ">" + c + "</option>").join("");
-  const statusOpts = ["idea", "booked", "confirmed"].map((s) => '<option value="' + s + '"' + (existing && existing.status === s ? " selected" : "") + ">" + s + "</option>").join("");
-  const currencyOpts = ["USD", "EUR"].map((c) => '<option value="' + c + '"' + ((existing ? existing.currency : "USD") === c ? " selected" : "") + ">" + c + "</option>").join("");
-  const defaultCity = existing ? existing.city : (place ? place.cityIds[0] : CITIES[0].id);
-  const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (defaultCity === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
   const tripRange = Store.getTripDateRange();
-  const startVal = existing ? existing.date : (defaultDate || tripRange.start || "");
-  const body =
-    '<label class="field">What is this? (e.g. "Hotel Ravello" or "Rome -> Bari train")</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
-    '<label class="field">Category</label><select data-field="category">' + catOpts + '</select>' +
-    '<label class="field">City (for a stay)</label><select data-field="city">' + cityOpts + '</select>' +
-    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Date (check-in / travel day)</label><input type="date" data-field="date" value="' + esc(startVal) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
-    '<div><label class="field">End date (checkout day, if a stay)</label><input type="date" data-field="endDate" value="' + esc(existing ? existing.endDate : "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div></div>' +
-    '<label class="field">Time (optional)</label><input type="time" step="900" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
-    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Check-in time (for a stay)</label><input type="time" step="900" data-field="checkinTime" value="' + esc(existing ? existing.checkinTime : "") + '"></div>' +
-    '<div><label class="field">Check-out time (for a stay)</label><input type="time" step="900" data-field="checkoutTime" value="' + esc(existing ? existing.checkoutTime : "") + '"></div></div>' +
-    '<label class="field">Provider</label><input data-field="provider" value="' + esc(existing ? existing.provider : "") + '">' +
-    '<label class="field">Confirmation #</label><input data-field="confirmation" value="' + esc(existing ? existing.confirmation : "") + '">' +
-    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person</label><input data-field="cost" type="number" value="' + (existing ? existing.cost : "") + '"></div>' +
-    '<div><label class="field">Currency</label><select data-field="currency">' + currencyOpts + '</select></div></div>' +
-    '<label class="field">Status</label><select data-field="status">' + statusOpts + '</select>' +
-    '<label class="field">Link</label><input data-field="link" value="' + esc(existing ? existing.link : "") + '">' +
-    '<label class="field">Notes</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
-    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteBkBtn">Remove this booking</button></div>' : "");
-  openModal(existing ? "Edit booking" : "Add booking", body, (data) => {
+  const REQ = ' <span class="req-mark" style="color:var(--danger)">*</span>';
+  const defaultCity = existing ? existing.city : (place ? place.cityIds[0] : CITIES[0].id);
+  // Working record: seed every known field so nothing stored is dropped on
+  // save, then overlay the existing record.
+  const data = Object.assign({
+    title: "", category: "lodging", city: defaultCity,
+    date: (defaultDate || tripRange.start || ""), endDate: "",
+    time: "", checkinTime: "", checkoutTime: "", arrivalTime: "", endTime: "",
+    origin: "", destination: "",
+    provider: "", confirmation: "", cost: "", currency: "USD",
+    status: "idea", link: "", notes: ""
+  }, existing || {});
+
+  function bodyHtml(d) {
+    const cfg = configFor(d.category);
+    const sch = cfg.schedule, bk = cfg.booking;
+    const catOpts = BOOKING_CATEGORIES.map((c) => '<option value="' + c + '"' + (d.category === c ? " selected" : "") + ">" + c + "</option>").join("");
+    const statusOpts = STATUS_OPTIONS.map((s) => '<option value="' + s + '"' + (d.status === s ? " selected" : "") + ">" + s + "</option>").join("");
+    const currencyOpts = ["USD", "EUR"].map((c) => '<option value="' + c + '"' + (d.currency === c ? " selected" : "") + ">" + c + "</option>").join("");
+    const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (d.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
+    let locationHtml;
+    if (cfg.location === "route") {
+      // Route categories: Origin/Destination text. Prefill Origin from the
+      // stored city so existing transport records don't render blank.
+      const originVal = d.origin || (d.city ? cityName(d.city) : "");
+      locationHtml =
+        '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+        '<div><label class="field">Origin' + REQ + '</label><input data-field="origin" value="' + esc(originVal) + '"></div>' +
+        '<div><label class="field">Destination' + REQ + '</label><input data-field="destination" value="' + esc(d.destination) + '"></div></div>';
+    } else {
+      locationHtml = '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>';
+    }
+    const linkHtml = bk.bookingLink === "manual"
+      ? '<label class="field">Link</label><input data-field="link" value="' + esc(d.link) + '">'
+      : "";
+    return '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required</div>' +
+      '<label class="field">' + esc(bk.nameLabel) + REQ + '</label><input data-field="title" value="' + esc(d.title) + '">' +
+      '<label class="field">Category' + REQ + '</label><select data-field="category" id="bkCategory">' + catOpts + '</select>' +
+      locationHtml +
+      '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+      '<div><label class="field">' + esc(sch.startLabel) + ' date' + REQ + '</label><input type="date" data-field="date" value="' + esc(d.date) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
+      '<div><label class="field">' + esc(sch.startLabel) + ' time</label><input type="time" step="900" data-field="' + sch.startTimeKey + '" value="' + esc(d[sch.startTimeKey] || "") + '"></div></div>' +
+      '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+      '<div><label class="field">' + esc(sch.endLabel) + ' date</label><input type="date" data-field="endDate" value="' + esc(d.endDate) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
+      '<div><label class="field">' + esc(sch.endLabel) + ' time</label><input type="time" step="900" data-field="' + sch.endTimeKey + '" value="' + esc(d[sch.endTimeKey] || "") + '"></div></div>' +
+      '<label class="field">' + esc(bk.providerLabel) + '</label><input data-field="provider" value="' + esc(d.provider) + '">' +
+      '<label class="field">Confirmation #</label><input data-field="confirmation" value="' + esc(d.confirmation) + '">' +
+      '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+      '<div><label class="field">Cost per person</label><input data-field="cost" type="number" value="' + esc(String(d.cost === 0 ? "" : (d.cost || ""))) + '"></div>' +
+      '<div><label class="field">Currency</label><select data-field="currency">' + currencyOpts + '</select></div></div>' +
+      '<label class="field">Status</label><select data-field="status">' + statusOpts + '</select>' +
+      linkHtml +
+      '<label class="field">Notes</label><textarea data-field="notes">' + esc(d.notes) + '</textarea>' +
+      (existing ? '<div id="bkRemoveWrap" style="margin-top:8px"><button class="link danger" id="deleteBkBtn">Remove this booking</button></div>' : "");
+  }
+
+  // Read whatever fields are currently rendered back onto the working record.
+  function collectInto(target) {
+    const bodyEl = document.querySelector(".modal-body");
+    if (!bodyEl) return;
+    bodyEl.querySelectorAll("[data-field]").forEach((f) => { target[f.dataset.field] = f.value; });
+  }
+
+  // 15-min snap for time inputs, matching openModal's behavior, re-applied
+  // after each category re-render.
+  function bindTimeSnap() {
+    document.querySelectorAll('.modal-body input[type="time"]').forEach((inp) => inp.addEventListener("change", () => {
+      if (!inp.value) return;
+      const parts = inp.value.split(":").map(Number);
+      const total = (parts[0] * 60 + Math.round(parts[1] / 15) * 15) % 1440;
+      inp.value = String(Math.floor(total / 60)).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0");
+    }));
+  }
+
+  let removeTimer = null;
+  function bindRemove() {
+    if (!existing) return;
+    const btn = document.getElementById("deleteBkBtn");
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      const wrap = document.getElementById("bkRemoveWrap");
+      wrap.innerHTML = '<span class="muted">Remove this booking?</span> ' +
+        '<button class="link danger" id="bkRemoveYes">Remove</button> ' +
+        '<button class="link" id="bkRemoveNo">Keep</button>';
+      document.getElementById("bkRemoveNo").addEventListener("click", () => { rebind(); });
+      document.getElementById("bkRemoveYes").addEventListener("click", () => {
+        // Delayed delete: the record is untouched until the timer fires, so a
+        // background sync poll has nothing to clobber. Undo cancels cleanly.
+        wrap.innerHTML = '<span class="muted">Removing…</span> <button class="link" id="bkUndo">Undo</button>';
+        removeTimer = setTimeout(() => { Store.remove("bookings", existing.id); closeModal(); }, 5000);
+        document.getElementById("bkUndo").addEventListener("click", () => {
+          if (removeTimer) { clearTimeout(removeTimer); removeTimer = null; }
+          rebind();
+        });
+      });
+    });
+  }
+
+  function rebind() {
+    const bodyEl = document.querySelector(".modal-body");
+    if (bodyEl) bodyEl.innerHTML = bodyHtml(data);
+    const cat = document.getElementById("bkCategory");
+    if (cat) cat.addEventListener("change", () => {
+      collectInto(data);
+      data.category = cat.value;
+      rebind();
+    });
+    bindTimeSnap();
+    bindRemove();
+  }
+
+  openModal(existing ? "Edit booking" : "Add booking", bodyHtml(data), (collected) => {
+    Object.assign(data, collected);
+    const cfg = configFor(data.category);
     const payload = Object.assign({}, data, {
       date: data.date,
       endDate: data.endDate || data.date,
       cost: parseFloat(data.cost) || 0
     });
+    // For single-location categories keep city authoritative; for route
+    // categories retain the stored city (fallback) while origin/destination
+    // carry the real value.
+    if (cfg.location === "route" && !payload.city) payload.city = defaultCity;
     if (existing) Store.update("bookings", existing.id, payload);
     else Store.add("bookings", payload, "bk");
   }, "Save");
-  if (existing) setTimeout(() => {
-    const d = document.getElementById("deleteBkBtn");
-    if (d) d.addEventListener("click", () => { Store.remove("bookings", existing.id); closeModal(); });
-  }, 0);
+
+  setTimeout(rebind, 0);
 }
 
 function openRestForm(state, existing, place) {
