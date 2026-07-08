@@ -59,20 +59,17 @@ section[id]{scroll-margin-top:84px}
    the whole screen (positioned on .hero itself, not .hero-inner, so it's
    independent of the text block's bottom-anchored layout) and simply
    fades out once collapsed. The inline version sits to the left of the
-   title+stats text, spanning the full height of that two-line block
-   (align-items:stretch on the row) -- its <img> keeps width=40/height=40
-   HTML attributes purely so the browser has a sane 1:1 intrinsic aspect
-   ratio and a small hypothetical size before stretch is applied (that's
-   what overflowed last time: no attributes meant an indeterminate/huge
-   fallback size fed into the row's own height calculation). The CSS
-   height:100% then grows the already-correctly-proportioned box to
-   match the actual text height, with width:auto preserving the 1:1 ratio. */
+   title+stats text at a fixed size, vertically centered next to it with
+   a bit of gap. (A stretch-to-match-text-height approach was tried twice
+   here and produced an oversized icon both times -- browsers didn't
+   settle the percentage-height/flex-stretch interaction the way the spec
+   suggests. A fixed size is simple and can't regress.) */
 .hero-logo{position:absolute;z-index:3;top:50%;left:50%;width:88px;height:88px;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));transition:opacity .4s ease}
 .hero-logo img{display:block;width:100%;height:100%}
 .hero.hero-collapsed .hero-logo-splash{opacity:0;pointer-events:none}
-.hero-titlerow{display:flex;align-items:stretch;gap:.7rem}
-.hero-logo-inline{position:static;width:auto;flex:0 0 auto;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));transition:opacity .4s ease .5s}
-.hero-logo-inline img{height:100%;width:auto;display:block;border-radius:22%}
+.hero-titlerow{display:flex;align-items:center;gap:.7rem}
+.hero-logo-inline{position:static;width:52px;height:52px;flex:0 0 auto;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));transition:opacity .4s ease .5s}
+.hero-logo-inline img{width:100%;height:100%;display:block;border-radius:22%}
 .hero.hero-collapsed .hero-logo-inline{opacity:1}
 .hero-inner{position:relative;z-index:2;padding:0 8vw 7vh;max-width:1100px;transition:padding-bottom .55s cubic-bezier(.4,0,.2,1)}
 /* The eyebrow, title and stats are all hidden during the full-bleed
