@@ -1485,7 +1485,6 @@ async function renderTodayForecastStrip(cityId, dateISO) {
 // it -- no need to maintain the same route text in two places.
 function renderHero(state) {
   const totalDays = Store.getTotalDays();
-  const stopCount = state.trip ? state.trip.stops.length : getPlaces().length;
   const range = Store.getTripDateRange();
   const dateLabel = range.start
     ? fmtDateShort(range.start) + (range.end && range.end !== range.start ? " – " + fmtDateShort(range.end) : "")
@@ -1496,7 +1495,7 @@ function renderHero(state) {
   const eyebrowEl = document.getElementById("heroEyebrow");
   if (eyebrowEl) eyebrowEl.textContent = state.meta.tripName;
   document.getElementById("heroMeta").innerHTML =
-    '<span>' + esc(dateLabel) + '</span><span>' + totalDays + ' days</span><span>' + stopCount + ' destinations</span>';
+    '<span>' + esc(dateLabel) + '</span><span>' + totalDays + ' days</span>';
 }
 
 // Hero intro: loads full-bleed (100dvh, set as the default in CSS so
@@ -2645,18 +2644,6 @@ function setupStaticBindings() {
     openModal("Add note", '<label class="field">Note</label><textarea data-field="text"></textarea>',
       (data) => Store.add("notesLog", { text: data.text, ts: new Date().toISOString() }, "n"));
   });
-
-  // Hero's "Trip overview" toggle -- closed on every page load (the
-  // narrative blurb is nice-to-have, not something you need on every
-  // visit), remembers whether you opened it only for the rest of this
-  // visit, same pattern as the per-city planning-section collapsibles.
-  const heroOverview = document.getElementById("heroOverview");
-  if (heroOverview) {
-    if (SESSION_COLLAPSE_STATE.heroOverview) heroOverview.setAttribute("open", "");
-    heroOverview.addEventListener("toggle", () => {
-      SESSION_COLLAPSE_STATE.heroOverview = heroOverview.open;
-    });
-  }
 }
 
 // ---- boot ----

@@ -55,19 +55,26 @@ section[id]{scroll-margin-top:84px}
 .hero{position:relative;height:100vh;height:100dvh;min-height:520px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;overflow:hidden;background:var(--adriatic-deep)}
 .hero .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center}
 .hero .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,60,82,.30),rgba(18,60,82,.80))}
-/* App mark -- centered and large on the full-bleed splash, then shrinks
-   and slides to the top-right corner once the hero collapses to its
-   banner. Positioned directly on .hero (not .hero-inner), so it's
-   centered on the whole screen, independent of the text block's own
-   bottom-anchored layout. */
-.hero-logo{position:absolute;z-index:3;top:50%;left:50%;width:88px;height:88px;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));transition:top .55s cubic-bezier(.4,0,.2,1),left .55s cubic-bezier(.4,0,.2,1),width .55s cubic-bezier(.4,0,.2,1),height .55s cubic-bezier(.4,0,.2,1),transform .55s cubic-bezier(.4,0,.2,1)}
+/* App mark -- two instances. The splash version is large, centered on
+   the whole screen (positioned on .hero itself, not .hero-inner, so it's
+   independent of the text block's bottom-anchored layout) and simply
+   fades out once collapsed. The inline version lives next to the title
+   text and fades in at the same time -- it has no explicit size of its
+   own; align-items:stretch on .hero-titlerow stretches it to match the
+   title+meta stack's own height, and its img fills that at height:100%
+   with width:auto, so it's always exactly as tall as those two lines. */
+.hero-logo{position:absolute;z-index:3;top:50%;left:50%;width:88px;height:88px;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));transition:opacity .4s ease}
 .hero-logo img{display:block;width:100%;height:100%}
-.hero.hero-collapsed .hero-logo{top:1.1rem;left:calc(100% - 1.2rem - 44px);width:44px;height:44px;transform:translate(0,0)}
+.hero.hero-collapsed .hero-logo-splash{opacity:0;pointer-events:none}
+.hero-titlerow{display:flex;align-items:stretch;gap:.9rem}
+.hero-logo-inline{position:static;width:auto;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));transition:opacity .4s ease .5s}
+.hero-logo-inline img{height:100%;width:auto;display:block;border-radius:22%}
+.hero.hero-collapsed .hero-logo-inline{opacity:1}
 .hero-inner{position:relative;z-index:2;padding:0 8vw 7vh;max-width:1100px;transition:padding-bottom .55s cubic-bezier(.4,0,.2,1)}
-/* The eyebrow, title, stats and overview toggle are all hidden during the
-   full-bleed splash (the logo alone carries it) and fade in once the hero
-   collapses to its banner -- the eyebrow stays hidden even then, since
-   it'd just repeat the trip name now sitting next to the logo. */
+/* The eyebrow, title and stats are all hidden during the full-bleed
+   splash (the logo alone carries it) and fade in once the hero collapses
+   to its banner -- the eyebrow stays hidden even then, since it'd just
+   repeat the trip name now sitting next to the logo. */
 .eyebrow{font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:.72rem;opacity:0;max-height:0;margin-bottom:0;overflow:hidden;transition:opacity .3s,max-height .45s,margin-bottom .45s}
 .hero h1{font-size:clamp(2.4rem,7vw,5.2rem);font-weight:300;letter-spacing:-.01em;text-wrap:balance;opacity:0;transition:font-size .55s cubic-bezier(.4,0,.2,1),opacity .4s ease .5s}
 .hero h1 em{color:var(--seaglass-soft);padding-bottom:.15em;display:inline-block}
@@ -76,7 +83,6 @@ section[id]{scroll-margin-top:84px}
 .hero .meta{margin-top:1.3rem;display:flex;gap:1.6rem;flex-wrap:wrap;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;opacity:0;transition:margin-top .55s,opacity .4s ease .5s}
 .hero .meta span{border-left:2px solid var(--seaglass);padding-left:.7rem}
 .hero .meta strong{font-weight:600;color:var(--seaglass-soft)}
-.hero-overview{margin-top:1.2rem;max-width:620px;opacity:0;transition:margin-top .55s,opacity .4s ease .5s}
 /* ---- Hero intro: loads full-bleed, then morphs down to a compact
    top-of-page banner after a short beat. Full-bleed (100dvh) is the
    default state (not JS-added) so there's no flash of the small version
@@ -88,12 +94,6 @@ section[id]{scroll-margin-top:84px}
 .hero.hero-collapsed .hero-inner{padding-bottom:3vh}
 .hero.hero-collapsed h1{font-size:clamp(1.5rem,4.4vw,2.1rem);font-weight:700;opacity:1}
 .hero.hero-collapsed .meta{margin-top:.6rem;opacity:.94}
-.hero.hero-collapsed .hero-overview{margin-top:.5rem;opacity:1}
-.hero-overview summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:.5rem;font-family:'Outfit';font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;color:var(--seaglass-soft)}
-.hero-overview summary::-webkit-details-marker{display:none}
-.hero-overview summary .arw{font-family:'Outfit';font-size:1rem;font-weight:400;transition:transform .25s}
-.hero-overview[open] summary .arw{transform:rotate(45deg)}
-.hero-overview .sub{margin-top:.8rem;font-size:clamp(1rem,2vw,1.15rem);opacity:.95}
 
 /* ---- intro / trip controls ---- */
 .intro{max-width:760px;margin:0 auto;padding:3rem 2rem 1rem}
@@ -728,7 +728,6 @@ button.btn.secondary{background:none;color:var(--adriatic-deep);border:1px solid
   .hero-inner{padding-bottom:4.5vh}
   .eyebrow{margin-bottom:.7rem}
   .hero .meta{margin-top:.9rem;gap:1rem}
-  .hero-overview{margin-top:.8rem}
   .hero-inner,.place-head .ph-inner{padding-left:6vw;padding-right:6vw}
   .wrap{padding:0 1.3rem}
   /* On mobile the bottom tab bar is the primary nav, so the top nav is
