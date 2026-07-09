@@ -348,14 +348,55 @@ function renderDayHotelBar(lodging, dateStr, placeId, atTop) {
 }
 
 // ---- modal helper ----
-function openModal(title, bodyHtml, onSubmit, submitLabel) {
+function openModal(title, bodyHtml, onSubmit, submitLabel, opts) {
+  opts = opts || {};
   const root = document.getElementById("modalRoot");
   root.innerHTML = "";
   const overlay = el('<div class="modal-overlay"><div class="modal">' +
     "<h3>" + esc(title) + "</h3><div class=\"modal-body\">" + bodyHtml + "</div>" +
-    '<div class="modal-actions"><button class="btn secondary" id="modalCancel">Cancel</button>' +
-    '<button class="btn" id="modalSubmit">' + esc(submitLabel || "Save") + "</button></div></div></div>");
+    '<div class="modal-actions"></div></div></div>');
   root.appendChild(overlay);
+  const actions = overlay.querySelector(".modal-actions");
+  const close = () => { root.innerHTML = ""; };
+  const submit = () => {
+    const data = {};
+    overlay.querySelectorAll("[data-field]").forEach((f) => { data[f.dataset.field] = f.value; });
+    // A form's onSubmit can return false to signal validation failed -- keep
+    // the modal open so the user can fix the highlighted fields.
+    if (onSubmit(data) === false) return;
+    close();
+  };
+  // Sticky footer with three states. Default shows Remove (edit mode, left) +
+  // Cancel/Save (right). Remove opens an inline confirm, then a ~4.5s undo
+  // window before the record is actually deleted -- delayed delete means a
+  // background sync poll has nothing to clobber.
+  let undoTimer = null;
+  function renderDefault() {
+    if (undoTimer) { clearTimeout(undoTimer); undoTimer = null; }
+    actions.innerHTML =
+      (opts.onRemove ? '<button class="btn btn-remove" id="modalRemove">' + esc(opts.removeLabel || "Remove") + '</button>' : '') +
+      '<span class="modal-actions-right"><button class="btn secondary" id="modalCancel">Cancel</button>' +
+      '<button class="btn" id="modalSubmit">' + esc(submitLabel || "Save") + '</button></span>';
+    document.getElementById("modalCancel").addEventListener("click", close);
+    document.getElementById("modalSubmit").addEventListener("click", submit);
+    if (opts.onRemove) document.getElementById("modalRemove").addEventListener("click", renderConfirm);
+  }
+  function renderConfirm() {
+    actions.innerHTML =
+      '<span class="muted modal-remove-msg">' + esc(opts.removeConfirm || "Remove this item?") + '</span>' +
+      '<span class="modal-actions-right"><button class="btn secondary" id="modalRemoveKeep">Keep</button>' +
+      '<button class="btn btn-remove" id="modalRemoveYes">Remove</button></span>';
+    document.getElementById("modalRemoveKeep").addEventListener("click", renderDefault);
+    document.getElementById("modalRemoveYes").addEventListener("click", renderUndo);
+  }
+  function renderUndo() {
+    actions.innerHTML =
+      '<span class="muted modal-remove-msg">Removing…</span>' +
+      '<span class="modal-actions-right"><button class="btn secondary" id="modalUndo">Undo</button></span>';
+    document.getElementById("modalUndo").addEventListener("click", renderDefault);
+    undoTimer = setTimeout(() => { undoTimer = null; opts.onRemove(); close(); }, 4500);
+  }
+  renderDefault();
   // step="900" asks pickers for 15-min increments, but not every browser's
   // picker honors it -- snap whatever comes in to the nearest quarter hour.
   overlay.querySelectorAll('input[type="time"]').forEach((inp) => inp.addEventListener("change", () => {
@@ -364,16 +405,7 @@ function openModal(title, bodyHtml, onSubmit, submitLabel) {
     const total = (parts[0] * 60 + Math.round(parts[1] / 15) * 15) % 1440;
     inp.value = String(Math.floor(total / 60)).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0");
   }));
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) root.innerHTML = ""; });
-  document.getElementById("modalCancel").addEventListener("click", () => { root.innerHTML = ""; });
-  document.getElementById("modalSubmit").addEventListener("click", () => {
-    const data = {};
-    overlay.querySelectorAll("[data-field]").forEach((f) => { data[f.dataset.field] = f.value; });
-    // A form's onSubmit can return false to signal validation failed -- keep
-    // the modal open so the user can fix the highlighted fields.
-    if (onSubmit(data) === false) return;
-    root.innerHTML = "";
-  });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
 }
 function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
 
@@ -1034,18 +1066,14 @@ function openHotelForm(state, existing, place) {
     '<label class="field">Nightly cost (label, e.g. "~$180-260")</label><input data-field="costLabel" value="' + esc(existing ? existing.costLabel : "") + '">' +
     '<label class="field">Why it works</label><textarea data-field="pros">' + esc(existing ? existing.pros : "") + '</textarea>' +
     '<label class="field">Trade-offs</label><textarea data-field="cons">' + esc(existing ? existing.cons : "") + '</textarea>' +
-    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteHotelBtn">Remove</button></div>' : "");
+    "";
   openModal(existing ? "Edit hotel option" : "Add a hotel option", body, (data) => {
     if (!markMissingFields(["name"])) return false;
     const placeId = existing ? existing.placeId : place.id;
     const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: mapsUrlForPlace(data.name, data.area, placeId), placeId: placeId, splurge: existing ? existing.splurge : false };
     if (existing) Store.update("hotels", existing.id, payload);
     else Store.add("hotels", payload, "ht");
-  });
-  if (existing) setTimeout(() => {
-    const d = document.getElementById("deleteHotelBtn");
-    if (d) d.addEventListener("click", () => { Store.remove("hotels", existing.id); closeModal(); });
-  }, 0);
+  }, undefined, existing ? { onRemove: () => Store.remove("hotels", existing.id), removeConfirm: 'Remove "' + (existing.name || "this hotel") + '"?' } : undefined);
 }
 
 // ---- See & do ----
@@ -1085,20 +1113,14 @@ function openSeeForm(state, existing, place) {
     '<label class="field">Kind / category' + SPARK + '</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
     '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Notes (optional, brief)' + SPARK + '</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
-    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteSeeBtn">Remove</button></div>' : "");
+    "";
   openModal(existing ? "Edit" : "Add a thing to do", body, (data) => {
     if (!markMissingFields(["name"])) return false;
     const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), placeId: place.id };
     if (existing) Store.update("thingsToDo", existing.id, payload);
     else Store.add("thingsToDo", payload, "td");
-  });
-  setTimeout(() => {
-    wireAutoFillButton(document.querySelector(".modal-body"));
-    if (existing) {
-      const d = document.getElementById("deleteSeeBtn");
-      if (d) d.addEventListener("click", () => { Store.remove("thingsToDo", existing.id); closeModal(); });
-    }
-  }, 0);
+  }, undefined, existing ? { onRemove: () => Store.remove("thingsToDo", existing.id), removeConfirm: 'Remove "' + (existing.name || "this item") + '"?' } : undefined);
+  setTimeout(() => { wireAutoFillButton(document.querySelector(".modal-body")); }, 0);
 }
 
 // ---- Where to eat ----
@@ -1219,17 +1241,13 @@ function openActivityForm(state, date, existing, place) {
     '<div><label class="field">Currency</label><select data-field="currency">' + currencyOpts + '</select></div></div>' +
     '<label class="field">Status</label><select data-field="status">' + statusOpts + '</select>' +
     '<label class="field">Notes</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
-    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteActBtn">Remove this item</button></div>' : "");
+    "";
   openModal(existing ? "Edit itinerary item" : "Add to " + (dateVal ? fmtDate(dateVal) : "your itinerary"), body, (data) => {
     if (!markMissingFields(["title"])) return false;
     const payload = { date: data.date, title: data.title, time: data.time, city: data.city, type: data.type, notes: data.notes, status: data.status || (existing ? existing.status : "idea"), cost: parseFloat(data.cost) || 0, currency: data.currency || "USD" };
     if (existing) Store.update("activities", existing.id, Object.assign({}, existing, payload));
     else Store.add("activities", payload, "a");
-  }, "Save");
-  if (existing) setTimeout(() => {
-    const d = document.getElementById("deleteActBtn");
-    if (d) d.addEventListener("click", () => { Store.remove("activities", existing.id); closeModal(); });
-  }, 0);
+  }, "Save", existing ? { onRemove: () => Store.remove("activities", existing.id), removeConfirm: 'Remove "' + (existing.title || "this item") + '"?' } : undefined);
 }
 
 // ---- Bookings: config-driven form (Rev 3.2 migration, step 1) ----
@@ -1305,7 +1323,7 @@ function openBookingForm(state, existing, place, defaultDate) {
       '<label class="field">Status</label><select data-field="status">' + statusOpts + '</select>' +
       linkHtml +
       '<label class="field">Notes</label><textarea data-field="notes">' + esc(d.notes) + '</textarea>' +
-      (existing ? '<div id="bkRemoveWrap" style="margin-top:8px"><button class="link danger" id="deleteBkBtn">Remove this booking</button></div>' : "");
+      "";
   }
 
   // Read whatever fields are currently rendered back onto the working record.
@@ -1326,30 +1344,6 @@ function openBookingForm(state, existing, place, defaultDate) {
     }));
   }
 
-  let removeTimer = null;
-  function bindRemove() {
-    if (!existing) return;
-    const btn = document.getElementById("deleteBkBtn");
-    if (!btn) return;
-    btn.addEventListener("click", () => {
-      const wrap = document.getElementById("bkRemoveWrap");
-      wrap.innerHTML = '<span class="muted">Remove this booking?</span> ' +
-        '<button class="link danger" id="bkRemoveYes">Remove</button> ' +
-        '<button class="link" id="bkRemoveNo">Keep</button>';
-      document.getElementById("bkRemoveNo").addEventListener("click", () => { rebind(); });
-      document.getElementById("bkRemoveYes").addEventListener("click", () => {
-        // Delayed delete: the record is untouched until the timer fires, so a
-        // background sync poll has nothing to clobber. Undo cancels cleanly.
-        wrap.innerHTML = '<span class="muted">Removing…</span> <button class="link" id="bkUndo">Undo</button>';
-        removeTimer = setTimeout(() => { Store.remove("bookings", existing.id); closeModal(); }, 5000);
-        document.getElementById("bkUndo").addEventListener("click", () => {
-          if (removeTimer) { clearTimeout(removeTimer); removeTimer = null; }
-          rebind();
-        });
-      });
-    });
-  }
-
   function rebind() {
     const bodyEl = document.querySelector(".modal-body");
     if (bodyEl) bodyEl.innerHTML = bodyHtml(data);
@@ -1360,7 +1354,6 @@ function openBookingForm(state, existing, place, defaultDate) {
       rebind();
     });
     bindTimeSnap();
-    bindRemove();
   }
 
   openModal(existing ? "Edit booking" : "Add booking", bodyHtml(data), (collected) => {
@@ -1382,7 +1375,7 @@ function openBookingForm(state, existing, place, defaultDate) {
     if (cfg.location === "route" && !payload.city) payload.city = defaultCity;
     if (existing) Store.update("bookings", existing.id, payload);
     else Store.add("bookings", payload, "bk");
-  }, "Save");
+  }, "Save", existing ? { onRemove: () => Store.remove("bookings", existing.id), removeConfirm: "Remove this booking?" } : undefined);
 
   setTimeout(rebind, 0);
 }
@@ -1399,20 +1392,14 @@ function openRestForm(state, existing, place) {
     '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>' +
     '<label class="field">Notes (optional -- reservation info, tips)' + SPARK + '</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
     '<label class="field">Vegetarian friendly?</label><select data-field="vegetarian"><option value="true"' + (existing && existing.vegetarian ? " selected" : "") + '>Yes</option><option value="false"' + (existing && !existing.vegetarian ? " selected" : "") + '>No</option></select>' +
-    (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteRestBtn">Remove</button></div>' : "");
+    "";
   openModal(existing ? "Edit" : "Add restaurant", body, (data) => {
     if (!markMissingFields(["name"])) return false;
     const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), vegetarian: data.vegetarian === "true", placeId: place.id };
     if (existing) Store.update("restaurants", existing.id, payload);
     else Store.add("restaurants", payload, "r");
-  });
-  setTimeout(() => {
-    wireAutoFillButton(document.querySelector(".modal-body"));
-    if (existing) {
-      const d = document.getElementById("deleteRestBtn");
-      if (d) d.addEventListener("click", () => { Store.remove("restaurants", existing.id); closeModal(); });
-    }
-  }, 0);
+  }, undefined, existing ? { onRemove: () => Store.remove("restaurants", existing.id), removeConfirm: 'Remove "' + (existing.name || "this restaurant") + '"?' } : undefined);
+  setTimeout(() => { wireAutoFillButton(document.querySelector(".modal-body")); }, 0);
 }
 
 // ---- today view: collapses straight to the current day while traveling ----
