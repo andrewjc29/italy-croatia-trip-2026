@@ -369,11 +369,42 @@ function openModal(title, bodyHtml, onSubmit, submitLabel) {
   document.getElementById("modalSubmit").addEventListener("click", () => {
     const data = {};
     overlay.querySelectorAll("[data-field]").forEach((f) => { data[f.dataset.field] = f.value; });
-    onSubmit(data);
+    // A form's onSubmit can return false to signal validation failed -- keep
+    // the modal open so the user can fix the highlighted fields.
+    if (onSubmit(data) === false) return;
     root.innerHTML = "";
   });
 }
 function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
+
+// Required-field validation shared by every form. Given the data-field keys
+// that must be non-empty, highlights any that are blank (red outline), scrolls
+// to the first one, and clears each highlight as soon as the user fills it.
+// Returns true when all required fields are present.
+function markMissingFields(requiredKeys) {
+  const body = document.querySelector(".modal-body");
+  if (!body) return true;
+  let firstMissing = null;
+  requiredKeys.forEach((k) => {
+    const inp = body.querySelector('[data-field="' + k + '"]');
+    if (!inp) return;
+    if (!String(inp.value || "").trim()) {
+      inp.classList.add("field-missing");
+      if (!firstMissing) firstMissing = inp;
+      const clear = () => {
+        if (String(inp.value || "").trim()) {
+          inp.classList.remove("field-missing");
+          inp.removeEventListener("input", clear);
+          inp.removeEventListener("change", clear);
+        }
+      };
+      inp.addEventListener("input", clear);
+      inp.addEventListener("change", clear);
+    }
+  });
+  if (firstMissing && firstMissing.scrollIntoView) firstMissing.scrollIntoView({ block: "center" });
+  return !firstMissing;
+}
 
 // Copies text to the clipboard and gives the clicked button a brief
 // "Copied" confirmation state. Falls back to a hidden-textarea copy for
@@ -492,7 +523,13 @@ function openItemDetailCard(kind, item, place) {
   // A booking's own "Link" field is free text (an airline/booking-site URL,
   // not necessarily a map link) -- only surface it separately when it's not
   // just the same Google Maps link we're already showing below.
-  const providerLink = isBooking && item.link && item.link !== googleUrl ? item.link : "";
+  // Generated vs manual booking link (config-driven). Generated categories
+  // (lodging/other) get a "Book here" search link built from name + city;
+  // manual categories (flight/ferry/train/...) surface the URL the user typed.
+  const cfg = isBooking ? configFor(item.category) : null;
+  const generatedBooking = !!(cfg && cfg.booking && cfg.booking.bookingLink === "generated");
+  const bookHereUrl = generatedBooking ? bookingComUrlForCity(item.title, item.city) : "";
+  const providerLink = isBooking && !generatedBooking && item.link && item.link !== googleUrl ? item.link : "";
   const rows = [];
   if (isBooking) {
     if (item.provider) rows.push(["Provider", item.provider]);
@@ -528,7 +565,8 @@ function openItemDetailCard(kind, item, place) {
       return '<div class="idc-row"><span class="idc-label">' + esc(r[0]) + '</span><span class="idc-val">' + val + '</span></div>';
     }).join("") + '</div>' +
     (rows.length === 0 ? '<p class="muted">No extra details yet -- add some from Edit below.</p>' : "") +
-    (providerLink ? '<div class="pm-actions"><span></span><a class="site" href="' + esc(providerLink) + '" target="_blank" rel="noopener">Provider link</a></div>' : "") +
+    (bookHereUrl ? '<div class="pm-actions"><span></span><a class="site" href="' + esc(bookHereUrl) + '" target="_blank" rel="noopener">Book here</a></div>' : "") +
+    (providerLink ? '<div class="pm-actions"><span></span><a class="site" href="' + esc(providerLink) + '" target="_blank" rel="noopener">Booking link</a></div>' : "") +
     mapActionsRow(googleUrl, appleUrl, copyText) +
     '</div>' +
     '<div class="pm-footer">' +
@@ -998,6 +1036,7 @@ function openHotelForm(state, existing, place) {
     '<label class="field">Trade-offs</label><textarea data-field="cons">' + esc(existing ? existing.cons : "") + '</textarea>' +
     (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteHotelBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit hotel option" : "Add a hotel option", body, (data) => {
+    if (!markMissingFields(["name"])) return false;
     const placeId = existing ? existing.placeId : place.id;
     const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: mapsUrlForPlace(data.name, data.area, placeId), placeId: placeId, splurge: existing ? existing.splurge : false };
     if (existing) Store.update("hotels", existing.id, payload);
@@ -1048,6 +1087,7 @@ function openSeeForm(state, existing, place) {
     '<label class="field">Notes (optional, brief)' + SPARK + '</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
     (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteSeeBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add a thing to do", body, (data) => {
+    if (!markMissingFields(["name"])) return false;
     const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), placeId: place.id };
     if (existing) Store.update("thingsToDo", existing.id, payload);
     else Store.add("thingsToDo", payload, "td");
@@ -1181,6 +1221,7 @@ function openActivityForm(state, date, existing, place) {
     '<label class="field">Notes</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
     (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteActBtn">Remove this item</button></div>' : "");
   openModal(existing ? "Edit itinerary item" : "Add to " + (dateVal ? fmtDate(dateVal) : "your itinerary"), body, (data) => {
+    if (!markMissingFields(["title"])) return false;
     const payload = { date: data.date, title: data.title, time: data.time, city: data.city, type: data.type, notes: data.notes, status: data.status || (existing ? existing.status : "idea"), cost: parseFloat(data.cost) || 0, currency: data.currency || "USD" };
     if (existing) Store.update("activities", existing.id, Object.assign({}, existing, payload));
     else Store.add("activities", payload, "a");
@@ -1251,7 +1292,7 @@ function openBookingForm(state, existing, place, defaultDate) {
       '<label class="field">Category' + REQ + '</label><select data-field="category" id="bkCategory">' + catOpts + '</select>' +
       locationHtml +
       '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
-      '<div><label class="field">' + esc(sch.startLabel) + ' date' + REQ + '</label><input type="date" data-field="date" value="' + esc(d.date) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
+      '<div><label class="field">' + esc(sch.startLabel) + ' date</label><input type="date" data-field="date" value="' + esc(d.date) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
       '<div><label class="field">' + esc(sch.startLabel) + ' time</label><input type="time" step="900" data-field="' + sch.startTimeKey + '" value="' + esc(d[sch.startTimeKey] || "") + '"></div></div>' +
       '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
       '<div><label class="field">' + esc(sch.endLabel) + ' date</label><input type="date" data-field="endDate" value="' + esc(d.endDate) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
@@ -1325,6 +1366,11 @@ function openBookingForm(state, existing, place, defaultDate) {
   openModal(existing ? "Edit booking" : "Add booking", bodyHtml(data), (collected) => {
     Object.assign(data, collected);
     const cfg = configFor(data.category);
+    // Required: Name + Location. Dates stay optional (a booking can be an
+    // undated idea). Route categories require both Origin and Destination.
+    const required = ["title"];
+    if (cfg.location === "route") required.push("origin", "destination");
+    if (!markMissingFields(required)) return false;
     const payload = Object.assign({}, data, {
       date: data.date,
       endDate: data.endDate || data.date,
@@ -1355,6 +1401,7 @@ function openRestForm(state, existing, place) {
     '<label class="field">Vegetarian friendly?</label><select data-field="vegetarian"><option value="true"' + (existing && existing.vegetarian ? " selected" : "") + '>Yes</option><option value="false"' + (existing && !existing.vegetarian ? " selected" : "") + '>No</option></select>' +
     (existing ? '<div style="margin-top:8px"><button class="link danger" id="deleteRestBtn">Remove</button></div>' : "");
   openModal(existing ? "Edit" : "Add restaurant", body, (data) => {
+    if (!markMissingFields(["name"])) return false;
     const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), vegetarian: data.vegetarian === "true", placeId: place.id };
     if (existing) Store.update("restaurants", existing.id, payload);
     else Store.add("restaurants", payload, "r");

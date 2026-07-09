@@ -74,6 +74,11 @@ function appleMapsUrlForPlace(name, extra, placeId) {
 function bookingComUrlForPlace(name, placeId) {
   return "https://www.booking.com/searchresults.html?ss=" + encodeURIComponent([name, PLACE_LABEL_MAP[placeId] || ""].filter(Boolean).join(", "));
 }
+// Same idea keyed by city (for bookings, which store a city id rather than a
+// placeId): a booking.com search prefilled with the item name + city.
+function bookingComUrlForCity(name, cityId) {
+  return "https://www.booking.com/searchresults.html?ss=" + encodeURIComponent([name, CITY_LABEL_MAP[cityId] || ""].filter(Boolean).join(", "));
+}
 
 // Mirrors the per-city accent colors in css/styles.css (#rome, #puglia, ...).
 // Used for the timeline dot colors in the itinerary editor, which lives outside
