@@ -45,15 +45,59 @@ const PlacesLookup = (() => {
     return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
+  // Maps a Places priceLevel (enum string like "PRICE_LEVEL_MODERATE", the
+  // enum key "MODERATE", or a legacy 0-4 number) to a "$"..."$$$$" band.
+  function priceBand(level) {
+    if (level == null || level === "") return "";
+    const s = String(level).toUpperCase();
+    if (s.indexOf("VERY_EXPENSIVE") !== -1) return "$$$$";
+    if (s.indexOf("EXPENSIVE") !== -1) return "$$$";
+    if (s.indexOf("MODERATE") !== -1) return "$$";
+    if (s.indexOf("INEXPENSIVE") !== -1 || s.indexOf("FREE") !== -1) return "$";
+    const n = Number(level);
+    if (!isNaN(n) && n >= 1 && n <= 4) return "$".repeat(n);
+    return "";
+  }
+
+  // Pulls a short neighborhood-ish label out of the Places addressComponents,
+  // preferring the most specific: neighborhood, then sublocality, then city.
+  function extractArea(components) {
+    if (!Array.isArray(components)) return "";
+    const want = ["neighborhood", "sublocality", "sublocality_level_1", "locality"];
+    for (let i = 0; i < want.length; i++) {
+      const c = components.find((x) => (x.types || []).indexOf(want[i]) !== -1);
+      if (c) return c.longText || c.shortText || "";
+    }
+    return "";
+  }
+
+  // Normalizes up to 3 review objects to { text, rating, author }. The JS SDK's
+  // Review.text is usually a string; guard for the {text, languageCode} shape.
+  function normalizeReviews(reviews) {
+    if (!Array.isArray(reviews)) return [];
+    return reviews.slice(0, 3).map((r) => {
+      let text = r && r.text;
+      if (text && typeof text === "object") text = text.text || "";
+      return {
+        text: String(text || "").trim(),
+        rating: r && r.rating != null ? r.rating : null,
+        author: (r && r.authorAttribution && r.authorAttribution.displayName) || ""
+      };
+    }).filter((r) => r.text);
+  }
+
   // name: place name to search for. cityLabel: e.g. "Rome, Italy" (from
-  // CITY_LABEL_MAP). Returns { kind, description, url } or throws.
+  // CITY_LABEL_MAP). Returns { kind, description, url, address, area,
+  // rating, reviewCount, priceBand, reviews } or throws.
   async function lookup(name, cityLabel) {
     await loadLibrary();
     const { Place } = await google.maps.importLibrary("places");
     const query = [name, cityLabel].filter(Boolean).join(", ");
     const results = await Place.searchByText({
       textQuery: query,
-      fields: ["displayName", "editorialSummary", "types", "googleMapsURI", "formattedAddress"],
+      fields: ["displayName", "editorialSummary", "types", "googleMapsURI",
+        "formattedAddress", "addressComponents", "rating", "userRatingCount",
+        "priceLevel", "reviews"],
       maxResultCount: 1
     });
     const places = results && results.places;
@@ -64,7 +108,12 @@ const PlacesLookup = (() => {
       kind: kind,
       description: p.editorialSummary || "",
       url: p.googleMapsURI || "",
-      address: p.formattedAddress || ""
+      address: p.formattedAddress || "",
+      area: extractArea(p.addressComponents),
+      rating: p.rating != null ? p.rating : null,
+      reviewCount: p.userRatingCount != null ? p.userRatingCount : null,
+      priceBand: priceBand(p.priceLevel),
+      reviews: normalizeReviews(p.reviews)
     };
   }
 

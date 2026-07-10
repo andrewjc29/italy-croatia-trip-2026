@@ -4,7 +4,7 @@
 // endpoint, Google Maps) is left alone and goes straight to the network --
 // this only ever caches same-origin GET requests.
 
-const CACHE_NAME = "trip-cache-v17";
+const CACHE_NAME = "trip-cache-v18";
 const CORE_ASSETS = [
   "./",
   "index.html",

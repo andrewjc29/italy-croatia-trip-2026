@@ -494,8 +494,15 @@ function mapActionsRow(googleUrl, appleUrl, copyText, copyLabel) {
 // link so entering something new is mostly just "type a name, hit auto-fill".
 // A no-op if the form doesn't have the button (e.g. this function got called
 // on some other modal), or if no API key is configured.
-function wireAutoFillButton(root) {
+// opts (all optional):
+//   cityLabel  -- explicit "City, Country" string to search with, for forms
+//                 that have no City dropdown (the hotel form). Falls back to
+//                 the form's City <select> via CITY_LABEL_MAP.
+//   onResult(result, root) -- extra hook after fields fill, e.g. the hotel
+//                 review reference panel.
+function wireAutoFillButton(root, opts) {
   if (!root) return;
+  opts = opts || {};
   const btn = root.querySelector("#autoFillBtn");
   const statusEl = root.querySelector("#autoFillStatus");
   if (!btn || !statusEl || typeof PlacesLookup === "undefined") return;
@@ -511,21 +518,101 @@ function wireAutoFillButton(root) {
     btn.disabled = true;
     statusEl.textContent = "Looking up “" + name + "”…";
     try {
-      const cityLabel = (typeof CITY_LABEL_MAP !== "undefined" && citySelect) ? CITY_LABEL_MAP[citySelect.value] || "" : "";
+      const cityLabel = opts.cityLabel != null ? opts.cityLabel
+        : ((typeof CITY_LABEL_MAP !== "undefined" && citySelect) ? CITY_LABEL_MAP[citySelect.value] || "" : "");
       const result = await PlacesLookup.lookup(name, cityLabel);
-      const kindInput = root.querySelector('[data-field="kind"]');
-      const descInput = root.querySelector('[data-field="description"]');
-      const urlInput = root.querySelector('[data-field="placeUrl"]');
-      if (kindInput && result.kind) kindInput.value = result.kind;
-      if (descInput && result.description) descInput.value = result.description;
-      if (urlInput && result.url) urlInput.value = result.url;
-      statusEl.textContent = result.description ? "Filled in from Google." : "Filled in kind + map link (no short description available for this place).";
+      const filled = applyAutofillFields(root, result);
+      if (typeof opts.onResult === "function") opts.onResult(result, root);
+      statusEl.textContent = filled.summary;
     } catch (err) {
       statusEl.textContent = err.message === "no-key" ? "Not set up yet — add a Google Maps API key in js/config.js." : "Couldn't look that up: " + err.message;
     } finally {
       btn.disabled = false;
     }
   });
+}
+
+// Fills every form field that matches a value Google returned. Only touches
+// fields the current form actually has (a missing selector is skipped), and
+// everything it writes stays a normal editable input. Returns { summary }.
+function applyAutofillFields(root, result) {
+  const setField = (key, val) => {
+    if (val == null || val === "") return false;
+    const input = root.querySelector('[data-field="' + key + '"]');
+    if (!input) return false;
+    input.value = val;
+    return true;
+  };
+  const gotKind = setField("kind", result.kind);
+  const gotDesc = setField("description", result.description);
+  setField("placeUrl", result.url);
+  const gotArea = setField("area", result.area);
+  // Provider is only present on bookable forms; harmless no-op elsewhere.
+  const gotProvider = setField("provider", result.provider);
+  // Nightly-cost hint (hotel form): a rough starting guess from the Google
+  // price band, and never clobber a value the user already typed.
+  const costInput = root.querySelector('[data-field="costLabel"]');
+  if (costInput && !String(costInput.value || "").trim() && result.priceBand) {
+    costInput.value = result.priceBand + " (Google price level — edit me)";
+  }
+  const bits = [];
+  if (gotKind) bits.push("kind");
+  if (gotDesc) bits.push("description");
+  if (gotArea) bits.push("area");
+  if (gotProvider) bits.push("provider");
+  const summary = bits.length
+    ? "Filled in " + bits.join(", ") + " from Google. Everything stays editable."
+    : "Found the place on Google, but there were no extra details to fill.";
+  return { summary: summary };
+}
+
+// Read-only Google reference panel shown under the hotel form's Auto-fill
+// button. Nothing here is saved with the hotel -- it just surfaces the rating
+// and a few review snippets so you can tap the ones worth keeping into Pros or
+// Cons (which detail is a pro vs a con is a judgment call, so nothing is
+// written automatically). "via Google" attribution is required when review
+// text is shown.
+function renderReviewPanel(result, root) {
+  const old = root.querySelector("#reviewRefPanel");
+  if (old) old.remove();
+  const reviews = (result && result.reviews) || [];
+  const hasRating = result && (result.rating || result.reviewCount);
+  if (!hasRating && !reviews.length) return;
+
+  const stars = result.rating ? Number(result.rating).toFixed(1) + "★" : "";
+  const count = result.reviewCount ? " (" + Number(result.reviewCount).toLocaleString() + " reviews)" : "";
+  const headerText = ("Google: " + (stars + count).trim()).trim() + " · via Google";
+
+  const snippetHtml = reviews.map((r) => {
+    const text = r.text.length > 180 ? r.text.slice(0, 177).trim() + "…" : r.text;
+    const author = r.author ? ' <span class="muted">— ' + esc(r.author) + "</span>" : "";
+    const enc = encodeURIComponent(r.text);
+    return '<div class="review-ref-item">' +
+      '<div class="review-ref-text">' + esc(text) + author + "</div>" +
+      '<div class="review-ref-btns">' +
+        '<button type="button" class="link" data-insert="pros" data-snippet="' + enc + '">＋ Pros</button>' +
+        '<button type="button" class="link" data-insert="cons" data-snippet="' + enc + '">＋ Cons</button>' +
+      "</div></div>";
+  }).join("");
+
+  const panel = el('<div id="reviewRefPanel" class="review-ref">' +
+    '<div class="review-ref-head">' + esc(headerText) + "</div>" +
+    snippetHtml +
+    "</div>");
+
+  const anchor = root.querySelector(".autofill-row");
+  if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(panel, anchor.nextSibling);
+  else root.appendChild(panel);
+
+  panel.querySelectorAll("[data-insert]").forEach((b) => b.addEventListener("click", () => {
+    const target = b.dataset.insert;
+    const snippet = decodeURIComponent(b.dataset.snippet);
+    const ta = root.querySelector('[data-field="' + target + '"]');
+    if (!ta) return;
+    const cur = String(ta.value || "").replace(/\s+$/, "");
+    ta.value = (cur ? cur + "\n" : "") + "• " + snippet;
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+  }));
 }
 
 // A lighter modal for read-only content -- just a Close button, no Save flow.
@@ -1059,21 +1146,32 @@ function openHotelChooseConfirm(state, h, place, current, placeLodgings) {
 
 function openHotelForm(state, existing, place) {
   const REQ = ' <span style="color:var(--danger)">*</span>';
+  const SPARK = ' <span title="auto-fillable">✨</span>';
   const body =
-    '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required</div>' +
+    '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required &middot; ✨ auto-fillable</div>' +
     '<label class="field">Hotel name' + REQ + '</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
-    '<label class="field">Area / neighborhood</label><input data-field="area" value="' + esc(existing ? existing.area : "") + '">' +
-    '<label class="field">Nightly cost (label, e.g. "~$180-260")</label><input data-field="costLabel" value="' + esc(existing ? existing.costLabel : "") + '">' +
-    '<label class="field">Why it works</label><textarea data-field="pros">' + esc(existing ? existing.pros : "") + '</textarea>' +
-    '<label class="field">Trade-offs</label><textarea data-field="cons">' + esc(existing ? existing.cons : "") + '</textarea>' +
+    '<div class="autofill-row"><button type="button" class="link" id="autoFillBtn">✨ Auto-fill from Google</button><span id="autoFillStatus" class="autofill-status"></span></div>' +
+    '<input type="hidden" data-field="placeUrl" value="' + esc(existing ? existing.url || "" : "") + '">' +
+    '<label class="field">Area / neighborhood' + SPARK + '</label><input data-field="area" value="' + esc(existing ? existing.area : "") + '">' +
+    '<label class="field">Nightly cost (label, e.g. "~$180-260")' + SPARK + '</label><input data-field="costLabel" value="' + esc(existing ? existing.costLabel : "") + '">' +
+    '<label class="field">Why it works' + SPARK + '</label><textarea data-field="pros">' + esc(existing ? existing.pros : "") + '</textarea>' +
+    '<label class="field">Trade-offs' + SPARK + '</label><textarea data-field="cons">' + esc(existing ? existing.cons : "") + '</textarea>' +
     "";
   openModal(existing ? "Edit hotel option" : "Add a hotel option", body, (data) => {
     if (!markMissingFields(["name"])) return false;
     const placeId = existing ? existing.placeId : place.id;
-    const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: mapsUrlForPlace(data.name, data.area, placeId), placeId: placeId, splurge: existing ? existing.splurge : false };
+    const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: data.placeUrl || mapsUrlForPlace(data.name, data.area, placeId), placeId: placeId, splurge: existing ? existing.splurge : false };
     if (existing) Store.update("hotels", existing.id, payload);
     else Store.add("hotels", payload, "ht");
   }, undefined, existing ? { onRemove: () => Store.remove("hotels", existing.id), removeConfirm: 'Remove "' + (existing.name || "this hotel") + '"?' } : undefined);
+  // The hotel form has no City dropdown, so pass an explicit city label built
+  // from the place. onResult renders the read-only Google review panel.
+  const placeId = place ? place.id : (existing && existing.placeId);
+  const hotelCityLabel =
+    (typeof PLACE_LABEL_MAP !== "undefined" && PLACE_LABEL_MAP[placeId]) ||
+    (place && place.cityIds && typeof CITY_LABEL_MAP !== "undefined" ? CITY_LABEL_MAP[place.cityIds[0]] : "") ||
+    "";
+  setTimeout(() => { wireAutoFillButton(document.querySelector(".modal-body"), { cityLabel: hotelCityLabel, onResult: renderReviewPanel }); }, 0);
 }
 
 // ---- See & do ----
