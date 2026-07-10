@@ -25,8 +25,11 @@ const PlacesLookup = (() => {
       script.async = true;
       script.onerror = () => reject(new Error("Failed to load Google Maps script -- check the API key and referrer restrictions."));
       script.onload = () => {
-        if (window.google && window.google.maps && window.google.maps.places) resolve();
-        else reject(new Error("Google Maps loaded but the Places library is missing -- enable 'Maps JavaScript API' and 'Places API (New)' for this key."));
+        // With loading=async, google.maps.places is NOT attached yet at onload.
+        // It is pulled in on demand via importLibrary("places") in lookup().
+        // Only require that the core Maps object is present here.
+        if (window.google && window.google.maps) resolve();
+        else reject(new Error("Google Maps failed to initialize -- check the API key and that 'Maps JavaScript API' is enabled."));
       };
       document.head.appendChild(script);
     });
