@@ -17,4 +17,4 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsaTH2W2xLPNuU
 //      andrewjc29.github.io/italy-croatia-trip-2026/*
 //   5. Under "API restrictions" choose "Restrict key" and select the two
 //      APIs from step 2. Save, then paste the key below.
-const GOOGLE_MAPS_API_KEY = "";
+const GOOGLE_MAPS_API_KEY = "AIzaSyBqrxLbiyxM6GxTCBxVRQVHg3TcsY4cZ7c";
