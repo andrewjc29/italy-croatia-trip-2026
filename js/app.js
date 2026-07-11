@@ -1366,9 +1366,76 @@ const CATEGORY_CONFIG = {
 };
 function configFor(category) { return CATEGORY_CONFIG[category] || CATEGORY_CONFIG.other; }
 
+// ---- Pure section renderers (Rev 3.2 migration, step 2) ----
+// Each takes a plain working record `d` plus a resolved config object and
+// returns an HTML string. No Store calls, no closures, no side effects, so the
+// same components can back the booking form today and the candidate forms once
+// they are migrated (items 5.x). The booking form composes all four.
+const REQ_MARK = ' <span class="req-mark" style="color:var(--danger)">*</span>';
+
+// Place Information: legend + Name + Category select + Location (single City or
+// route Origin/Destination).
+function renderPlaceSection(d, cfg, tripRange) {
+  const bk = cfg.booking;
+  const catOpts = BOOKING_CATEGORIES.map((c) => '<option value="' + c + '"' + (d.category === c ? " selected" : "") + ">" + c + "</option>").join("");
+  const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (d.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
+  let locationHtml;
+  if (cfg.location === "route") {
+    // Route categories: Origin/Destination text. Prefill Origin from the
+    // stored city so existing transport records don't render blank.
+    const originVal = d.origin || (d.city ? cityName(d.city) : "");
+    locationHtml =
+      '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+      '<div><label class="field">Origin' + REQ_MARK + '</label><input data-field="origin" value="' + esc(originVal) + '"></div>' +
+      '<div><label class="field">Destination' + REQ_MARK + '</label><input data-field="destination" value="' + esc(d.destination) + '"></div></div>';
+  } else {
+    locationHtml = '<label class="field">City' + REQ_MARK + '</label><select data-field="city">' + cityOpts + '</select>';
+  }
+  return '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required</div>' +
+    '<label class="field">' + esc(bk.nameLabel) + REQ_MARK + '</label><input data-field="title" value="' + esc(d.title) + '">' +
+    '<label class="field">Category' + REQ_MARK + '</label><select data-field="category" id="bkCategory">' + catOpts + '</select>' +
+    locationHtml;
+}
+
+// Category Fields: renders cfg.extraFields. Empty for bookings today; used by
+// the candidate forms once migrated (items 5.x).
+function renderCategoryFieldsSection(d, cfg) {
+  if (!cfg.extraFields || !cfg.extraFields.length) return "";
+  return "";
+}
+
+// Schedule: two date+time rows driven by cfg.schedule labels and time keys.
+function renderScheduleSection(d, cfg, tripRange) {
+  const sch = cfg.schedule;
+  return '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    '<div><label class="field">' + esc(sch.startLabel) + ' date</label><input type="date" data-field="date" value="' + esc(d.date) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
+    '<div><label class="field">' + esc(sch.startLabel) + ' time</label><input type="time" step="900" data-field="' + sch.startTimeKey + '" value="' + esc(d[sch.startTimeKey] || "") + '"></div></div>' +
+    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    '<div><label class="field">' + esc(sch.endLabel) + ' date</label><input type="date" data-field="endDate" value="' + esc(d.endDate) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
+    '<div><label class="field">' + esc(sch.endLabel) + ' time</label><input type="time" step="900" data-field="' + sch.endTimeKey + '" value="' + esc(d[sch.endTimeKey] || "") + '"></div></div>';
+}
+
+// Booking Details: Provider / Confirmation / Cost+Currency / Status / Link
+// (manual only) / Notes. Rendered whenever cfg.booking is present.
+function renderBookingSection(d, cfg) {
+  const bk = cfg.booking;
+  const statusOpts = STATUS_OPTIONS.map((s) => '<option value="' + s + '"' + (d.status === s ? " selected" : "") + ">" + s + "</option>").join("");
+  const currencyOpts = ["USD", "EUR"].map((c) => '<option value="' + c + '"' + (d.currency === c ? " selected" : "") + ">" + c + "</option>").join("");
+  const linkHtml = bk.bookingLink === "manual"
+    ? '<label class="field">Link</label><input data-field="link" value="' + esc(d.link) + '">'
+    : "";
+  return '<label class="field">' + esc(bk.providerLabel) + '</label><input data-field="provider" value="' + esc(d.provider) + '">' +
+    '<label class="field">Confirmation #</label><input data-field="confirmation" value="' + esc(d.confirmation) + '">' +
+    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    '<div><label class="field">Cost per person</label><input data-field="cost" type="number" value="' + esc(String(d.cost === 0 ? "" : (d.cost || ""))) + '"></div>' +
+    '<div><label class="field">Currency</label><select data-field="currency">' + currencyOpts + '</select></div></div>' +
+    '<label class="field">Status</label><select data-field="status">' + statusOpts + '</select>' +
+    linkHtml +
+    '<label class="field">Notes</label><textarea data-field="notes">' + esc(d.notes) + '</textarea>';
+}
+
 function openBookingForm(state, existing, place, defaultDate) {
   const tripRange = Store.getTripDateRange();
-  const REQ = ' <span class="req-mark" style="color:var(--danger)">*</span>';
   const defaultCity = existing ? existing.city : (place ? place.cityIds[0] : CITIES[0].id);
   // Working record: seed every known field so nothing stored is dropped on
   // save, then overlay the existing record.
@@ -1383,45 +1450,10 @@ function openBookingForm(state, existing, place, defaultDate) {
 
   function bodyHtml(d) {
     const cfg = configFor(d.category);
-    const sch = cfg.schedule, bk = cfg.booking;
-    const catOpts = BOOKING_CATEGORIES.map((c) => '<option value="' + c + '"' + (d.category === c ? " selected" : "") + ">" + c + "</option>").join("");
-    const statusOpts = STATUS_OPTIONS.map((s) => '<option value="' + s + '"' + (d.status === s ? " selected" : "") + ">" + s + "</option>").join("");
-    const currencyOpts = ["USD", "EUR"].map((c) => '<option value="' + c + '"' + (d.currency === c ? " selected" : "") + ">" + c + "</option>").join("");
-    const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (d.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
-    let locationHtml;
-    if (cfg.location === "route") {
-      // Route categories: Origin/Destination text. Prefill Origin from the
-      // stored city so existing transport records don't render blank.
-      const originVal = d.origin || (d.city ? cityName(d.city) : "");
-      locationHtml =
-        '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
-        '<div><label class="field">Origin' + REQ + '</label><input data-field="origin" value="' + esc(originVal) + '"></div>' +
-        '<div><label class="field">Destination' + REQ + '</label><input data-field="destination" value="' + esc(d.destination) + '"></div></div>';
-    } else {
-      locationHtml = '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>';
-    }
-    const linkHtml = bk.bookingLink === "manual"
-      ? '<label class="field">Link</label><input data-field="link" value="' + esc(d.link) + '">'
-      : "";
-    return '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required</div>' +
-      '<label class="field">' + esc(bk.nameLabel) + REQ + '</label><input data-field="title" value="' + esc(d.title) + '">' +
-      '<label class="field">Category' + REQ + '</label><select data-field="category" id="bkCategory">' + catOpts + '</select>' +
-      locationHtml +
-      '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
-      '<div><label class="field">' + esc(sch.startLabel) + ' date</label><input type="date" data-field="date" value="' + esc(d.date) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
-      '<div><label class="field">' + esc(sch.startLabel) + ' time</label><input type="time" step="900" data-field="' + sch.startTimeKey + '" value="' + esc(d[sch.startTimeKey] || "") + '"></div></div>' +
-      '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
-      '<div><label class="field">' + esc(sch.endLabel) + ' date</label><input type="date" data-field="endDate" value="' + esc(d.endDate) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
-      '<div><label class="field">' + esc(sch.endLabel) + ' time</label><input type="time" step="900" data-field="' + sch.endTimeKey + '" value="' + esc(d[sch.endTimeKey] || "") + '"></div></div>' +
-      '<label class="field">' + esc(bk.providerLabel) + '</label><input data-field="provider" value="' + esc(d.provider) + '">' +
-      '<label class="field">Confirmation #</label><input data-field="confirmation" value="' + esc(d.confirmation) + '">' +
-      '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
-      '<div><label class="field">Cost per person</label><input data-field="cost" type="number" value="' + esc(String(d.cost === 0 ? "" : (d.cost || ""))) + '"></div>' +
-      '<div><label class="field">Currency</label><select data-field="currency">' + currencyOpts + '</select></div></div>' +
-      '<label class="field">Status</label><select data-field="status">' + statusOpts + '</select>' +
-      linkHtml +
-      '<label class="field">Notes</label><textarea data-field="notes">' + esc(d.notes) + '</textarea>' +
-      "";
+    return renderPlaceSection(d, cfg, tripRange) +
+      renderCategoryFieldsSection(d, cfg) +
+      renderScheduleSection(d, cfg, tripRange) +
+      renderBookingSection(d, cfg);
   }
 
   // Read whatever fields are currently rendered back onto the working record.
