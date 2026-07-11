@@ -1145,33 +1145,43 @@ function openHotelChooseConfirm(state, h, place, current, placeLodgings) {
 }
 
 function openHotelForm(state, existing, place) {
-  const REQ = ' <span style="color:var(--danger)">*</span>';
-  const SPARK = ' <span title="auto-fillable">✨</span>';
-  const body =
-    '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required &middot; ✨ auto-fillable</div>' +
-    '<label class="field">Hotel name' + REQ + '</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
-    '<div class="autofill-row"><button type="button" class="link" id="autoFillBtn">✨ Auto-fill from Google</button><span id="autoFillStatus" class="autofill-status"></span></div>' +
-    '<input type="hidden" data-field="placeUrl" value="' + esc(existing ? existing.url || "" : "") + '">' +
-    '<label class="field">Area / neighborhood' + SPARK + '</label><input data-field="area" value="' + esc(existing ? existing.area : "") + '">' +
-    '<label class="field">Nightly cost (label, e.g. "~$180-260")' + SPARK + '</label><input data-field="costLabel" value="' + esc(existing ? existing.costLabel : "") + '">' +
-    '<label class="field">Why it works' + SPARK + '</label><textarea data-field="pros">' + esc(existing ? existing.pros : "") + '</textarea>' +
-    '<label class="field">Trade-offs' + SPARK + '</label><textarea data-field="cons">' + esc(existing ? existing.cons : "") + '</textarea>' +
-    "";
-  openModal(existing ? "Edit hotel option" : "Add a hotel option", body, (data) => {
-    if (!markMissingFields(["name"])) return false;
-    const placeId = existing ? existing.placeId : place.id;
-    const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: data.placeUrl || mapsUrlForPlace(data.name, data.area, placeId), placeId: placeId, splurge: existing ? existing.splurge : false };
-    if (existing) Store.update("hotels", existing.id, payload);
-    else Store.add("hotels", payload, "ht");
-  }, undefined, existing ? { onRemove: () => Store.remove("hotels", existing.id), removeConfirm: 'Remove "' + (existing.name || "this hotel") + '"?' } : undefined);
-  // The hotel form has no City dropdown, so pass an explicit city label built
-  // from the place. onResult renders the read-only Google review panel.
+  // Config-driven (Rev 3.2, item 5.4). Hotel candidate is the most divergent:
+  // no City, no schedule, no status. Area / Cost label / Pros / Cons are
+  // category fields. The Cost label -> integer parse stays in the save handler
+  // (a per-collection transform, not something a pure renderer should do).
+  const cfg = {
+    autofill: true,
+    categorySelect: false,
+    name: { key: "name", label: "Hotel name", required: true },
+    // location intentionally omitted: the hotel form has no City field.
+    extraFields: [
+      { key: "area", label: "Area / neighborhood", type: "text", autofillable: true },
+      { key: "costLabel", label: 'Nightly cost (label, e.g. "~$180-260")', type: "text", autofillable: true },
+      { key: "pros", label: "Why it works", type: "textarea", autofillable: true },
+      { key: "cons", label: "Trade-offs", type: "textarea", autofillable: true }
+    ],
+    required: ["name"],
+    defaults: { name: "", area: "", costLabel: "", pros: "", cons: "", url: (existing ? existing.url || "" : "") }
+  };
+  // No City dropdown, so build an explicit city label for autofill. onResult
+  // renders the read-only Google review panel under the button.
   const placeId = place ? place.id : (existing && existing.placeId);
   const hotelCityLabel =
     (typeof PLACE_LABEL_MAP !== "undefined" && PLACE_LABEL_MAP[placeId]) ||
     (place && place.cityIds && typeof CITY_LABEL_MAP !== "undefined" ? CITY_LABEL_MAP[place.cityIds[0]] : "") ||
     "";
-  setTimeout(() => { wireAutoFillButton(document.querySelector(".modal-body"), { cityLabel: hotelCityLabel, onResult: renderReviewPanel }); }, 0);
+  openItemForm("hotels", cfg, existing, place, {
+    title: existing ? "Edit hotel option" : "Add a hotel option",
+    autofillOpts: { cityLabel: hotelCityLabel, onResult: renderReviewPanel },
+    save: (data) => {
+      const pid = existing ? existing.placeId : place.id;
+      const payload = { name: data.name, area: data.area, costLabel: data.costLabel, cost: parseInt((data.costLabel.match(/\d+/g) || [0]).reduce((a, b) => +a + +b, 0) / Math.max(1, (data.costLabel.match(/\d+/g) || [1]).length), 10) || 0, pros: data.pros, cons: data.cons, url: data.placeUrl || mapsUrlForPlace(data.name, data.area, pid), placeId: pid, splurge: existing ? existing.splurge : false };
+      if (existing) Store.update("hotels", existing.id, payload);
+      else Store.add("hotels", payload, "ht");
+    },
+    remove: existing ? () => Store.remove("hotels", existing.id) : undefined,
+    removeConfirm: existing ? ('Remove "' + (existing.name || "this hotel") + '"?') : undefined
+  });
 }
 
 // ---- See & do ----
