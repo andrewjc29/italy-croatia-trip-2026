@@ -1594,25 +1594,33 @@ function openBookingForm(state, existing, place, defaultDate) {
 }
 
 function openRestForm(state, existing, place) {
-  const cityOpts = place.cityIds.map((id) => '<option value="' + id + '"' + ((existing ? existing.city : place.cityIds[0]) === id ? " selected" : "") + ">" + cityName(id) + "</option>").join("");
-  const REQ = ' <span style="color:var(--danger)">*</span>';
-  const SPARK = ' <span title="auto-fillable">✨</span>';
-  const body = '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required &middot; ✨ auto-fillable</div>' +
-    '<label class="field">Name' + REQ + '</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
-    '<div class="autofill-row"><button type="button" class="link" id="autoFillBtn">✨ Auto-fill from Google</button><span id="autoFillStatus" class="autofill-status"></span></div>' +
-    '<input type="hidden" data-field="placeUrl" value="' + esc(existing ? existing.url || "" : "") + '">' +
-    '<label class="field">Kind / specialty' + SPARK + '</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
-    '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>' +
-    '<label class="field">Notes (optional -- reservation info, tips)' + SPARK + '</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
-    '<label class="field">Vegetarian friendly?</label><select data-field="vegetarian"><option value="true"' + (existing && existing.vegetarian ? " selected" : "") + '>Yes</option><option value="false"' + (existing && !existing.vegetarian ? " selected" : "") + '>No</option></select>' +
-    "";
-  openModal(existing ? "Edit" : "Add restaurant", body, (data) => {
-    if (!markMissingFields(["name"])) return false;
-    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), vegetarian: data.vegetarian === "true", placeId: place.id };
-    if (existing) Store.update("restaurants", existing.id, payload);
-    else Store.add("restaurants", payload, "r");
-  }, undefined, existing ? { onRemove: () => Store.remove("restaurants", existing.id), removeConfirm: 'Remove "' + (existing.name || "this restaurant") + '"?' } : undefined);
-  setTimeout(() => { wireAutoFillButton(document.querySelector(".modal-body")); }, 0);
+  // Config-driven (Rev 3.2, item 5.3). Restaurant candidate: Name (+autofill) +
+  // Kind + City + Notes + Vegetarian. Vegetarian is a judgment call, so it
+  // carries no ✨ mark. No schedule, no booking, no category select.
+  const cfg = {
+    autofill: true,
+    categorySelect: false,
+    name: { key: "name", label: "Name", required: true },
+    location: "single",
+    cities: place.cityIds.map((id) => ({ id: id, name: cityName(id) })),
+    extraFields: [
+      { key: "kind", label: "Kind / specialty", type: "text", autofillable: true },
+      { key: "description", label: "Notes (optional -- reservation info, tips)", type: "textarea", autofillable: true, placeholder: "Keep it brief, not shown on the card" },
+      { key: "vegetarian", label: "Vegetarian friendly?", type: "boolean" }
+    ],
+    required: ["name"],
+    defaults: { name: "", kind: "", city: (existing ? existing.city : place.cityIds[0]), description: "", url: (existing ? existing.url || "" : "") }
+  };
+  openItemForm("restaurants", cfg, existing, place, {
+    title: existing ? "Edit" : "Add restaurant",
+    save: (data) => {
+      const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), vegetarian: data.vegetarian === "true", placeId: place.id };
+      if (existing) Store.update("restaurants", existing.id, payload);
+      else Store.add("restaurants", payload, "r");
+    },
+    remove: existing ? () => Store.remove("restaurants", existing.id) : undefined,
+    removeConfirm: existing ? ('Remove "' + (existing.name || "this restaurant") + '"?') : undefined
+  });
 }
 
 // ---- today view: collapses straight to the current day while traveling ----
