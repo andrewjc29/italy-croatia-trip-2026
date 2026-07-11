@@ -1200,25 +1200,31 @@ function renderPlaceSee(placeId, state) {
 }
 
 function openSeeForm(state, existing, place) {
-  const cityOpts = place.cityIds.map((id) => '<option value="' + id + '"' + ((existing ? existing.city : place.cityIds[0]) === id ? " selected" : "") + ">" + cityName(id) + "</option>").join("");
-  const REQ = ' <span style="color:var(--danger)">*</span>';
-  const SPARK = ' <span title="auto-fillable">✨</span>';
-  const body =
-    '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required &middot; ✨ auto-fillable</div>' +
-    '<label class="field">Name' + REQ + '</label><input data-field="name" value="' + esc(existing ? existing.name : "") + '">' +
-    '<div class="autofill-row"><button type="button" class="link" id="autoFillBtn">✨ Auto-fill from Google</button><span id="autoFillStatus" class="autofill-status"></span></div>' +
-    '<input type="hidden" data-field="placeUrl" value="' + esc(existing ? existing.url || "" : "") + '">' +
-    '<label class="field">Kind / category' + SPARK + '</label><input data-field="kind" value="' + esc(existing ? existing.kind : "") + '">' +
-    '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>' +
-    '<label class="field">Notes (optional, brief)' + SPARK + '</label><textarea data-field="description" placeholder="Keep it brief, not shown on the card">' + esc(existing ? existing.description : "") + '</textarea>' +
-    "";
-  openModal(existing ? "Edit" : "Add a thing to do", body, (data) => {
-    if (!markMissingFields(["name"])) return false;
-    const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), placeId: place.id };
-    if (existing) Store.update("thingsToDo", existing.id, payload);
-    else Store.add("thingsToDo", payload, "td");
-  }, undefined, existing ? { onRemove: () => Store.remove("thingsToDo", existing.id), removeConfirm: 'Remove "' + (existing.name || "this item") + '"?' } : undefined);
-  setTimeout(() => { wireAutoFillButton(document.querySelector(".modal-body")); }, 0);
+  // Config-driven (Rev 3.2, item 5.2). thingsToDo candidate: Name (+autofill) +
+  // Kind + City + Notes. No schedule, no booking, no category select.
+  const cfg = {
+    autofill: true,
+    categorySelect: false,
+    name: { key: "name", label: "Name", required: true },
+    location: "single",
+    cities: place.cityIds.map((id) => ({ id: id, name: cityName(id) })),
+    extraFields: [
+      { key: "kind", label: "Kind / category", type: "text", autofillable: true },
+      { key: "description", label: "Notes (optional, brief)", type: "textarea", autofillable: true, placeholder: "Keep it brief, not shown on the card" }
+    ],
+    required: ["name"],
+    defaults: { name: "", kind: "", city: (existing ? existing.city : place.cityIds[0]), description: "", url: (existing ? existing.url || "" : "") }
+  };
+  openItemForm("thingsToDo", cfg, existing, place, {
+    title: existing ? "Edit" : "Add a thing to do",
+    save: (data) => {
+      const payload = { name: data.name, kind: data.kind, city: data.city, description: data.description, url: data.placeUrl || mapsUrlForCity(data.name, data.city), placeId: place.id };
+      if (existing) Store.update("thingsToDo", existing.id, payload);
+      else Store.add("thingsToDo", payload, "td");
+    },
+    remove: existing ? () => Store.remove("thingsToDo", existing.id) : undefined,
+    removeConfirm: existing ? ('Remove "' + (existing.name || "this item") + '"?') : undefined
+  });
 }
 
 // ---- Where to eat ----
