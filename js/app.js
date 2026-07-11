@@ -1321,31 +1321,36 @@ function renderPlaces(state) {
 
 // ---- forms ----
 function openActivityForm(state, date, existing, place) {
-  const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (existing && existing.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
-  const typeOpts = ["sight", "meal", "experience", "free"].map((t) => '<option value="' + t + '"' + (existing && existing.type === t ? " selected" : "") + ">" + t + "</option>").join("");
-  const statusOpts = STATUS_OPTIONS.map((s) => '<option value="' + s + '"' + ((existing ? existing.status : "idea") === s ? " selected" : "") + ">" + s + "</option>").join("");
-  const currencyOpts = ["USD", "EUR"].map((c) => '<option value="' + c + '"' + ((existing ? existing.currency : "USD") === c ? " selected" : "") + ">" + c + "</option>").join("");
-  const tripRange = Store.getTripDateRange();
   const dateVal = existing ? existing.date : date;
-  const REQ = ' <span style="color:var(--danger)">*</span>';
-  const body =
-    '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required</div>' +
-    '<label class="field">Title (a dinner spot, a sight, a tour)' + REQ + '</label><input data-field="title" value="' + esc(existing ? existing.title : "") + '">' +
-    '<label class="field">Date</label><input type="date" data-field="date" value="' + esc(dateVal || "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
-    '<label class="field">Time (optional)</label><input type="time" step="900" data-field="time" value="' + esc(existing ? existing.time : "") + '">' +
-    '<label class="field">City' + REQ + '</label><select data-field="city">' + cityOpts + '</select>' +
-    '<label class="field">Type</label><select data-field="type">' + typeOpts + '</select>' +
-    '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="field">Cost per person (optional)</label><input data-field="cost" type="number" value="' + (existing && existing.cost ? existing.cost : "") + '"></div>' +
-    '<div><label class="field">Currency</label><select data-field="currency">' + currencyOpts + '</select></div></div>' +
-    '<label class="field">Status</label><select data-field="status">' + statusOpts + '</select>' +
-    '<label class="field">Notes</label><textarea data-field="notes">' + esc(existing ? existing.notes : "") + '</textarea>' +
-    "";
-  openModal(existing ? "Edit itinerary item" : "Add to " + (dateVal ? fmtDate(dateVal) : "your itinerary"), body, (data) => {
-    if (!markMissingFields(["title"])) return false;
-    const payload = { date: data.date, title: data.title, time: data.time, city: data.city, type: data.type, notes: data.notes, status: data.status || (existing ? existing.status : "idea"), cost: parseFloat(data.cost) || 0, currency: data.currency || "USD" };
-    if (existing) Store.update("activities", existing.id, Object.assign({}, existing, payload));
-    else Store.add("activities", payload, "a");
-  }, "Save", existing ? { onRemove: () => Store.remove("activities", existing.id), removeConfirm: 'Remove "' + (existing.title || "this item") + '"?' } : undefined);
+  // Config-driven (Rev 3.2, item 5.1). Activity = single City + a single-date
+  // schedule (empty date => wishlist) + Type/Cost/Currency/Status/Notes as
+  // category fields. No autofill, no category select, no booking section.
+  const cfg = {
+    categorySelect: false,
+    name: { key: "title", label: "Title (a dinner spot, a sight, a tour)", required: true },
+    location: "single", // cities default to the full CITIES list
+    schedule: { shape: "single", startLabel: "Date", timeLabel: "Time (optional)", startDateKey: "date", startTimeKey: "time" },
+    extraFields: [
+      { key: "type", label: "Type", type: "select", options: ["sight", "meal", "experience", "free"].map((t) => ({ value: t, label: t })) },
+      { key: "cost", label: "Cost per person (optional)", type: "number" },
+      { key: "currency", label: "Currency", type: "select", options: [{ value: "USD", label: "USD" }, { value: "EUR", label: "EUR" }] },
+      { key: "status", label: "Status", type: "select", options: STATUS_OPTIONS.map((s) => ({ value: s, label: s })) },
+      { key: "notes", label: "Notes", type: "textarea" }
+    ],
+    required: ["title"],
+    defaults: { title: "", date: dateVal || "", time: "", city: "", type: "", notes: "", status: "idea", cost: "", currency: "USD" }
+  };
+  openItemForm("activities", cfg, existing, place, {
+    title: existing ? "Edit itinerary item" : "Add to " + (dateVal ? fmtDate(dateVal) : "your itinerary"),
+    submitLabel: "Save",
+    save: (data) => {
+      const payload = { date: data.date, title: data.title, time: data.time, city: data.city, type: data.type, notes: data.notes, status: data.status || (existing ? existing.status : "idea"), cost: parseFloat(data.cost) || 0, currency: data.currency || "USD" };
+      if (existing) Store.update("activities", existing.id, Object.assign({}, existing, payload));
+      else Store.add("activities", payload, "a");
+    },
+    remove: existing ? () => Store.remove("activities", existing.id) : undefined,
+    removeConfirm: existing ? ('Remove "' + (existing.title || "this item") + '"?') : undefined
+  });
 }
 
 // ---- Bookings: config-driven form (Rev 3.2 migration, step 1) ----
@@ -1372,47 +1377,119 @@ function configFor(category) { return CATEGORY_CONFIG[category] || CATEGORY_CONF
 // same components can back the booking form today and the candidate forms once
 // they are migrated (items 5.x). The booking form composes all four.
 const REQ_MARK = ' <span class="req-mark" style="color:var(--danger)">*</span>';
+const SPARK_MARK = ' <span title="auto-fillable">✨</span>';
 
-// Place Information: legend + Name + Category select + Location (single City or
-// route Origin/Destination).
+// Legend line: "* required" plus "✨ auto-fillable" when the form has any
+// autofill-backed fields (candidate forms). Booking forms show only required.
+function renderLegend(cfg) {
+  return '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required' +
+    (cfg.autofill ? ' &middot; ✨ auto-fillable' : '') + '</div>';
+}
+
+// Place Information: legend + Name (+ autofill button) + Category select
+// (booking only) + Location. Fully config-driven:
+//   cfg.name         { key, label, required }  (defaults to booking's title)
+//   cfg.autofill     true -> ✨ button row + hidden placeUrl field
+//   cfg.categorySelect  false -> omit the Category <select> (candidate forms)
+//   cfg.location     "single" | "route" | falsy (no location field, e.g. hotel)
+//   cfg.cities       [{id,name}] for a single-location city list (defaults to CITIES)
 function renderPlaceSection(d, cfg, tripRange) {
-  const bk = cfg.booking;
-  const catOpts = BOOKING_CATEGORIES.map((c) => '<option value="' + c + '"' + (d.category === c ? " selected" : "") + ">" + c + "</option>").join("");
-  const cityOpts = CITIES.map((c) => '<option value="' + c.id + '"' + (d.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
-  let locationHtml;
+  const nameKey = (cfg.name && cfg.name.key) || "title";
+  const nameLabel = esc((cfg.name && cfg.name.label) || (cfg.booking && cfg.booking.nameLabel) || "Name");
+  let html = renderLegend(cfg) +
+    '<label class="field">' + nameLabel + REQ_MARK + '</label><input data-field="' + nameKey + '" value="' + esc(d[nameKey]) + '">';
+  if (cfg.autofill) {
+    html += '<div class="autofill-row"><button type="button" class="link" id="autoFillBtn">✨ Auto-fill from Google</button><span id="autoFillStatus" class="autofill-status"></span></div>' +
+      '<input type="hidden" data-field="placeUrl" value="' + esc(d.url || "") + '">';
+  }
+  if (cfg.categorySelect !== false) {
+    const catOpts = BOOKING_CATEGORIES.map((c) => '<option value="' + c + '"' + (d.category === c ? " selected" : "") + ">" + c + "</option>").join("");
+    html += '<label class="field">Category' + REQ_MARK + '</label><select data-field="category" id="bkCategory">' + catOpts + '</select>';
+  }
   if (cfg.location === "route") {
     // Route categories: Origin/Destination text. Prefill Origin from the
     // stored city so existing transport records don't render blank.
     const originVal = d.origin || (d.city ? cityName(d.city) : "");
-    locationHtml =
-      '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    html += '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
       '<div><label class="field">Origin' + REQ_MARK + '</label><input data-field="origin" value="' + esc(originVal) + '"></div>' +
       '<div><label class="field">Destination' + REQ_MARK + '</label><input data-field="destination" value="' + esc(d.destination) + '"></div></div>';
-  } else {
-    locationHtml = '<label class="field">City' + REQ_MARK + '</label><select data-field="city">' + cityOpts + '</select>';
+  } else if (cfg.location === "single") {
+    const cities = cfg.cities || CITIES;
+    const cityOpts = cities.map((c) => '<option value="' + c.id + '"' + (d.city === c.id ? " selected" : "") + ">" + c.name + "</option>").join("");
+    html += '<label class="field">City' + REQ_MARK + '</label><select data-field="city">' + cityOpts + '</select>';
   }
-  return '<div class="form-legend muted" style="font-size:.85em;margin-bottom:.4rem"><span style="color:var(--danger)">*</span> required</div>' +
-    '<label class="field">' + esc(bk.nameLabel) + REQ_MARK + '</label><input data-field="title" value="' + esc(d.title) + '">' +
-    '<label class="field">Category' + REQ_MARK + '</label><select data-field="category" id="bkCategory">' + catOpts + '</select>' +
-    locationHtml;
+  return html;
 }
 
-// Category Fields: renders cfg.extraFields. Empty for bookings today; used by
-// the candidate forms once migrated (items 5.x).
+// Renders one config field: text | number | textarea | boolean | select.
+function renderField(d, f) {
+  const marks = (f.required ? REQ_MARK : "") + (f.autofillable ? SPARK_MARK : "");
+  const label = '<label class="field">' + esc(f.label) + marks + '</label>';
+  const val = d[f.key];
+  if (f.type === "textarea") {
+    return label + '<textarea data-field="' + f.key + '"' + (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '>' + esc(val) + '</textarea>';
+  }
+  if (f.type === "boolean") {
+    // Match the legacy markup: on create (no stored value) neither option is
+    // pre-selected, so the browser defaults to the first ("Yes").
+    const hasVal = val !== undefined && val !== null && val !== "";
+    return label + '<select data-field="' + f.key + '"><option value="true"' + (hasVal && val ? " selected" : "") + '>Yes</option>' +
+      '<option value="false"' + (hasVal && !val ? " selected" : "") + '>No</option></select>';
+  }
+  if (f.type === "select") {
+    const opts = (f.options || []).map((o) => '<option value="' + esc(o.value) + '"' + (String(val) === String(o.value) ? " selected" : "") + ">" + esc(o.label) + "</option>").join("");
+    return label + '<select data-field="' + f.key + '">' + opts + '</select>';
+  }
+  const typeAttr = f.type === "number" ? ' type="number"' : '';
+  return label + '<input data-field="' + f.key + '"' + typeAttr + ' value="' + esc(val === 0 ? "" : (val || "")) + '"' + (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '>';
+}
+
+// Category Fields: renders cfg.extraFields in order. Empty for bookings.
 function renderCategoryFieldsSection(d, cfg) {
   if (!cfg.extraFields || !cfg.extraFields.length) return "";
-  return "";
+  return cfg.extraFields.map((f) => renderField(d, f)).join("");
 }
 
-// Schedule: two date+time rows driven by cfg.schedule labels and time keys.
+// Schedule. Default "range" shape = two date+time rows (bookings). "single"
+// shape = one date + one time row (activities), where an empty date parks the
+// item on the wishlist.
 function renderScheduleSection(d, cfg, tripRange) {
   const sch = cfg.schedule;
+  if (sch.shape === "single") {
+    const dateKey = sch.startDateKey || "date";
+    const timeKey = sch.startTimeKey || "time";
+    return '<label class="field">' + esc(sch.startLabel || "Date") + '</label><input type="date" data-field="' + dateKey + '" value="' + esc(d[dateKey] || "") + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '">' +
+      '<label class="field">' + esc(sch.timeLabel || "Time (optional)") + '</label><input type="time" step="900" data-field="' + timeKey + '" value="' + esc(d[timeKey] || "") + '">';
+  }
   return '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
     '<div><label class="field">' + esc(sch.startLabel) + ' date</label><input type="date" data-field="date" value="' + esc(d.date) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
     '<div><label class="field">' + esc(sch.startLabel) + ' time</label><input type="time" step="900" data-field="' + sch.startTimeKey + '" value="' + esc(d[sch.startTimeKey] || "") + '"></div></div>' +
     '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
     '<div><label class="field">' + esc(sch.endLabel) + ' date</label><input type="date" data-field="endDate" value="' + esc(d.endDate) + '" min="' + esc(tripRange.start || "") + '" max="' + esc(tripRange.end || "") + '"></div>' +
     '<div><label class="field">' + esc(sch.endLabel) + ' time</label><input type="time" step="900" data-field="' + sch.endTimeKey + '" value="' + esc(d[sch.endTimeKey] || "") + '"></div></div>';
+}
+
+// Generic config-driven form entry point (Rev 3.2 migration, item 5). Composes
+// the pure section renderers, wires validation/save/remove through openModal,
+// and optionally mounts the Google autofill button. Each collection supplies a
+// config plus a save() closure where any per-collection transform lives.
+function openItemForm(collection, cfg, existing, place, opts) {
+  opts = opts || {};
+  const tripRange = Store.getTripDateRange();
+  const d = Object.assign({}, cfg.defaults || {}, existing || {});
+  const body =
+    renderPlaceSection(d, cfg, tripRange) +
+    (cfg.schedule ? renderScheduleSection(d, cfg, tripRange) : "") +
+    renderCategoryFieldsSection(d, cfg) +
+    (cfg.booking ? renderBookingSection(d, cfg) : "");
+  const removeOpts = (existing && opts.remove)
+    ? { onRemove: () => opts.remove(existing), removeConfirm: opts.removeConfirm }
+    : undefined;
+  openModal(opts.title || (existing ? "Edit" : "Add"), body, (data) => {
+    if (cfg.required && cfg.required.length && !markMissingFields(cfg.required)) return false;
+    return opts.save(data, { existing: existing, place: place });
+  }, opts.submitLabel || "Save", removeOpts);
+  if (cfg.autofill) setTimeout(() => { wireAutoFillButton(document.querySelector(".modal-body"), opts.autofillOpts || {}); }, 0);
 }
 
 // Booking Details: Provider / Confirmation / Cost+Currency / Status / Link
