@@ -550,16 +550,22 @@ function applyAutofillFields(root, result) {
   // Provider is only present on bookable forms; harmless no-op elsewhere.
   const gotProvider = setField("provider", result.provider);
   // Nightly-cost hint (hotel form): a rough starting guess from the Google
-  // price band, and never clobber a value the user already typed.
+  // price band. Refresh it on every explicit Auto-fill -- the user clicked the
+  // button for whatever name is in the field now, so switching to a different
+  // hotel updates the cost band instead of keeping the previous place's value.
+  // Only writes when Google actually returns a band (never blanks a typed cost).
   const costInput = root.querySelector('[data-field="costLabel"]');
-  if (costInput && !String(costInput.value || "").trim() && result.priceBand) {
+  let gotCost = false;
+  if (costInput && result.priceBand) {
     costInput.value = result.priceBand + " (Google price level — edit me)";
+    gotCost = true;
   }
   const bits = [];
   if (gotKind) bits.push("kind");
   if (gotDesc) bits.push("description");
   if (gotArea) bits.push("area");
   if (gotProvider) bits.push("provider");
+  if (gotCost) bits.push("cost");
   const summary = bits.length
     ? "Filled in " + bits.join(", ") + " from Google. Everything stays editable."
     : "Found the place on Google, but there were no extra details to fill.";
