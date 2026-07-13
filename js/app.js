@@ -533,15 +533,31 @@ function wireAutoFillButton(root, opts) {
 }
 
 // Fills every form field that matches a value Google returned. Only touches
-// fields the current form actually has (a missing selector is skipped), and
-// everything it writes stays a normal editable input. Returns { summary }.
+// fields the current form actually has (a missing selector is skipped). On a
+// repeat Auto-fill for a different place, every field we previously filled is
+// refreshed -- overwritten with the new value, or cleared when Google no longer
+// has one -- so nothing carries over from the prior place. A field the user
+// typed into by hand is never wiped (we only clear fields we filled ourselves).
+// Everything it writes stays editable. Returns { summary }.
 function applyAutofillFields(root, result) {
-  const setField = (key, val) => {
-    if (val == null || val === "") return false;
+  // Tag a field we auto-filled. The first time the user edits it by hand, drop
+  // the tag so a later Auto-fill won't clear their manual value.
+  const markAutofilled = (input) => {
+    input.dataset.autofilled = "1";
+    if (!input._autofillWatch) {
+      input._autofillWatch = true;
+      input.addEventListener("input", () => { delete input.dataset.autofilled; });
+    }
+  };
+  const setField = (key, rawVal) => {
     const input = root.querySelector('[data-field="' + key + '"]');
     if (!input) return false;
-    input.value = val;
-    return true;
+    const val = (rawVal == null) ? "" : String(rawVal);
+    if (val !== "") { input.value = val; markAutofilled(input); return true; }
+    // Google returned nothing for this field: reset it only if WE filled it on
+    // a previous Auto-fill, so stale data from the last place doesn't linger.
+    if (input.dataset.autofilled === "1") { input.value = ""; delete input.dataset.autofilled; }
+    return false;
   };
   const gotKind = setField("kind", result.kind);
   const gotDesc = setField("description", result.description);
@@ -549,17 +565,8 @@ function applyAutofillFields(root, result) {
   const gotArea = setField("area", result.area);
   // Provider is only present on bookable forms; harmless no-op elsewhere.
   const gotProvider = setField("provider", result.provider);
-  // Nightly-cost hint (hotel form): a rough starting guess from the Google
-  // price band. Refresh it on every explicit Auto-fill -- the user clicked the
-  // button for whatever name is in the field now, so switching to a different
-  // hotel updates the cost band instead of keeping the previous place's value.
-  // Only writes when Google actually returns a band (never blanks a typed cost).
-  const costInput = root.querySelector('[data-field="costLabel"]');
-  let gotCost = false;
-  if (costInput && result.priceBand) {
-    costInput.value = result.priceBand + " (Google price level — edit me)";
-    gotCost = true;
-  }
+  // Nightly-cost hint (hotel form): a rough band from Google, tagged as editable.
+  const gotCost = setField("costLabel", result.priceBand ? (result.priceBand + " (Google price level — edit me)") : "");
   const bits = [];
   if (gotKind) bits.push("kind");
   if (gotDesc) bits.push("description");
